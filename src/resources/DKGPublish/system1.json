@@ -1,0 +1,11 @@
+{
+  "@context": "http://schema.org",
+  "@type": "System",
+  "uuid": "1234",
+  "timestamp": "${timestamp}",
+  "network": "ethereum",
+  "contract_id": [
+      "333",
+      "999"
+  ]
+}

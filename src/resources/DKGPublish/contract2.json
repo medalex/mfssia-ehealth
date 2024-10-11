@@ -1,0 +1,13 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Contract",
+  "contractNo": "contract_2222",
+  "timestamp": "${timestamp}",
+  "consumer_network": "polygon",
+  "producer_network": "ethereum",
+  "price": 299,
+  "quantity": 20,
+  "delivery_interval": 30,
+  "product_name": "Bananas",
+  "uuid": "6789"
+}

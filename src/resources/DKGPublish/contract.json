@@ -1,0 +1,13 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Contract",
+  "contractNo": "contract_1234",
+  "timestamp": "${timestamp}",
+  "consumer_network": "polygon",
+  "producer_network": "ethereum",
+  "price": 10000,
+  "quantity": 2,
+  "delivery_interval": 3,
+  "product_name": "Apple",
+  "uuid": "1234"
+}

@@ -1,0 +1,8 @@
+{
+    "@context": "https://schema.org",
+    "@type": "Gateway",
+    "uuid": "sl3",
+    "producerNetwork": "ethereum",
+    "consumerNetwork": "hyperledger",
+    "timestamp": "${timestamp}"
+}

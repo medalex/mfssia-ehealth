@@ -1,0 +1,11 @@
+{
+  "@context": "http://schema.org",
+  "@type": "SecurityLicense",
+  "licenseNo": "license_1",
+  "timestamp": "${timestamp}",
+  "systemUUID": "777",
+  "issuer": "certificate-authority1",
+  "validTill": "2024-05-23",
+  "uuid": "3",
+  "owner": "12333"
+}

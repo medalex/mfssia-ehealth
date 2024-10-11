@@ -1,0 +1,43 @@
+/* eslint-disable prettier/prettier */
+import { HttpException, HttpStatus } from '@nestjs/common';
+import { isProdEnv } from 'src/app.environment';
+
+export enum APIErrorAlias {
+  Unknown = 'Unknown',
+  ValidationError = 'ValidationError',
+  NotFound = 'NotFound',
+  OperationFailed = 'OperationFailed',
+}
+
+export interface IAPIError {
+  alias?: APIErrorAlias;
+  message: string;
+  data?: any;
+}
+
+export class APIError extends HttpException implements IAPIError {
+  public alias?: APIErrorAlias;
+  public message: string;
+  public stack?: string;
+  public data?: any;
+
+  constructor(params: { message: string; alias?: APIErrorAlias; status?: number; stack?: string; data?: any }) {
+    if (isProdEnv) {
+      delete params.stack;
+      if (params.alias === APIErrorAlias.Unknown) {
+        params.message = 'An Error Occurred';
+      }
+    }
+    super(params, params.status || HttpStatus.INTERNAL_SERVER_ERROR);
+
+    this.alias = params.alias;
+    this.message = params.message;
+    this.stack = params.stack;
+    this.data = params.data;
+
+    if (isProdEnv && !params.stack) {
+      (Object as any).setPrototypeOf(this, APIError.prototype);
+      Error.captureStackTrace(this, this.constructor);
+    }
+  }
+}
