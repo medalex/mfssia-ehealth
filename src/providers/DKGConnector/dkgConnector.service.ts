@@ -10,14 +10,15 @@ import { System } from './System';
 
 @Injectable()
 export class DKGConnectorService {
-  // eslint-disable-next-line prettier/prettier
-  private readonly dkgInstance: DKG;
+  // eslint-disable-next-line prettier/prettier  
   private readonly dkgHostname: string;
   private readonly dkgPort: string;
   private readonly dataProviderWallet: string;
   private readonly walletPublicKey: string;
   private readonly walletPrivateKey: string;
   private readonly blockchain: IBlockchain;
+
+  public readonly dkgInstance: DKG;
   
 
   constructor(private configService: ConfigService) {

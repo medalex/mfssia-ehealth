@@ -9,6 +9,7 @@ import { DKGSetupModule } from './modules/setup/setup.module';
 import { QueryModule } from './modules/query/query.module';
 import { ConsensusModule } from './modules/consensus/consensus.module';
 import { ContractModule } from './modules/contract/contract.module';
+import { MedicalLicenseModule } from './modules/medical-license/medical-license.module';
 
 @Module({
   imports: [
@@ -21,7 +22,8 @@ import { ContractModule } from './modules/contract/contract.module';
     DKGSetupModule,
     QueryModule,
     ConsensusModule,
-    ContractModule
+    ContractModule,
+    MedicalLicenseModule
   ],
   controllers: [AppController],
   providers: [AppService],

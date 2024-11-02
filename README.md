@@ -28,7 +28,7 @@ npm run build
 # start the server
 
 ```
-npm run stgart
+npm run start
 ```
 ## Docker run
 To build a docker container use the Docker file in the root folder with the command `docker build -t dkg-client .`

@@ -52,5 +52,5 @@ export class DKGContractService {
     Logger.debug('newAsset = ' + newAsset);
     
     return newAsset;
-    }
+  }
 }
