@@ -10,6 +10,8 @@ import { QueryModule } from './modules/query/query.module';
 import { ConsensusModule } from './modules/consensus/consensus.module';
 import { ContractModule } from './modules/contract/contract.module';
 import { MedicalLicenseModule } from './modules/medical-license/medical-license.module';
+import { PatientPermission } from './providers/DKGConnector/ehealth/PatientPermission';
+import { PatientPermissionModule } from './modules/patient-permission/patient-permission.module';
 
 @Module({
   imports: [
@@ -23,7 +25,8 @@ import { MedicalLicenseModule } from './modules/medical-license/medical-license.
     QueryModule,
     ConsensusModule,
     ContractModule,
-    MedicalLicenseModule
+    MedicalLicenseModule,
+    PatientPermissionModule
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,8 +1,9 @@
 {
     "@context": "https://schema.org",
-    "@type": "Gateway",
+    "@type": "PatientPermission",
     "uuid": "sl1",
     "producerOrgNo": "hospital1",
     "consumerOrgNo": "hospital2",
+    "patientUUID": "patient1",
     "timestamp": "${timestamp}"
 }

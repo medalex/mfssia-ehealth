@@ -9,7 +9,7 @@ export const appConfig: any = {
   port: parseInt(process.env.APP_PORT || process.env.PORT, 10) || 3000,
   apiPrefix: process.env.API_PREFIX || 'api',
   dkg: {
-    hostname: 'http://18.159.248.66',
+    hostname: 'http://18.156.197.138',
     port: 8900,
     dataProviderWallet: '0x80e705be5475563f7ac941dc8b99b9251b3bba4f',
   },
