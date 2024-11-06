@@ -1,4 +1,4 @@
-import { Body, Controller, Header, Logger, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Header, Logger, Param, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { MedicalLicense } from 'src/providers/DKGConnector/ehealth/MedicalLIcense'; 
 import { MedicalLicenseService } from './medical-license.service';
@@ -14,6 +14,11 @@ export class MedicalLicenseController {
     Logger.log({license: medicalLicense});
 
     return await this.medicalLicenseService.publish(medicalLicense);
+  }
+
+  @Get('/:medicalLicenseUuid')
+  async getMedicalLicense(@Param('medicalLicenseUuid') medicalLicenseUuid: string): Promise<string> {
+    return await this.medicalLicenseService.findByUUID(medicalLicenseUuid);
   }
 }
 

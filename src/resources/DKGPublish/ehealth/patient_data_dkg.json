@@ -1,7 +1,7 @@
 {
   "@context": "https://schema.org",
   "@type": "Patient",
-  "contclassifier": "FHIR",
+  "classifier": "FHIR",
   "timestamp": "${timestamp}",  
   "given_name": "Peter",
   "family_name": "Chalmers",
