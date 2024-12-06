@@ -37,4 +37,4 @@ To run the image use command `docker run --rm -p 3000:3000 -it dkg-client`
 
 ## Links
 
-- Swagger: http://localhost:3000/docs
+- Swagger: http://localhost:4000/docs

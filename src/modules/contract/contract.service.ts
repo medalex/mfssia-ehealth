@@ -10,11 +10,9 @@ export class DKGContractService {
 
   async publishProductContract(contract: Contract): Promise<IAssetResponse> {
     try {
-      let existingContract = await this.dkgConnector.findContractByUuid(contract.uuid);
+      let existingContract = await this.dkgConnector.dkgInstance.findContractByUuid(contract.uuid);
       
-      console.log("Existing contract: " + JSON.stringify(existingContract));
-
-      
+      console.log("Existing contract: " + JSON.stringify(existingContract));      
 
       if (existingContract.uuid) {
         return null;
@@ -33,6 +31,35 @@ export class DKGContractService {
     }
 
   }
+
+  public async findContractByUuid(contractUuid: string):Promise<Contract> {
+    try {
+      
+      var query = "PREFIX mfssia:<http://schema.org/> "
+               + "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
+               + "SELECT ?s ?p ?o WHERE {"
+               + "?s rdf:type mfssia:Contract . "
+               + "?s mfssia:uuid '" + contractUuid + "' . "
+               + "?s ?p ?o . "
+               + "}";
+                
+      console.log("Startng query: " + query);
+
+      const result = await this.dkgConnector.dkgInstance.graph.query( query, "SELECT");
+
+      Logger.log('queryResult: ' + JSON.stringify(result));
+
+      let contract:Contract = this.mapContract(result.data);
+
+      Logger.log(JSON.stringify(contract));
+        
+      return contract;
+    }
+    catch (error) {
+      throw new Error(error);
+    }
+  }
+
   private mapToAsset(contract: Contract): Record<string, string> | any {
     let asset = JSON.stringify(contract);
     Logger.log(asset);
@@ -52,5 +79,50 @@ export class DKGContractService {
     Logger.debug('newAsset = ' + newAsset);
     
     return newAsset;
+  }
+
+  private mapContract(sparqlResult: any): Contract {
+    let contract = new Contract();
+    
+    sparqlResult.forEach( (element:any) => {
+      element.o = element.o.toString().replace(/\"/g, "");
+      if (element.p == "http://schema.org/uuid") {
+          contract.uuid = element.o;
+      }
+
+      if (element.p == "http://schema.org/timestamp") {
+          contract.timestamp = element.o;
+      }
+      
+      if (element.p == "http://schema.org/contractNo") {
+          contract.contractNo = element.o;
+      }
+
+      if (element.p == "http://schema.org/consumer_network") {
+          contract.consumerNetwork = element.o;
+      }
+
+      if (element.p == "http://schema.org/producer_network") {
+          contract.producerNetwork = element.o;
+      }
+
+      if (element.p == "http://schema.org/price") {
+          contract.price = element.o;
+      }
+
+      if (element.p == "http://schema.org/quantity") {
+          contract.quantity = element.o;
+      }
+
+      if (element.p == "http://schema.org/delivery_interval") {
+          contract.deliveryInterval = element.o;
+      }
+
+      if (element.p == "http://schema.org/product_name") {
+          contract.productName = element.o;
+      }
+    });
+
+    return contract;
   }
 }

@@ -1,4 +1,4 @@
-import { Body, Controller, Header, Logger, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Header, Logger, Param, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { type } from 'os';
 import { Contract } from 'src/providers/DKGConnector/Contract';
@@ -14,6 +14,11 @@ export class ContractController {
   async publish(@Body() productContract: Contract): Promise<any> {
     Logger.log({contract: productContract})
     return await this.dkgContractService.publishProductContract(productContract);
+  }
+
+  @Get('queryContract/:uuid')
+  async getContract(@Param('uuid') uuid: string): Promise<any> {
+    return await this.dkgContractService.findContractByUuid(uuid);
   }
 }
 

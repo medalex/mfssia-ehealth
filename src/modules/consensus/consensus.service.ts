@@ -7,7 +7,7 @@ export class ConsensusService {
   constructor(private readonly dkgConnector: DKGConnectorService) {}
   
   async getContractHash(contractUuid: string): Promise<any> {
-    let contract = await this.dkgConnector.findContractByUuid(contractUuid);
+    let contract = await this.dkgConnector.dkgInstance.findContractByUuid(contractUuid);
 
     Logger.log(JSON.stringify(contract));
 
@@ -28,8 +28,8 @@ export class ConsensusService {
   }
 
   async checkGatewayConsensus(contractUuid: string): Promise<boolean> {
-    let contract = await this.dkgConnector.findContractByUuid(contractUuid); 
-    let gateway = await this.dkgConnector.findGatewayByProducerAndConsumerNetworks(contract.producerNetwork, contract.consumerNetwork);
+    let contract = await this.dkgConnector.dkgInstance.findContractByUuid(contractUuid); 
+    let gateway = await this.dkgConnector.dkgInstance.findGatewayByProducerAndConsumerNetworks(contract.producerNetwork, contract.consumerNetwork);
    
     return gateway != null;
   }

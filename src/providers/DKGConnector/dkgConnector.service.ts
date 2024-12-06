@@ -1,12 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as DKG from 'dkg.js';
-import { ResultType } from '../../constants/resultType';
 import { IAssetResponse, IBlockchain } from '../../interfaces/IAssetResponse';
-import { Contract } from './Contract';
-import { Gateway } from './Gateway';
 import { SecurityLicense } from './SecurityLicense';
-import { System } from './System';
 
 @Injectable()
 export class DKGConnectorService {
@@ -29,9 +25,13 @@ export class DKGConnectorService {
     this.walletPrivateKey = this.configService.get<string>('wallet.privateKey');
     
     this.blockchain = {
-      name: 'otp::testnet',
+      name: 'otp:20430',
       publicKey: this.walletPublicKey,
       privateKey: this.walletPrivateKey,
+      hubContract: "0xBbfF7Ea6b2Addc1f38A0798329e12C08f03750A6",
+      rpc: "https://lofar-testnet.origin-trail.network",
+      gasPrice: "1000000",
+      transactionPollingTimeout: "600"            
     };
 
   
@@ -44,7 +44,8 @@ export class DKGConnectorService {
       blockchain: this.blockchain,
       maxNumberOfRetries: 30,
       frequency: 2,
-      contentType: 'all'
+      contentType: 'all',
+      environment: "testnet"
     });
   }
 
@@ -64,10 +65,7 @@ export class DKGConnectorService {
       const ethers = require("ethers");
 
       const response = await this.dkgInstance.asset.create({public: assetData}, {
-        epochsNum: 2//,
-        //visibility: 'public',      
-        //tokenAmount: ethers.utils.parseEther('5'),
-        //localStore: true
+        epochsNum: 2
       });
       console.log({ response });
  
@@ -94,112 +92,6 @@ export class DKGConnectorService {
       return response;
     } catch (error) {
       console.trace(error);
-      throw new Error(error);
-    }
-  }
-
-  async findSystemByUuid(systemUuid: string):Promise<any> {
-    try {
-      
-      var query = "PREFIX mfssia:<http://schema.org/> "
-               + "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
-               + "SELECT ?s ?p ?o WHERE {"
-               + "?s rdf:type mfssia:System . "
-               + "?s mfssia:uuid '" + systemUuid + "' . "
-               + "?s ?p ?o . "
-               + "}";
-                
-      console.log("Startng query: " + query);
-      const result = await this.dkgInstance.graph.query( query, "SELECT");
-      
-      console.log(JSON.stringify(result));
-
-      let system:System = this.mapSystem(result.data);
-
-    
-
-      return JSON.stringify(system);
-    }
-    catch (error) {
-      throw new Error(error);
-    }
-  }
-
-  async findContractByUuid(contractUuid: string):Promise<Contract> {
-    try {
-      
-      var query = "PREFIX mfssia:<http://schema.org/> "
-               + "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
-               + "SELECT ?s ?p ?o WHERE {"
-               + "?s rdf:type mfssia:Contract . "
-               + "?s mfssia:uuid '" + contractUuid + "' . "
-               + "?s ?p ?o . "
-               + "}";
-                
-      console.log("Startng query: " + query);
-
-      const result = await this.dkgInstance.graph.query( query, "SELECT");
-
-      Logger.log('queryResult: ' + JSON.stringify(result));
-
-      let contract:Contract = this.mapContract(result.data);
-
-      Logger.log(JSON.stringify(contract));
-        
-      return contract;
-    }
-    catch (error) {
-      throw new Error(error);
-    }
-  }
-
-  async findGatewayByUuid(uuid: string):Promise<Gateway> {
-    try {
-      
-      var query = "PREFIX mfssia:<http://schema.org/> "
-               + "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
-               + "SELECT ?s ?p ?o WHERE {"
-               + "?s rdf:type mfssia:Gateway . "
-               + "?s mfssia:uuid '" + uuid + "' . "
-               + "?s ?p ?o . "
-               + "}";
-                
-      console.log("Startng query: " + query);
-      const result = await this.dkgInstance.graph.query( query, "SELECT");
-      
-      console.log(result);
-
-      let gateway:Gateway = this.mapGateway(result.data);
-        
-      return gateway;
-    }
-    catch (error) {
-      throw new Error(error);
-    }
-  }
-
-  async findGatewayByProducerAndConsumerNetworks(producerNetwork: string, consumerNetwork: string):Promise<Gateway> {
-    try {
-      
-      const query = "PREFIX mfssia:<http://schema.org/> "
-               + "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
-               + "SELECT ?s ?p ?o WHERE {"
-               + "?s rdf:type mfssia:Gateway . "
-               + "?s mfssia:producerNetwork '" + producerNetwork + "' . "
-               + "?s mfssia:consumerNetwork '" + consumerNetwork + "' . "
-               + "?s ?p ?o . "
-               + "}";
-                
-      console.log("Startng query: " + query);
-      const result = await this.dkgInstance.graph.query( query, "SELECT");
-      
-      console.log(result);
-
-      let gateway:Gateway = this.mapGateway(result.data);
-        
-      return gateway;
-    }
-    catch (error) {
       throw new Error(error);
     }
   }
@@ -282,63 +174,7 @@ export class DKGConnectorService {
     }
   }
 
-  private mapSystem(sparqlResult: any): System {
-    let system = new System();
 
-    console.log(sparqlResult);
-    sparqlResult.forEach( (element:any) => {
-      element.o = element.o.toString().replace(/\"/g, "");
-
-      if (element.p == "http://schema.org/uuid") {
-        system.uuid = element.o;
-      }
-
-      if (element.p == "http://schema.org/timestamp") {
-          system.timestamp = element.o;
-      }
-
-      if (element.p == "http://schema.org/network") {
-          system.network = element.o;
-      }
-
-      if (element.p == "http://schema.org/contract_id") {
-          system.contracts.push(element.o);
-      }
-      });
-    
-    return system;
-  }
-
-  private mapGateway(sparqlResult:any): Gateway {
-    if (!Array.isArray(sparqlResult) || !sparqlResult.length) {
-      return null;
-    }
-
-    console.log(sparqlResult);
-    let gateway = new Gateway();
-
-    sparqlResult.forEach( (element:any) => {
-      element.o = element.o.toString().replace(/\"/g, "");
-
-      if (element.p == "http://schema.org/uuid") {
-          gateway.uuid = element.o;
-      }
-
-      if (element.p == "http://schema.org/timestamp") {
-          gateway.timestamp = element.o;
-      }
-
-      if (element.p == "http://schema.org/consumerNetwork") {
-          gateway.consumerNetwork = element.o;
-      }
-
-      if (element.p == "http://schema.org/producerNetwork") {
-          gateway.providerNetwork = element.o;
-      }
-    });
-
-    return gateway;
-}
 
 private mapSecurityLicense(sparqlResult:any): SecurityLicense {
   let securityLicense = new SecurityLicense();
@@ -379,48 +215,5 @@ private mapSecurityLicense(sparqlResult:any): SecurityLicense {
   return securityLicense;
 }
 
-  private mapContract(sparqlResult: any): Contract {
-    let contract = new Contract();
-    
-    sparqlResult.forEach( (element:any) => {
-      element.o = element.o.toString().replace(/\"/g, "");
-      if (element.p == "http://schema.org/uuid") {
-          contract.uuid = element.o;
-      }
-
-      if (element.p == "http://schema.org/timestamp") {
-          contract.timestamp = element.o;
-      }
-      
-      if (element.p == "http://schema.org/contractNo") {
-          contract.contractNo = element.o;
-      }
-
-      if (element.p == "http://schema.org/consumer_network") {
-          contract.consumerNetwork = element.o;
-      }
-
-      if (element.p == "http://schema.org/producer_network") {
-          contract.producerNetwork = element.o;
-      }
-
-      if (element.p == "http://schema.org/price") {
-          contract.price = element.o;
-      }
-
-      if (element.p == "http://schema.org/quantity") {
-          contract.quantity = element.o;
-      }
-
-      if (element.p == "http://schema.org/delivery_interval") {
-          contract.deliveryInterval = element.o;
-      }
-
-      if (element.p == "http://schema.org/product_name") {
-          contract.productName = element.o;
-      }
-    });
-
-    return contract;
-  }
+  
 }

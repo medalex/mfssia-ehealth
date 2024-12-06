@@ -32,7 +32,7 @@ export class MedicalLicenseService {
             var query = "PREFIX mfssia:<http://schema.org/> "
             + "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
             + "SELECT ?s ?p ?o WHERE {"
-            + "?s rdf:type mfssia:SecurityLicense . "
+            + "?s rdf:type mfssia:MedicalLicense . "
             + "?s mfssia:owner '" + owner + "' . "
             + "?s ?p ?o . "
             + "}";
@@ -71,7 +71,7 @@ export class MedicalLicenseService {
         } catch (error) {
             Logger.error(error);
             Logger.log(`Error loading file medical license json asset : ${error}`);
-    } 
+        } 
     }
 
     private mapMedicalLicense(sparqlResult:any): MedicalLicense {
@@ -130,7 +130,7 @@ export class MedicalLicenseService {
         Logger.debug('newAsset = ' + newAsset);
         
         return newAsset;
-      }
+    }
 }
 
 

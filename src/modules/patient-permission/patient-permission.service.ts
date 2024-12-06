@@ -107,24 +107,24 @@ export class PatientPermissionService {
     }
 
     private mapToAsset(patientPermission: PatientPermission): Record<string, string> | any {
-        let asset = JSON.stringify(patientPermission);
+      let asset = JSON.stringify(patientPermission);
 
-        Logger.log(asset);
-        
-        let newAsset = {};
-        
-        newAsset['@context'] = 'https://schema.org';
-        newAsset['@type'] = 'PatientPermission';
-        newAsset['producerOrgNo'] = patientPermission.producerOrgNo;
-        newAsset['timestamp'] = patientPermission.timestamp;
-        newAsset['consumerOrgNo'] = patientPermission.consumerOrgNo;
-        newAsset['patientUUID'] = patientPermission.patientUUID;        
-        newAsset['uuid'] = patientPermission.uuid;        
-        
-        Logger.debug('newAsset = ' + newAsset);
-        
-        return newAsset;
-      }
+      Logger.log(asset);
+      
+      let newAsset = {};
+      
+      newAsset['@context'] = 'https://schema.org';
+      newAsset['@type'] = 'PatientPermission';
+      newAsset['producerOrgNo'] = patientPermission.producerOrgNo;
+      newAsset['timestamp'] = patientPermission.timestamp;
+      newAsset['consumerOrgNo'] = patientPermission.consumerOrgNo;
+      newAsset['patientUUID'] = patientPermission.patientUUID;        
+      newAsset['uuid'] = patientPermission.uuid;        
+      
+      Logger.debug('newAsset = ' + newAsset);
+      
+      return newAsset;
+    }
 }
 
 

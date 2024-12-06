@@ -11,4 +11,8 @@ export interface IBlockchain {
   name: string;
   publicKey: string;
   privateKey: string;
+  hubContract: string;
+  rpc: string;
+  gasPrice: string;
+  transactionPollingTimeout: string;
 }

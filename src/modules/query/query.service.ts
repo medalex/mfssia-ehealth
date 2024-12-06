@@ -13,20 +13,4 @@ export class QueryService {
   async queryAsset(UAL: string): Promise<any> {
     return await this.dkgConnector.readAnAssetFromDKG(UAL);
   }
-
-  async querySystem(systemUuid: string): Promise<any> {
-    return await this.dkgConnector.findSystemByUuid(systemUuid);
-  }
-
-  async queryContract(contractUuid: string): Promise<any> {
-    return await this.dkgConnector.findContractByUuid(contractUuid);
-  }
-
-  async queryGateway(uuid: string): Promise<any> {
-    return await this.dkgConnector.findGatewayByUuid(uuid);
-  }
-
-  async querySecurityLicense(uuid: string): Promise<any> {
-    return await this.dkgConnector.findSecurityLicenseByUuid(uuid);
-  }
 }
