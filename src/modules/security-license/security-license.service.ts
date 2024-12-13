@@ -30,6 +30,31 @@ export class SecurityLicenseService {
         }
     }
 
+    async findByOwner(owner: string):Promise<SecurityLicense> {
+        try {
+          
+          var query = "PREFIX mfssia:<http://schema.org/> "
+                   + "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
+                   + "SELECT ?s ?p ?o WHERE {"
+                   + "?s rdf:type mfssia:SecurityLicense . "
+                   + "?s mfssia:owner '" + owner + "' . "
+                   + "?s ?p ?o . "
+                   + "}";
+                    
+          console.log("Startng query: " + query);
+          const result = await this.dkgConnector.dkgInstance.graph.query( query, "SELECT");
+          
+          console.log(result);
+    
+          let securityLicense:SecurityLicense = this.mapSecurityLicense(result.data);
+            
+          return securityLicense;
+        }
+        catch (error) {
+          throw new Error(error);
+        }
+      } 
+
     async publish(securityLicense: SecurityLicense) {
         try {
             let existingSecurityLicense = await this.findByUuid(securityLicense.uuid);

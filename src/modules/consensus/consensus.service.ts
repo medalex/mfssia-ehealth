@@ -5,6 +5,7 @@ import { PatientDataService } from "../patient-data/patient-data.service";
 import { PatientPermissionService } from "../patient-permission/patient-permission.service";
 import { MedicalLicenseService } from "../medical-license/medical-license.service";
 import { MedicalLicenseValidator } from "../medical-license/medical-license-validator.service";
+import { SecurityLicenseService } from "../security-license/security-license.service";
 
 @Injectable()
 export class ConsensusService {
@@ -12,6 +13,7 @@ export class ConsensusService {
     private readonly dkgConnector: DKGConnectorService,
     private readonly patientDataService: PatientDataService,
     private readonly patientPermissionService: PatientPermissionService,
+    private readonly securityLicenseService: SecurityLicenseService,
     private readonly medicalLicenseService: MedicalLicenseService,
     private readonly medicalLicenseValidator: MedicalLicenseValidator ) {}
   
@@ -44,8 +46,8 @@ export class ConsensusService {
   }
 
   async checkSecurityLicenseConsensus(ownerId1: string, ownerId2: string): Promise<boolean> {
-    let securityLicense1 = await this.dkgConnector.findSecurityLicenseByOwner(ownerId1);
-    let securityLicense2 = await this.dkgConnector.findSecurityLicenseByOwner(ownerId2);  
+    let securityLicense1 = await this.securityLicenseService.findByOwner(ownerId1);
+    let securityLicense2 = await this.securityLicenseService.findByOwner(ownerId2);  
     
     if (securityLicense1 == null || securityLicense2 == null) {
         return false;

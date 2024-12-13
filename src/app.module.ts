@@ -15,6 +15,7 @@ import { QueryModule } from './modules/query/query.module';
 import { DKGSetupModule } from './modules/setup/setup.module';
 import { SystemModule } from './modules/system/system.module';
 import { SecurityLicenseModule } from './modules/security-license/security-license.module';
+import { AssetModule } from './modules/asset/asset.module';
 
 @Module({
   imports: [
@@ -33,7 +34,8 @@ import { SecurityLicenseModule } from './modules/security-license/security-licen
     PatientPermissionModule,
     PatientDataModule,
     SystemModule,
-    SecurityLicenseModule    
+    SecurityLicenseModule,
+    AssetModule    
   ],
   controllers: [AppController],
   providers: [AppService],

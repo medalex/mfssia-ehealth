@@ -113,9 +113,9 @@ export class MedicalLicenseService {
         return medicalLicense;   
     }
 
-    private mapToAsset(medicalLicense: MedicalLicense): Record<string, string> | any {
-        let asset = JSON.stringify(medicalLicense);
-        Logger.log(asset);
+    private mapToAsset(medicalLicense: MedicalLicense): Record<string, string> | any {        
+        Logger.log(JSON.stringify(medicalLicense));
+        
         let newAsset = {};
         newAsset['@context'] = 'https://schema.org';
         newAsset['@type'] = 'MedicalLicense';

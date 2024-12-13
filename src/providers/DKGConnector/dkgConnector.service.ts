@@ -62,11 +62,9 @@ export class DKGConnectorService {
     console.log({ blockchain: JSON.stringify(this.blockchain) });
     
     try {
-      const ethers = require("ethers");
+      //const ethers = require("ethers");
 
-      const response = await this.dkgInstance.asset.create({public: assetData}, {
-        epochsNum: 2
-      });
+      const response = await this.dkgInstance.asset.create({public: assetData}, {epochsNum: 2});
       console.log({ response });
  
       return response;
@@ -96,58 +94,6 @@ export class DKGConnectorService {
     }
   }
 
-  async findSecurityLicenseByUuid(uuid: string):Promise<SecurityLicense> {
-    try {
-      
-      var query = "PREFIX mfssia:<http://schema.org/> "
-               + "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
-               + "SELECT ?s ?p ?o WHERE {"
-               + "?s rdf:type mfssia:SecurityLicense . "
-               + "?s mfssia:uuid '" + uuid + "' . "
-               + "?s ?p ?o . "
-               + "}";
-                
-      console.log("Startng query: " + query);
-      const result = await this.dkgInstance.graph.query( query, "SELECT");
-      
-      console.log(result);
-
-      let securityLicense:SecurityLicense = this.mapSecurityLicense(result.data);
-        
-      return securityLicense;
-    }
-    catch (error) {
-      throw new Error(error);
-    }
-  }
-
-  async findSecurityLicenseByOwner(owner: string):Promise<SecurityLicense> {
-    try {
-      
-      var query = "PREFIX mfssia:<http://schema.org/> "
-               + "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
-               + "SELECT ?s ?p ?o WHERE {"
-               + "?s rdf:type mfssia:SecurityLicense . "
-               + "?s mfssia:owner '" + owner + "' . "
-               + "?s ?p ?o . "
-               + "}";
-                
-      console.log("Startng query: " + query);
-      const result = await this.dkgInstance.graph.query( query, "SELECT");
-      
-      console.log(result);
-
-      let securityLicense:SecurityLicense = this.mapSecurityLicense(result.data);
-        
-      return securityLicense;
-    }
-    catch (error) {
-      throw new Error(error);
-    }
-  }
-
-
-
   async updateAnAssetOnDKG(Ual: string) {
     try {
       const { UAL } = await this.dkgInstance.asset.update(
@@ -172,48 +118,5 @@ export class DKGConnectorService {
     } catch (error) {
       throw new Error(error);
     }
-  }
-
-
-
-private mapSecurityLicense(sparqlResult:any): SecurityLicense {
-  let securityLicense = new SecurityLicense();
-
-  sparqlResult.forEach( (element:any) => {
-    element.o = element.o.toString().replace(/\"/g, "");
-    if (element.p == "http://schema.org/uuid") {
-        securityLicense.uuid = element.o;
-    }
-
-    if (element.p == "http://schema.org/timestamp") {
-        securityLicense.timestamp = element.o;
-    }
-
-    if (element.p == "http://schema.org/issuer") {
-        securityLicense.issuer = element.o;
-    }
-
-    if (element.p == "http://schema.org/licenseNo") {
-        securityLicense.licenseNo = element.o;
-    }
-
-    if (element.p == "http://schema.org/systemUUID") {
-        securityLicense.systemUUID = element.o;
-    }
-  
-    if (element.p == "http://schema.org/validTill") {
-        securityLicense.validTill = element.o;
-    }
-
-    if (element.p == "http://schema.org/owner") {
-      securityLicense.owner = element.o;
-  }
-  });
- 
-  Logger.log(JSON.stringify(securityLicense));
-
-  return securityLicense;
-}
-
-  
+  }  
 }
