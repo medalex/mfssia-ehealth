@@ -1,4 +1,4 @@
-import { Body, Controller, Header, Logger, Put } from "@nestjs/common";
+import { Body, Controller, Get, Header, Logger, Put, Query } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { AssetService } from "./asset.service";
 import { AssetRequest } from "./asset.request";
@@ -15,6 +15,18 @@ export class AssetController {
         Logger.log({obj: asset})
     
         return await this.assetService.publish(asset);
-      }
+    }
+
+    
+    @Get('query')    
+    async getAsset(
+        @Query("property") property: string, 
+        @Query("value") value: string, 
+        @Query("schema") schema: string, 
+        @Query("type-") type: string
+    ): Promise<Object> {
+        return await this.assetService.find(property, value, schema, type);
+    }
+
 
 }

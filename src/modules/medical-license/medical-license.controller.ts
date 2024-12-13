@@ -22,7 +22,7 @@ export class MedicalLicenseController {
   }
 
   @Get('/owner/:ownerUuid')
-  async getMedicalLicenseNyOwner(@Param('ownerUuid') ownerUuid: string): Promise<MedicalLicense> {
+  async getMedicalLicenseByOwner(@Param('ownerUuid') ownerUuid: string): Promise<MedicalLicense> {
     return await this.medicalLicenseService.findByOwner(ownerUuid);
   }
 }

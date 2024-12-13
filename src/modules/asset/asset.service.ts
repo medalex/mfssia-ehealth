@@ -13,7 +13,7 @@ export class AssetService {
     }
 
     
-      private mapToAsset(asset: Object, schema: string, type: string): Record<string, string> | any {        
+    private mapToAsset(asset: Object, schema: string, type: string): Record<string, string> | any {        
         let newAsset = {};
         newAsset['@context'] = schema;
         newAsset['@type'] = type;
@@ -28,4 +28,33 @@ export class AssetService {
         return newAsset;
     }
 
+    async find(
+        property: string, 
+        value: string, 
+        schema: string, 
+        type: string
+    ): Promise<Object> {
+        try {
+            const query = `
+                PREFIX mfssia: <${schema}>
+                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                SELECT ?s ?p ?o WHERE {
+                    ?s rdf:type mfssia:${type} .
+                    ?s mfssia:${property} '${value}' .
+                    ?s ?p ?o .
+                }
+            `;
+
+            Logger.log(`Starting query: ${query}`);
+
+            const result = await this.dkgConnector.dkgInstance.graph.query(query, "SELECT");
+
+            console.log(`Result of the query: ${result}`);
+
+            return result.data;
+        }
+        catch (error) {
+            throw new Error(error);
+        }    
+    }
 }

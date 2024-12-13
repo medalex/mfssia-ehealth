@@ -6,10 +6,17 @@ import { PatientDataService } from "../patient-data/patient-data.service";
 import { PatientPermissionService } from "../patient-permission/patient-permission.service";
 import { ConsensusController } from "./consensus.controller";
 import { ConsensusService } from "./consensus.service";
+import { SecurityLicenseService } from "../security-license/security-license.service";
 
 @Module({
     imports: [DKGConnectorModule],
     controllers: [ConsensusController],
-    providers: [ConsensusService, PatientDataService, PatientPermissionService, MedicalLicenseService, MedicalLicenseValidator]
+    providers: [
+      ConsensusService, 
+      PatientDataService, 
+      PatientPermissionService, 
+      SecurityLicenseService,
+      MedicalLicenseService, 
+      MedicalLicenseValidator]
   })
   export class ConsensusModule {}
