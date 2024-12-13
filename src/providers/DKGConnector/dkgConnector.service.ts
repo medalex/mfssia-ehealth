@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as DKG from 'dkg.js';
 import { IAssetResponse, IBlockchain } from '../../interfaces/IAssetResponse';
-import { SecurityLicense } from './SecurityLicense';
+import { SecurityLicense } from '../../modules/security-license/security-license.entity';
 
 @Injectable()
 export class DKGConnectorService {

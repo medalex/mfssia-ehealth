@@ -4,6 +4,6 @@
     "uuid": "sl1",
     "producerOrgNo": "hospital1",
     "consumerOrgNo": "hospital2",
-    "patientUUID": "patient1",
+    "patientUuid": "1234",
     "timestamp": "${timestamp}"
 }

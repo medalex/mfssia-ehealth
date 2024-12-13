@@ -1,13 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DKGConnectorService } from "src/providers/DKGConnector/dkgConnector.service";
-import { PatientData } from 'src/providers/DKGConnector/ehealth/PatientData';
+import { PatientData } from 'src/modules/patient-data/patient-data.entity';
 
 
 @Injectable()
 export class PatientDataService {
     constructor(private readonly dkgConnector: DKGConnectorService) {}
 
-    async findByUUID(uuid: string): Promise<any> {
+    async findByUUID(uuid: string): Promise<PatientData> {
         try {
             var query = "PREFIX mfssia:<http://schema.org/> "
             + "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
@@ -29,37 +29,39 @@ export class PatientDataService {
     }    
 
     async publish(patientData: PatientData) {
-        try {
-            let existingPatientData = await this.findByUUID(patientData.uuid);
+      try {
+          let existingPatientData = await this.findByUUID(patientData.uuid);
 
-            console.log("Existing patientData: " + JSON.stringify(existingPatientData));
+          console.log("Existing patientData: " + JSON.stringify(existingPatientData));
 
-            if (existingPatientData.uuid) {
-                return null;
-            
-            } else {
-                Logger.log({originalPatientData: patientData});
+          if (existingPatientData.uuid) {
+              return null;
+          
+          } else {
+              Logger.log({originalPatientData: patientData});
 
-                let asset = this.mapToAsset(patientData);
-                const assetCreatedOnDKG = await this.dkgConnector.createAssetOnDKG(asset);
-                
-                Logger.log({ patientData: assetCreatedOnDKG });
-        
-                return assetCreatedOnDKG;                
-            }
-        } catch (error) {
-            Logger.error(error);
-            Logger.log(`Error loading file patient data json asset : ${error}`);
-    } 
+              let asset = this.mapToAsset(patientData);
+              const assetCreatedOnDKG = await this.dkgConnector.createAssetOnDKG(asset);
+              
+              Logger.log({ patientData: assetCreatedOnDKG });
+      
+              return assetCreatedOnDKG;                
+          }
+      } catch (error) {
+          Logger.error(error);
+          Logger.log(`Error loading file patient data json asset : ${error}`);
+      } 
     }
 
     private mapPatientData(sparqlResult:any): PatientData {
         let patientData = new PatientData();
 
+
         sparqlResult.forEach( (element:any) => {
           element.o = element.o.toString().replace(/\"/g, "");
+
           if (element.p == "http://schema.org/uuid") {
-            patientData.uuid = element.o;
+            patientData.uuid = element.o;           
           }
       
           if (element.p == "http://schema.org/timestamp") {
@@ -70,15 +72,15 @@ export class PatientDataService {
             patientData.classifier = element.o;
           }
       
-          if (element.p == "http://schema.org/given_name") {
+          if (element.p == "http://schema.org/givenName") {
             patientData.givenName = element.o;
           }
       
-          if (element.p == "http://schema.org/family_name") {
+          if (element.p == "http://schema.org/familyName") {
             patientData.familyName = element.o;
           }
         
-          if (element.p == "http://schema.org/tel") {
+          if (element.p == "http://schema.org/phone") {
             patientData.phone = element.o;
           }
       
@@ -94,8 +96,6 @@ export class PatientDataService {
             patientData.digitalSignature = element.o;
           }
         });
-       
-        Logger.log(JSON.stringify(patientData));
       
         return patientData;   
     }
@@ -108,9 +108,9 @@ export class PatientDataService {
         newAsset['@type'] = 'PatientData';
         newAsset['classifier'] = patientData.classifier;
         newAsset['timestamp'] = patientData.timestamp;
-        newAsset['given_name'] = patientData.givenName;
-        newAsset['family_name'] = patientData.familyName;
-        newAsset['tel'] = patientData.phone;    
+        newAsset['givenName'] = patientData.givenName;
+        newAsset['familyName'] = patientData.familyName;
+        newAsset['phone'] = patientData.phone;    
         newAsset['uuid'] = patientData.uuid;
         newAsset['birthDate'] = patientData.birthDate;    
         newAsset['gender'] = patientData.gender;  

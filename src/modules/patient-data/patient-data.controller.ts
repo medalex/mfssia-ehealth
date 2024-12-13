@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Header, Logger, Param, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { PatientDataService } from './patient-data.service';
-import { PatientData } from 'src/providers/DKGConnector/ehealth/PatientData';
+import { PatientData } from 'src/modules/patient-data/patient-data.entity';
 
 
 
@@ -19,7 +19,7 @@ export class PatientDataController {
   }
 
   @Get('/:patientDataUuid')
-  async getPatientData(@Param('patientDataUuid') contpatientDataUuidractUuid: string): Promise<string> {
+  async getPatientData(@Param('patientDataUuid') contpatientDataUuidractUuid: string): Promise<PatientData> {
     return await this.patientDataService.findByUUID(contpatientDataUuidractUuid);
   }
 }

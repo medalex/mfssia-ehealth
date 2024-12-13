@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Header, Logger, Param, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { SecurityLicenseService } from './security-license.service';
-import { SecurityLicense } from 'src/providers/DKGConnector/SecurityLicense';
+import { SecurityLicense } from 'src/modules/security-license/security-license.entity';
 
 
 

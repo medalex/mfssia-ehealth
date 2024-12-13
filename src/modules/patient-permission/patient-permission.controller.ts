@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Header, Logger, Param, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { PatientPermissionService } from './patient-permission.service';
-import { PatientPermission } from 'src/providers/DKGConnector/ehealth/PatientPermission';
+import { PatientPermission } from 'src/modules/patient-permission/patient-permission.entity';
 
 
 @ApiTags('PatientPermission')
@@ -18,8 +18,8 @@ export class PatientPermissionController {
   }
 
   @Get('/:patientPermissionUuid')
-  async getPatientData(@Param('patientPermissionUuid') patientPermissionUuid: string): Promise<string> {
-    return await this.patientPermissionService.findByUUID(patientPermissionUuid);
+  async getPatientData(@Param('patientPermissionUuid') patientPermissionUuid: string): Promise<PatientPermission> {
+    return await this.patientPermissionService.findByUuid(patientPermissionUuid);
   }
 }
 

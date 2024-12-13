@@ -1,10 +1,19 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { DKGConnectorService } from "src/providers/DKGConnector/dkgConnector.service";
-import { generateSha256Hash } from "src/shared/utils/hashGenerator";
+import { generatePatientDataHash, generateSha256Hash } from "src/shared/utils/hashGenerator";
+import { PatientDataService } from "../patient-data/patient-data.service";
+import { PatientPermissionService } from "../patient-permission/patient-permission.service";
+import { MedicalLicenseService } from "../medical-license/medical-license.service";
+import { MedicalLicenseValidator } from "../medical-license/medical-license-validator.service";
 
 @Injectable()
 export class ConsensusService {
-  constructor(private readonly dkgConnector: DKGConnectorService) {}
+  constructor(
+    private readonly dkgConnector: DKGConnectorService,
+    private readonly patientDataService: PatientDataService,
+    private readonly patientPermissionService: PatientPermissionService,
+    private readonly medicalLicenseService: MedicalLicenseService,
+    private readonly medicalLicenseValidator: MedicalLicenseValidator ) {}
   
   async getContractHash(contractUuid: string): Promise<any> {
     let contract = await this.dkgConnector.dkgInstance.findContractByUuid(contractUuid);
@@ -49,9 +58,61 @@ export class ConsensusService {
     }
 
     return false;
+  }
 
-}
+  async getPatientDataHash(patientDataUuid: string): Promise<any> {
+    let patientData = await this.patientDataService.findByUUID(patientDataUuid);    
 
-  
+    
+    Logger.log(JSON.stringify(patientData));
+    
+    Logger.log("GivenName: " + patientData.givenName);
+    Logger.log("familyName: " + patientData.familyName);
+    Logger.log("birthDate: " + patientData.birthDate);
+    Logger.log("digitalSignature: " + patientData.digitalSignature);
+    Logger.log("gender: " + patientData.gender);
+    Logger.log("phone: " + patientData.phone);
+    
+    if (
+      patientData.givenName 
+      && patientData.familyName 
+      && patientData.birthDate 
+      && patientData.digitalSignature
+      && patientData.gender
+      && patientData.phone
+    ) {      
+        const hash = generatePatientDataHash(
+          patientData.givenName,
+          patientData.familyName,
+          patientData.birthDate,
+          patientData.digitalSignature,
+          patientData.gender,
+          patientData.phone
+        );
+      
+        Logger.log("PatientData: \n " + hash);
 
+        return hash;
+    }
+
+    Logger.log("patientData has an empty field. Returning an empty string instead of hash.");
+
+    return "";
+  }
+
+  async checkPatientPermissionConsensus(patientUuid: string): Promise<boolean> {   
+    let patientPermission = await this.patientPermissionService.findByPatientUuid(patientUuid);   
+   
+    return patientPermission != null;
+  }
+
+  async checkMedicalLicenseConsensus(ownerId1: string, ownerId2: string): Promise<boolean> {
+    let medicalLicense1 = await this.medicalLicenseService.findByOwner(ownerId1);
+    let isMedicalLicense1Valid = this.medicalLicenseValidator.isValid(medicalLicense1);
+    
+    let medicalLicense2 = await this.medicalLicenseService.findByOwner(ownerId2);
+    let isMedicalLicense2Valid = this.medicalLicenseValidator.isValid(medicalLicense2);    
+
+    return isMedicalLicense1Valid && isMedicalLicense2Valid;
+  }
 }

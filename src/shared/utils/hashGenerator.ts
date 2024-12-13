@@ -15,3 +15,22 @@ export function generateSha256Hash(price:number, delivery_date:number, quantity:
   
     return hashResult;
   }
+
+  export function generatePatientDataHash(
+      givenName: string, 
+      familyName: string, 
+      birthDate: string, 
+      digitalSignature: string, 
+      gender: string, 
+      phoneNo: string) {
+    const strings = [`${givenName}`, `${familyName}`, `${birthDate}`, `${digitalSignature}`, `${gender}`, `${phoneNo}`];
+    const concatenatedResults = strings.join(';');
+
+    console.log(concatenatedResults);
+
+    const sanitized = concatenatedResults.replace(/(^"|"$)/g, '');
+
+    console.log(sanitized);
+
+    return createHash('sha256').update(sanitized).digest('hex');  
+  }

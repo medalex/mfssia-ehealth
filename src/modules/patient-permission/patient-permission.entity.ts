@@ -14,5 +14,5 @@ export class PatientPermission {
     timestamp: string; 
 
     @ApiProperty()
-    patientUUID: string;       
+    patientUuid: string;       
 }

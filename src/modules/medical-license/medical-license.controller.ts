@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Header, Logger, Param, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { MedicalLicense } from 'src/providers/DKGConnector/ehealth/MedicalLIcense'; 
+import { MedicalLicense } from 'src/modules/medical-license/medical-license.entity'; 
 import { MedicalLicenseService } from './medical-license.service';
 
 @ApiTags('MedicalLicense')
@@ -17,8 +17,13 @@ export class MedicalLicenseController {
   }
 
   @Get('/:medicalLicenseUuid')
-  async getMedicalLicense(@Param('medicalLicenseUuid') medicalLicenseUuid: string): Promise<string> {
-    return await this.medicalLicenseService.findByUUID(medicalLicenseUuid);
+  async getMedicalLicense(@Param('medicalLicenseUuid') medicalLicenseUuid: string): Promise<MedicalLicense> {
+    return await this.medicalLicenseService.findByUuid(medicalLicenseUuid);
+  }
+
+  @Get('/owner/:ownerUuid')
+  async getMedicalLicenseNyOwner(@Param('ownerUuid') ownerUuid: string): Promise<MedicalLicense> {
+    return await this.medicalLicenseService.findByOwner(ownerUuid);
   }
 }
 

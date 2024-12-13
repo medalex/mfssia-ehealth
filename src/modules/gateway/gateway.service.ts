@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DKGConnectorService } from '../../providers/DKGConnector/dkgConnector.service';
-import { Gateway } from 'src/providers/DKGConnector/Gateway';
+import { Gateway } from 'src/modules/gateway/gateway.entity';
 
 @Injectable()
 export class DKGGatewayService {

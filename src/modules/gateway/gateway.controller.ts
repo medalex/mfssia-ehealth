@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Header, Logger, Param, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { DKGGatewayService } from './gateway.service';
-import { Gateway } from 'src/providers/DKGConnector/Gateway';
+import { Gateway } from 'src/modules/gateway/gateway.entity';
 
 @ApiBearerAuth()
 @ApiTags('Gateway')

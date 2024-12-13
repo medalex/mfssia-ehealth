@@ -1,10 +1,10 @@
 import { Injectable, Logger, NotImplementedException } from '@nestjs/common';
 import { IAssetResponse } from 'src/interfaces/IAssetResponse';
-import { Contract } from 'src/providers/DKGConnector/Contract';
+import { Contract } from 'src/modules/contract/contract.entity';
 import { DKGConnectorService } from '../../providers/DKGConnector/dkgConnector.service';
 
 @Injectable()
-export class DKGContractService {
+export class ContractService {
   constructor(
     private readonly dkgConnector: DKGConnectorService) {}
 

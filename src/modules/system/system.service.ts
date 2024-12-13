@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DKGConnectorService } from "src/providers/DKGConnector/dkgConnector.service";
-import { MedicalLicense } from 'src/providers/DKGConnector/ehealth/MedicalLIcense';
-import { System } from 'src/providers/DKGConnector/System';
+import { MedicalLicense } from 'src/modules/medical-license/medical-license.entity';
+import { System } from 'src/modules/system/system.entity';
 
 @Injectable()
 export class SystemService {

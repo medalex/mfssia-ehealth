@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DKGConnectorService } from "src/providers/DKGConnector/dkgConnector.service";
-import { MedicalLicense } from 'src/providers/DKGConnector/ehealth/MedicalLIcense';
+import { MedicalLicense } from 'src/modules/medical-license/medical-license.entity';
 
 @Injectable()
 export class MedicalLicenseService {
     constructor(private readonly dkgConnector: DKGConnectorService) {}
 
-    async findByUUID(uuid: string): Promise<any> {
+    async findByUuid(uuid: string): Promise<MedicalLicense> {
         try {
             var query = "PREFIX mfssia:<http://schema.org/> "
             + "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
@@ -51,7 +51,7 @@ export class MedicalLicenseService {
 
     async publish(medicalLicense: MedicalLicense) {
         try {
-            let existingMedicalLicense = await this.findByUUID(medicalLicense.uuid);
+            let existingMedicalLicense = await this.findByUuid(medicalLicense.uuid);
 
             console.log("Existing medicalLicense: " + JSON.stringify(existingMedicalLicense));
 

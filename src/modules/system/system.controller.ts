@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Header, Logger, Param, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { System } from 'src/providers/DKGConnector/System';
+import { System } from 'src/modules/system/system.entity';
 import { SystemService } from './system.service';
 
 @ApiTags('System')

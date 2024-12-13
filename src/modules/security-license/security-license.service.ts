@@ -1,6 +1,6 @@
 import { Logger } from "@nestjs/common";
 import { DKGConnectorService } from "src/providers/DKGConnector/dkgConnector.service";
-import { SecurityLicense } from "src/providers/DKGConnector/SecurityLicense";
+import { SecurityLicense } from "src/modules/security-license/security-license.entity";
 
 export class SecurityLicenseService {
     constructor(private readonly dkgConnector: DKGConnectorService) {}
