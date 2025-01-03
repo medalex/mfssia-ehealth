@@ -23,7 +23,7 @@ export function generateSha256Hash(price:number, delivery_date:number, quantity:
       digitalSignature: string, 
       gender: string, 
       phoneNo: string) {
-    const strings = [`${givenName}`, `${familyName}`, `${birthDate}`, `${digitalSignature}`, `${gender}`, `${phoneNo}`];
+    const strings = [`${givenName.toLocaleLowerCase()}`, `${familyName.toLocaleLowerCase()}`, `${birthDate}`, `${digitalSignature.toLocaleLowerCase()}`, `${gender.toLocaleLowerCase()}`, `${phoneNo}`];
     const concatenatedResults = strings.join(';');
 
     console.log(concatenatedResults);
