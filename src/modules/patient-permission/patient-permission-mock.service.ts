@@ -23,7 +23,7 @@ export class PatientPermissionMockService {
             return Promise.resolve(this.mockedPatientPermission1);
         }
 
-        return Promise.resolve(this.mockedPatientPermission2);
+        return Promise.resolve(null);
     }    
 }
 
