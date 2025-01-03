@@ -1,13 +1,13 @@
 import { Body, Controller, Get, Header, Logger, Param, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { DKGGatewayService } from './gateway.service';
+import { GatewayService } from './gateway.service';
 import { Gateway } from 'src/modules/gateway/gateway.entity';
 
 @ApiBearerAuth()
 @ApiTags('Gateway')
 @Controller('/api/gateway')
 export class GatewayController {
-  constructor(private readonly dkgGatewayService: DKGGatewayService) {}
+  constructor(private readonly dkgGatewayService: GatewayService) {}
 
   @Post('publish')
   @Header('Content-Type', 'application/json')

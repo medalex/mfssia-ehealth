@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Header, Logger, Param, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { PatientDataService } from './patient-data.service';
+import { PatientDataDkgService } from './patient-data-dkg.service';
 import { PatientData } from 'src/modules/patient-data/patient-data.entity';
 
 
@@ -8,7 +8,7 @@ import { PatientData } from 'src/modules/patient-data/patient-data.entity';
 @ApiTags('PatientData')
 @Controller('/api/patient-data')
 export class PatientDataController {
-  constructor(private readonly patientDataService: PatientDataService) {}
+  constructor(private readonly patientDataService: PatientDataDkgService) {}
 
   @Post('publish')
   @Header('Content-Type', 'application/json')

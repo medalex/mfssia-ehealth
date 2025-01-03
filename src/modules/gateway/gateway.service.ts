@@ -3,7 +3,7 @@ import { DKGConnectorService } from '../../providers/DKGConnector/dkgConnector.s
 import { Gateway } from 'src/modules/gateway/gateway.entity';
 
 @Injectable()
-export class DKGGatewayService {
+export class GatewayService {
   constructor(private readonly dkgConnector: DKGConnectorService) {}
 
   async findByUuid(uuid: string):Promise<Gateway> {

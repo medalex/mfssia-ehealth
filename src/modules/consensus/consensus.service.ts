@@ -1,24 +1,30 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { DKGConnectorService } from "src/providers/DKGConnector/dkgConnector.service";
 import { generatePatientDataHash, generateSha256Hash } from "src/shared/utils/hashGenerator";
-import { PatientDataService } from "../patient-data/patient-data.service";
-import { PatientPermissionService } from "../patient-permission/patient-permission.service";
-import { MedicalLicenseService } from "../medical-license/medical-license.service";
+import { ContractService } from "../contract/contract.service";
+import { GatewayService } from "../gateway/gateway.service";
+import { MedicalLicenseFacadeService } from "../medical-license/medical-license-facade.service";
 import { MedicalLicenseValidator } from "../medical-license/medical-license-validator.service";
+import { PatientDataFacadeService } from "../patient-data/patient-data-facade.service";
+import { PatientPermissionFacadeService } from "../patient-permission/patient-permission-facade.service";
 import { SecurityLicenseService } from "../security-license/security-license.service";
 
 @Injectable()
 export class ConsensusService {
-  constructor(
-    private readonly dkgConnector: DKGConnectorService,
-    private readonly patientDataService: PatientDataService,
-    private readonly patientPermissionService: PatientPermissionService,
-    private readonly securityLicenseService: SecurityLicenseService,
-    private readonly medicalLicenseService: MedicalLicenseService,
-    private readonly medicalLicenseValidator: MedicalLicenseValidator ) {}
+  constructor(            
+    private readonly medicalLicenseFacadeService: MedicalLicenseFacadeService,
+    private readonly patientDataFacadeService: PatientDataFacadeService,
+    private readonly patientPermissionFacadeService: PatientPermissionFacadeService,
+    private readonly medicalLicenseValidator: MedicalLicenseValidator,
+
+    private readonly securityLicenseService: SecurityLicenseService,    
+    private readonly contractService: ContractService,
+    private readonly gatewayService: GatewayService,    
+  
+    
+   ) {}
   
   async getContractHash(contractUuid: string): Promise<any> {
-    let contract = await this.dkgConnector.dkgInstance.findContractByUuid(contractUuid);
+    let contract = await this.contractService.findContractByUuid(contractUuid);
 
     Logger.log(JSON.stringify(contract));
 
@@ -39,8 +45,8 @@ export class ConsensusService {
   }
 
   async checkGatewayConsensus(contractUuid: string): Promise<boolean> {
-    let contract = await this.dkgConnector.dkgInstance.findContractByUuid(contractUuid); 
-    let gateway = await this.dkgConnector.dkgInstance.findGatewayByProducerAndConsumerNetworks(contract.producerNetwork, contract.consumerNetwork);
+    let contract = await this.contractService.findContractByUuid(contractUuid); 
+    let gateway = await this.gatewayService.findGatewayByProducerAndConsumerNetworks(contract.producerNetwork, contract.consumerNetwork);
    
     return gateway != null;
   }
@@ -63,7 +69,7 @@ export class ConsensusService {
   }
 
   async getPatientDataHash(patientDataUuid: string): Promise<any> {
-    let patientData = await this.patientDataService.findByUUID(patientDataUuid);    
+    let patientData = await this.patientDataFacadeService.findByUUID(patientDataUuid);    
 
     
     Logger.log(JSON.stringify(patientData));
@@ -103,16 +109,16 @@ export class ConsensusService {
   }
 
   async checkPatientPermissionConsensus(patientUuid: string): Promise<boolean> {   
-    let patientPermission = await this.patientPermissionService.findByPatientUuid(patientUuid);   
+    let patientPermission = await this.patientPermissionFacadeService.findByPatientUuid(patientUuid);   
    
     return patientPermission != null;
   }
 
   async checkMedicalLicenseConsensus(ownerId1: string, ownerId2: string): Promise<boolean> {
-    let medicalLicense1 = await this.medicalLicenseService.findByOwner(ownerId1);
+    let medicalLicense1 = await this.medicalLicenseFacadeService.findByOwner(ownerId1);
     let isMedicalLicense1Valid = this.medicalLicenseValidator.isValid(medicalLicense1);
     
-    let medicalLicense2 = await this.medicalLicenseService.findByOwner(ownerId2);
+    let medicalLicense2 = await this.medicalLicenseFacadeService.findByOwner(ownerId2);
     let isMedicalLicense2Valid = this.medicalLicenseValidator.isValid(medicalLicense2);    
 
     return isMedicalLicense1Valid && isMedicalLicense2Valid;

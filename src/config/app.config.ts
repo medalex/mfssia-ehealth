@@ -17,6 +17,7 @@ export const appConfig: any = {
     publicKey: process.env.PUBLIC_KEY,
     privateKey: process.env.PRIVATE_KEY,
   },
+  isDkgMocked: process.env.IS_DKG_MOCKED
 };
 
 const configFunction: ConfigFactory<any> = () => appConfig;

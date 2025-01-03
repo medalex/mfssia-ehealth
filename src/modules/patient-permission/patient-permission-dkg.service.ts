@@ -4,7 +4,7 @@ import { MedicalLicense } from 'src/modules/medical-license/medical-license.enti
 import { PatientPermission } from 'src/modules/patient-permission/patient-permission.entity';
 
 @Injectable()
-export class PatientPermissionService {
+export class PatientPermissionDkgService {
     constructor(private readonly dkgConnector: DKGConnectorService) {}
 
     async findByUuid(uuid: string): Promise<PatientPermission> {

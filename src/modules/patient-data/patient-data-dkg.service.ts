@@ -4,7 +4,7 @@ import { PatientData } from 'src/modules/patient-data/patient-data.entity';
 
 
 @Injectable()
-export class PatientDataService {
+export class PatientDataDkgService {
     constructor(private readonly dkgConnector: DKGConnectorService) {}
 
     async findByUUID(uuid: string): Promise<PatientData> {
@@ -17,7 +17,7 @@ export class PatientDataService {
             + "?s ?p ?o . "
             + "}";  
             
-            console.log("[PatientDataService] Startng query: " + query);
+            console.log("[PatientDataDkgService] Startng query: " + query);
             const result = await this.dkgConnector.dkgInstance.graph.query(query, "SELECT");
 
             console.log(result);

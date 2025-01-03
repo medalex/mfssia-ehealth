@@ -1,29 +1,30 @@
-import { Body, Controller, Get, Header, Logger, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Header, Param, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { MedicalLicense } from 'src/modules/medical-license/medical-license.entity'; 
-import { MedicalLicenseService } from './medical-license.service';
+import { MedicalLicense } from 'src/modules/medical-license/medical-license.entity';
+import { MedicalLicenseFacadeService } from './medical-license-facade.service';
 
 @ApiTags('MedicalLicense')
 @Controller('/api/medical-license')
 export class MedicalLicenseController {
-  constructor(private readonly medicalLicenseService: MedicalLicenseService) {}
+  constructor(   
+    private readonly medicalFacadeService: MedicalLicenseFacadeService) {    
+  }
 
   @Post('publish')
   @Header('Content-Type', 'application/json')
-  async publish(@Body() medicalLicense: MedicalLicense): Promise<any> {
-    Logger.log({license: medicalLicense});
-
-    return await this.medicalLicenseService.publish(medicalLicense);
+  async publish(@Body() medicalLicense: MedicalLicense): Promise<any> {    
+    return await this.medicalFacadeService.publish(medicalLicense);
   }
 
   @Get('/:medicalLicenseUuid')
   async getMedicalLicense(@Param('medicalLicenseUuid') medicalLicenseUuid: string): Promise<MedicalLicense> {
-    return await this.medicalLicenseService.findByUuid(medicalLicenseUuid);
+
+    return await this.medicalFacadeService.findByUuid(medicalLicenseUuid);
   }
 
   @Get('/owner/:ownerUuid')
   async getMedicalLicenseByOwner(@Param('ownerUuid') ownerUuid: string): Promise<MedicalLicense> {
-    return await this.medicalLicenseService.findByOwner(ownerUuid);
+    return await this.medicalFacadeService.findByOwner(ownerUuid);
   }
 }
 

@@ -3,7 +3,7 @@ import { DKGConnectorService } from "src/providers/DKGConnector/dkgConnector.ser
 import { MedicalLicense } from 'src/modules/medical-license/medical-license.entity';
 
 @Injectable()
-export class MedicalLicenseService {
+export class MedicalLicenseDkgService {
     constructor(private readonly dkgConnector: DKGConnectorService) {}
 
     async findByUuid(uuid: string): Promise<MedicalLicense> {

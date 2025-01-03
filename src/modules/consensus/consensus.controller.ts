@@ -1,4 +1,4 @@
-import { Controller, Get, Logger, Param } from "@nestjs/common";
+import { Controller, Get, Param } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { ConsensusService } from "./consensus.service";
 

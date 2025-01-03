@@ -1,13 +1,13 @@
 import { Body, Controller, Get, Header, Logger, Param, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { PatientPermissionService } from './patient-permission.service';
+import { PatientPermissionDkgService } from './patient-permission-dkg.service';
 import { PatientPermission } from 'src/modules/patient-permission/patient-permission.entity';
 
 
 @ApiTags('PatientPermission')
 @Controller('/api/patient-permission')
 export class PatientPermissionController {
-  constructor(private readonly patientPermissionService: PatientPermissionService) {}
+  constructor(private readonly patientPermissionService: PatientPermissionDkgService) {}
 
   @Post('publish')
   @Header('Content-Type', 'application/json')
