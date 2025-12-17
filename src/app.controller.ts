@@ -1,13 +1,15 @@
 import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
+import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('root')
 @Controller()
 export class AppController {
-  // eslint-disable-next-line prettier/prettier
-  constructor(private readonly appService: AppService) { }
+  constructor(private readonly appService: AppService) {}
 
+  @ApiOkResponse({ description: 'Welcome message' })
   @Get()
-  findAll() {
+  getWelcome() {
     return this.appService.getHello();
   }
 }

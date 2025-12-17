@@ -1,24 +1,56 @@
 import { ConfigFactory } from '@nestjs/config';
+import * as path from 'path';
 import * as dotenv from 'dotenv';
 
-dotenv.config({ path: __dirname + '/./../../.env' });
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
-export const appConfig: any = {
-  nodeEnv: process.env.NODE_ENV,
-  name: process.env.APP_NAME,
-  port: parseInt(process.env.APP_PORT || process.env.PORT, 10) || 3000,
-  apiPrefix: process.env.API_PREFIX || 'api',
+export interface AppConfig {
+  nodeEnv: string;
+  name?: string;
+  port: number;
+  apiPrefix: string;
   dkg: {
-    hostname: 'http://18.156.197.138',
-    port: 8900,
-    dataProviderWallet: '0x80e705be5475563f7ac941dc8b99b9251b3bba4f',
+    hostname: string;
+    port: number;
+    dataProviderWallet?: string;
+  };
+  wallet: {
+    publicKey?: string;
+    privateKey?: string;
+  };
+  isDkgMocked: boolean;
+}
+
+const parseNumber = (value: string | undefined, fallback = 0): number => {
+  if (!value) return fallback;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+const parseBool = (value: string | undefined, fallback = false): boolean => {
+  if (value === undefined) return fallback;
+  const v = value.trim().toLowerCase();
+  return v === 'true' || v === '1' || v === 'yes' || v === 'on';
+};
+
+const appConfig: AppConfig = {
+  nodeEnv: process.env.NODE_ENV ?? 'development',
+  name: process.env.APP_NAME,
+  port: parseNumber(process.env.APP_PORT ?? process.env.PORT, 3000),
+  apiPrefix: process.env.API_PREFIX ?? 'api',
+  dkg: {
+    hostname: process.env.DKG_HOSTNAME,
+    port: parseNumber(process.env.DKG_PORT, 8900),
+    dataProviderWallet:
+      process.env.DKG_DATA_PROVIDER_WALLET,
   },
   wallet: {
     publicKey: process.env.PUBLIC_KEY,
     privateKey: process.env.PRIVATE_KEY,
   },
-  isDkgMocked: process.env.IS_DKG_MOCKED
+  isDkgMocked: parseBool(process.env.IS_DKG_MOCKED, false)
 };
 
-const configFunction: ConfigFactory<any> = () => appConfig;
+const configFunction: ConfigFactory<AppConfig> = () => appConfig;
+
 export default configFunction;
