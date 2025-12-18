@@ -1,14 +1,14 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { IAssetResponse } from '../../interfaces/IAssetResponse';
-import { DKGInitialSetupService } from './setup.service';
+import { InfrastructureService } from './infrastructure.service';
 
 @ApiBearerAuth()
-@ApiTags('Setup')
+@ApiTags('Infrastructure')
 @Controller('/api/setup')
-export class SetupController {
+export class InfrastructureController {
   constructor(
-    private readonly dkgInitialSetupService: DKGInitialSetupService,
+    private readonly infrastructureService: InfrastructureService,
   ) {}
 
   @Get('healthcheck')
@@ -20,6 +20,6 @@ export class SetupController {
 
   @Get('node-info')
   async nodeInfo(): Promise<IAssetResponse> {
-    return await this.dkgInitialSetupService.getNodeInfo();
+    return await this.infrastructureService.getNodeInfo();
   }
 }

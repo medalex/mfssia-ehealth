@@ -27,6 +27,8 @@ export class SystemService {
     this.logger.debug(`Executing SPARQL query: ${query}`);
 
     const result = await this.dkgConnector.dkg.graph.query(query, 'SELECT');
+
+    this.logger.debug(`SPARQL query result: ${JSON.stringify(result)}`);
     const rows = result?.data ?? result;     
 
     if (!Array.isArray(rows) || rows.length === 0) {
@@ -76,7 +78,9 @@ export class SystemService {
       
       const oStr = object != null ? String(object).replace(/\"/g, '') : '';
 
-      switch (predicate) {
+      this.logger.debug(`Processing predicate: ${predicate}, object: ${oStr}`);
+
+      switch (predicate) {        
         case `${SystemService.SCHEMA}uuid`:
           system.uuid = oStr;
           break;
@@ -89,8 +93,9 @@ export class SystemService {
           system.network = oStr;
           break;
 
-        case `${SystemService.SCHEMA}contract_id`:
-          system.contracts.push(Number(oStr));
+        case `${SystemService.SCHEMA}contracts`:
+          this.logger.debug(`Adding contract: ${oStr}`);
+          system.contracts.push(Number(oStr.split('^^')[0]));
           break;
 
         default:

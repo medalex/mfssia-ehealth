@@ -15,8 +15,7 @@ export interface AppConfig {
     useSSL: boolean;
     logLevel: string;    
     blockchain: {
-      name: string;      
-      gasPrice: string;
+      name: string;            
       transactionPollingTimeout: string; 
       publicKey: string;
       privateKey: string;    
@@ -26,8 +25,6 @@ export interface AppConfig {
     frequency: number;
     contentType: string;
     environment: string;
-    //bidSuggestionRange: string;
-    tokenAmount: string;
   };
   isDkgMocked: boolean;  
 }
@@ -53,21 +50,18 @@ const appConfig: AppConfig = {
     endpoint: process.env.DKG_HOSTNAME,
     port: parseNumber(process.env.DKG_PORT, 8900),
     blockchain: {
-      name: 'otp:20430',
-      gasPrice: '100000',
+      name: 'otp:20430',      
       transactionPollingTimeout: '6000',
       publicKey: process.env.PUBLIC_KEY,
       privateKey: process.env.PRIVATE_KEY,
-      withgasPriceBufferPercent: 1000
+      withgasPriceBufferPercent: 150
     },
     useSSL: false,
     logLevel: 'trace',
     maxNumberOfRetries: 1,
     frequency: 2,
     contentType: 'all',
-    environment: 'testnet',
-    //bidSuggestionRange: '500000000000000',
-    tokenAmount: '5000000'
+    environment: 'testnet'
   },
   isDkgMocked: parseBool(process.env.IS_DKG_MOCKED, false)
 };

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Header, Logger, Put, Query } from "@nestjs/common";
+import { Body, Controller, Get, Header, Logger, Param, Put, Query } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { AssetService } from "./asset.service";
 import { AssetRequest } from "./asset.request";
@@ -16,9 +16,8 @@ export class AssetController {
     
         return await this.assetService.publish(asset);
     }
-
     
-    @Get('query')    
+    @Get('get')    
     async getAsset(
         @Query("property") property: string, 
         @Query("value") value: string, 
@@ -27,6 +26,11 @@ export class AssetController {
     ): Promise<Object> {
         return await this.assetService.find(property, value, schema, type);
     }
+
+      @Get('get/:ual')
+      async getAssetByUal(@Param('ual') ual: string): Promise<unknown> {
+        return await this.assetService.fidByUal(ual);
+      }
 
 
 }
