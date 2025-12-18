@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { IAssetResponse } from '../../interfaces/IAssetResponse';
 import { DKGInitialSetupService } from './setup.service';

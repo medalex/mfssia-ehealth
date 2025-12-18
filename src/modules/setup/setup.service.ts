@@ -1,13 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
-import * as path from 'path';
-import { readFile } from 'fs/promises';
-import { getCurrentTimestamp } from '../../shared/utils/timestampUtils';
-import { DKGConnectorService } from '../../providers/DKGConnector/dkgConnector.service';
-import { IAssetResponse } from '../../interfaces/IAssetResponse';
+import { Injectable } from '@nestjs/common';
+import { DkgService } from '../../providers/DKGConnector/dkgConnector.service';
 
 @Injectable()
 export class DKGInitialSetupService {
-  constructor(private readonly dkgConnector: DKGConnectorService ) {}
+  constructor(private readonly dkgConnector: DkgService ) {}
   
   async getNodeInfo(): Promise<any> {
     return await this.dkgConnector.getDkgNode();

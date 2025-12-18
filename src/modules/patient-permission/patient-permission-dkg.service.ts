@@ -1,11 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DKGConnectorService } from "src/providers/DKGConnector/dkgConnector.service";
-import { MedicalLicense } from 'src/modules/medical-license/medical-license.entity';
+import { DkgService } from "src/providers/DKGConnector/dkgConnector.service";
 import { PatientPermission } from 'src/modules/patient-permission/patient-permission.entity';
 
 @Injectable()
 export class PatientPermissionDkgService {
-    constructor(private readonly dkgConnector: DKGConnectorService) {}
+    constructor(private readonly dkgConnector: DkgService) {}
 
     async findByUuid(uuid: string): Promise<PatientPermission> {
       try {
@@ -19,7 +18,7 @@ export class PatientPermissionDkgService {
           
           console.log("[PatientPermissionService] Startng query: " + query);
 
-          const result = await this.dkgConnector.dkgInstance.graph.query(query, "SELECT");
+          const result = await this.dkgConnector.dkg.graph.query(query, "SELECT");
 
           console.log(result);
 
@@ -41,7 +40,7 @@ export class PatientPermissionDkgService {
           
           console.log("Startng query: " + query);
 
-          const result = await this.dkgConnector.dkgInstance.graph.query( query, "SELECT");
+          const result = await this.dkgConnector.dkg.graph.query( query, "SELECT");
 
           console.log(result);
 
@@ -63,7 +62,7 @@ export class PatientPermissionDkgService {
               Logger.log({originalPatientPermission: patientPermission});
 
               let asset = this.mapToAsset(patientPermission);
-              const assetCreatedOnDKG = await this.dkgConnector.createAssetOnDKG(asset);
+              const assetCreatedOnDKG = await this.dkgConnector.createAsset(asset);
               
               Logger.log({ patientPermission: assetCreatedOnDKG });
       

@@ -1,26 +1,37 @@
-/* eslint-disable prettier/prettier */
 import {
     NestInterceptor,
     ExecutionContext,
     CallHandler,
     Injectable,
   } from '@nestjs/common';
+  import { Observable } from 'rxjs';
   import { map } from 'rxjs/operators';
   import { RCode } from '../constants/rcode.constant';
+
+  export type ResponseShape<T = unknown> = {
+    data: T | {};
+    code: number;
+    msg: string | null;
+  };
   
   @Injectable()
   export class ResponseInterceptor implements NestInterceptor {
     intercept(
-      context: ExecutionContext,
+      _context: ExecutionContext,
       next: CallHandler<any>,
-    ): import('rxjs').Observable<any> | Promise<import('rxjs').Observable<any>> {
+    ): Observable<ResponseShape> {
       return next.handle().pipe(
         map(content => {
+          if (content && typeof content === 'object' && !Array.isArray(content)) {
+          const maybe = content as Record<string, any>;
           return {
-            data: content.data || {},
-            code: content.code || RCode.OK,
-            msg: content.msg || null,
-          };
+            data: Object.prototype.hasOwnProperty.call(maybe, 'data')
+              ? maybe.data
+              : maybe, 
+            code: maybe.code ?? RCode.OK,
+            msg: maybe.msg ?? null,
+          } as ResponseShape;
+        }
         }),
       );
     }

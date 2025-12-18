@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DKGConnectorService } from '../../providers/DKGConnector/dkgConnector.service';
+import { DkgService } from '../../providers/DKGConnector/dkgConnector.service';
 import { Gateway } from 'src/modules/gateway/gateway.entity';
 
 @Injectable()
 export class GatewayService {
-  constructor(private readonly dkgConnector: DKGConnectorService) {}
+  constructor(private readonly dkgConnector: DkgService) {}
 
   async findByUuid(uuid: string):Promise<Gateway> {
     try {
@@ -18,7 +18,7 @@ export class GatewayService {
                + "}";
                 
       console.log("Startng query: " + query);
-      const result = await this.dkgConnector.dkgInstance.graph.query( query, "SELECT");
+      const result = await this.dkgConnector.dkg.graph.query( query, "SELECT");
       
       console.log(result);
 
@@ -44,7 +44,7 @@ export class GatewayService {
                + "}";
                 
       console.log("Startng query: " + query);
-      const result = await this.dkgConnector.dkgInstance.graph.query( query, "SELECT");
+      const result = await this.dkgConnector.dkg.graph.query( query, "SELECT");
       
       console.log(result);
 
@@ -70,7 +70,7 @@ export class GatewayService {
             Logger.log({originalGateway: gateway});
 
             let asset = this.mapToAsset(gateway);
-            const assetCreatedOnDKG = await this.dkgConnector.createAssetOnDKG(asset);
+            const assetCreatedOnDKG = await this.dkgConnector.createAsset(asset);
             
             Logger.log({ medicalLicense: assetCreatedOnDKG });
     

@@ -1,9 +1,9 @@
 import { Logger } from "@nestjs/common";
-import { DKGConnectorService } from "src/providers/DKGConnector/dkgConnector.service";
+import { DkgService } from "src/providers/DKGConnector/dkgConnector.service";
 import { SecurityLicense } from "src/modules/security-license/security-license.entity";
 
 export class SecurityLicenseService {
-    constructor(private readonly dkgConnector: DKGConnectorService) {}
+    constructor(private readonly dkgConnector: DkgService) {}
     
     async findByUuid(uuid: string):Promise<SecurityLicense> {
         try {
@@ -17,7 +17,7 @@ export class SecurityLicenseService {
                    + "}";
                     
           console.log("Startng query: " + query);
-          const result = await this.dkgConnector.dkgInstance.graph.query( query, "SELECT");
+          const result = await this.dkgConnector.dkg.graph.query( query, "SELECT");
           
           console.log(result);
     
@@ -42,7 +42,7 @@ export class SecurityLicenseService {
                    + "}";
                     
           console.log("Startng query: " + query);
-          const result = await this.dkgConnector.dkgInstance.graph.query( query, "SELECT");
+          const result = await this.dkgConnector.dkg.graph.query( query, "SELECT");
           
           console.log(result);
     
@@ -69,7 +69,7 @@ export class SecurityLicenseService {
 
                 let asset = this.mapToAsset(securityLicense);
 
-                const assetCreatedOnDKG = await this.dkgConnector.createAssetOnDKG(asset);
+                const assetCreatedOnDKG = await this.dkgConnector.createAsset(asset);
                 
                 Logger.log({ securityLicense: assetCreatedOnDKG });
         

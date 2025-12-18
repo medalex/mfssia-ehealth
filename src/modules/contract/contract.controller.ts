@@ -1,6 +1,5 @@
 import { Body, Controller, Get, Header, Logger, Param, Post } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
-import { type } from 'os';
+import { ApiTags } from '@nestjs/swagger';
 import { Contract } from 'src/modules/contract/contract.entity';
 import { ContractService } from './contract.service';
 

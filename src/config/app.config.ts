@@ -10,15 +10,26 @@ export interface AppConfig {
   port: number;
   apiPrefix: string;
   dkg: {
-    hostname: string;
+    endpoint: string;
     port: number;
-    dataProviderWallet?: string;
+    useSSL: boolean;
+    logLevel: string;    
+    blockchain: {
+      name: string;      
+      gasPrice: string;
+      transactionPollingTimeout: string; 
+      publicKey: string;
+      privateKey: string;    
+      withgasPriceBufferPercent: number; 
+    };
+    maxNumberOfRetries: number;
+    frequency: number;
+    contentType: string;
+    environment: string;
+    //bidSuggestionRange: string;
+    tokenAmount: string;
   };
-  wallet: {
-    publicKey?: string;
-    privateKey?: string;
-  };
-  isDkgMocked: boolean;
+  isDkgMocked: boolean;  
 }
 
 const parseNumber = (value: string | undefined, fallback = 0): number => {
@@ -39,14 +50,24 @@ const appConfig: AppConfig = {
   port: parseNumber(process.env.APP_PORT ?? process.env.PORT, 3000),
   apiPrefix: process.env.API_PREFIX ?? 'api',
   dkg: {
-    hostname: process.env.DKG_HOSTNAME,
+    endpoint: process.env.DKG_HOSTNAME,
     port: parseNumber(process.env.DKG_PORT, 8900),
-    dataProviderWallet:
-      process.env.DKG_DATA_PROVIDER_WALLET,
-  },
-  wallet: {
-    publicKey: process.env.PUBLIC_KEY,
-    privateKey: process.env.PRIVATE_KEY,
+    blockchain: {
+      name: 'otp:20430',
+      gasPrice: '100000',
+      transactionPollingTimeout: '6000',
+      publicKey: process.env.PUBLIC_KEY,
+      privateKey: process.env.PRIVATE_KEY,
+      withgasPriceBufferPercent: 1000
+    },
+    useSSL: false,
+    logLevel: 'trace',
+    maxNumberOfRetries: 1,
+    frequency: 2,
+    contentType: 'all',
+    environment: 'testnet',
+    //bidSuggestionRange: '500000000000000',
+    tokenAmount: '5000000'
   },
   isDkgMocked: parseBool(process.env.IS_DKG_MOCKED, false)
 };

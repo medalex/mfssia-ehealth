@@ -1,16 +1,16 @@
-import { Injectable, Logger, NotImplementedException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { IAssetResponse } from 'src/interfaces/IAssetResponse';
 import { Contract } from 'src/modules/contract/contract.entity';
-import { DKGConnectorService } from '../../providers/DKGConnector/dkgConnector.service';
+import { DkgService } from '../../providers/DKGConnector/dkgConnector.service';
 
 @Injectable()
 export class ContractService {
   constructor(
-    private readonly dkgConnector: DKGConnectorService) {}
+    private readonly dkgConnector: DkgService) {}
 
   async publishProductContract(contract: Contract): Promise<IAssetResponse> {
     try {
-      let existingContract = await this.dkgConnector.dkgInstance.findContractByUuid(contract.uuid);
+      let existingContract = await this.dkgConnector.dkg.findContractByUuid(contract.uuid);
       
       console.log("Existing contract: " + JSON.stringify(existingContract));      
 
@@ -19,7 +19,7 @@ export class ContractService {
       } else {
         Logger.log({originalContract: contract});
         let asset = this.mapToAsset(contract);
-        const assetCreatedOnDKG = await this.dkgConnector.createAssetOnDKG(asset);
+        const assetCreatedOnDKG = await this.dkgConnector.createAsset(asset);
         Logger.log({ contract: assetCreatedOnDKG });
 
         return assetCreatedOnDKG;
@@ -45,7 +45,7 @@ export class ContractService {
                 
       console.log("Startng query: " + query);
 
-      const result = await this.dkgConnector.dkgInstance.graph.query( query, "SELECT");
+      const result = await this.dkgConnector.dkg.graph.query( query, "SELECT");
 
       Logger.log('queryResult: ' + JSON.stringify(result));
 

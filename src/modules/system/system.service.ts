@@ -1,106 +1,118 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { DKGConnectorService } from "src/providers/DKGConnector/dkgConnector.service";
-import { MedicalLicense } from 'src/modules/medical-license/medical-license.entity';
+// src/modules/system/system.service.ts
+import { ConflictException, Injectable, Logger } from '@nestjs/common';
+import { DkgService } from 'src/providers/DKGConnector/dkgConnector.service';
 import { System } from 'src/modules/system/system.entity';
+import { PublishSystemRequestDto } from './dto/system.publish-request.dto';
+import { SystemMapper } from './system.mapper';
+import { PublishSystemResponseDto } from './dto/system.publish-response.dto';
 
 @Injectable()
 export class SystemService {
-    constructor(private readonly dkgConnector: DKGConnectorService) {}
+  private readonly logger = new Logger(SystemService.name);
+  private static readonly SCHEMA = 'http://schema.org/';
 
-    async findByUuid(uuid: string):Promise<System> {
-        try {
-          
-          var query = "PREFIX mfssia:<http://schema.org/> "
-                   + "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
-                   + "SELECT ?s ?p ?o WHERE {"
-                   + "?s rdf:type mfssia:System . "
-                   + "?s mfssia:uuid '" + uuid + "' . "
-                   + "?s ?p ?o . "
-                   + "}";
-                    
-          console.log("Startng query: " + query);
 
-          const result = await this.dkgConnector.dkgInstance.graph.query( query, "SELECT");
-          
-          console.log(JSON.stringify(result));
-    
-          return this.mapSystem(result.data);       
-        }
-        catch (error) {
-          throw new Error(error);
-        }
+  constructor(private readonly dkgConnector: DkgService) {}
+
+  async findByUuid(uuid: string): Promise<System | null> {  
+    const query =
+      "PREFIX mfssia:<http://schema.org/> " +
+      "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> " +
+      'SELECT ?s ?p ?o WHERE {' +
+      '?s rdf:type mfssia:System . ' +
+      `?s mfssia:uuid '${uuid}' . ` +
+      '?s ?p ?o . ' +
+      '}';
+
+    this.logger.debug(`Executing SPARQL query: ${query}`);
+
+    const result = await this.dkgConnector.dkg.graph.query(query, 'SELECT');
+    const rows = result?.data ?? result;     
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      this.logger.debug(`No system found for uuid=${uuid}`);
+      return null;
     }
 
-    async publish(system: System) {
-        try {
-            let existingSystem = await this.findByUuid(system.uuid);
-    
-            console.log("Existing system: " + JSON.stringify(existingSystem));
-    
-            if (existingSystem.uuid) {
-                return null;            
-            } else {
-                Logger.log({originalSystem: system});
-    
-                let asset = this.mapToAsset(system);
+    return this.mapSystem(rows);         
+  }
 
-                const assetCreatedOnDKG = await this.dkgConnector.createAssetOnDKG(asset);
-                
-                Logger.log({ system: assetCreatedOnDKG });
-        
-                return assetCreatedOnDKG;                
-            }
-        } catch (error) {
-            Logger.error(error);           
-        } 
-      }
+  async publish(dto: PublishSystemRequestDto): Promise<PublishSystemResponseDto> {
+    const systemEntity = SystemMapper.toEntity(dto);
 
-    private mapSystem(sparqlResult: any): System {
-        let system = new System();
-    
-        console.log(sparqlResult);
-        sparqlResult.forEach( (element:any) => {
-          element.o = element.o.toString().replace(/\"/g, "");
-    
-          if (element.p == "http://schema.org/uuid") {
-            system.uuid = element.o;
-          }
-    
-          if (element.p == "http://schema.org/timestamp") {
-              system.timestamp = element.o;
-          }
-    
-          if (element.p == "http://schema.org/network") {
-              system.network = element.o;
-          }
-    
-          if (element.p == "http://schema.org/contract_id") {
-              system.contracts.push(element.o);
-          }
-          });
-        
-        return system;
+    const existing = await this.findByUuid(systemEntity.uuid);
+    if (existing) {
+      throw new ConflictException('System already exists');
     }
 
-    private mapToAsset(system: System): Record<string, string> | any {
-        let asset = JSON.stringify(system);
-  
-        Logger.log(asset);
-        
-        let newAsset = {};
-        
-        newAsset['@context'] = 'https://schema.org';
-        newAsset['@type'] = 'System';
-        newAsset['uuid'] = system.uuid;
-        newAsset['timestamp'] = system.timestamp;
-        newAsset['network'] = system.network;
-        newAsset['contracts'] = JSON.stringify([system.contracts])
-        
-        Logger.debug('newAsset = ' + newAsset);
-        
-        return newAsset;
+    const asset = this.mapToAsset(systemEntity);
+
+    const created = await this.dkgConnector.createAsset(asset);
+
+    this.logger.debug(`Created system : ${created ? JSON.stringify(created) : ''}`);
+
+    return {
+      system: SystemMapper.toResponse(systemEntity),
+      ual: created.UAL,
+    };
+  }
+
+
+  private mapSystem(sparqlRows: any[]): System {
+    const system = new System();
+
+    if (!Array.isArray(sparqlRows)) {
+      this.logger.warn('mapSystem: expected array of rows');
+      return system;
+    }
+
+    for (const row of sparqlRows) {      
+      let predicate = row.p ?? row['p'];
+      let object = row.o ?? row['o'];
+
+      if (object && typeof object === 'object' && 'value' in object) {
+        object = object.value;
       }
-    
+      
+      const oStr = object != null ? String(object).replace(/\"/g, '') : '';
+
+      switch (predicate) {
+        case `${SystemService.SCHEMA}uuid`:
+          system.uuid = oStr;
+          break;
+
+        case `${SystemService.SCHEMA}timestamp`:
+          system.timestamp = oStr;
+          break;
+
+        case `${SystemService.SCHEMA}network`:
+          system.network = oStr;
+          break;
+
+        case `${SystemService.SCHEMA}contract_id`:
+          system.contracts.push(Number(oStr));
+          break;
+
+        default:
+          break;
 }
 
+    }
 
+    return system;
+  }
+
+  private mapToAsset(system: System): Record<string, unknown> {
+    const newAsset: Record<string, unknown> = {
+      '@context': 'https://schema.org',
+      '@type': 'System',
+      uuid: system.uuid,
+      timestamp: system.timestamp,
+      network: system.network,      
+      contracts: system.contracts ?? [],
+    };
+
+    this.logger.debug(`Prepared newAsset: ${JSON.stringify(newAsset)}`);
+    return newAsset;
+  }
+}

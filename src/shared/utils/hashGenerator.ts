@@ -1,4 +1,3 @@
-import { Console } from 'console';
 import { createHash } from 'crypto';
 
 export function generateSha256Hash(price:number, delivery_date:number, quantity:number, product_name:string) {

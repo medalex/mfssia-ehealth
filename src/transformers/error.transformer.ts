@@ -1,13 +1,13 @@
-/**
- * @file Error transform
- * @description Convert error data in various specific formats
- * @module transformer/error
- */
+export function getErrorMessage(error: unknown): string {
+  if (typeof error === 'object' && error !== null && 'response' in error) {
+    // axios-like error
+    // @ts-ignore
+    return error.response?.data?.message ?? error.response?.data ?? 'Request failed';
+  }
 
-export function getMessageFromNormalError(error: any): any {
-  return error?.message || error;
-}
+  if (error instanceof Error) {
+    return error.message;
+  }
 
-export function getMessageFromAxiosError(error: any): any {
-  return error?.response?.data || getMessageFromNormalError(error);
+  return String(error);
 }

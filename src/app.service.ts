@@ -1,27 +1,43 @@
+// src/app.service.ts
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+
+export interface WelcomeDto {
+  message: string;
+  api: string;
+  docs: string;
+}
 
 @Injectable()
 export class AppService {
   constructor(private readonly config: ConfigService) {}
 
-  getHello() {
+  getHello(): WelcomeDto {
+    // берем заранее настроенный APP_URL, если есть
+    const appUrl =
+      this.config.get<string>('app.appUrl') ??
+      this.config.get<string>('APP_URL') ??
+      null;
+
+    // порт и префикс как fallback (если APP_URL не задан)
     const port =
-      this.config.get<number>('app.port') ??
-      this.config.get<number>('port') ??
-      3000;
+      Number(
+        this.config.get<number>('app.port') ??
+          this.config.get<number>('port') ??
+          process.env.PORT,
+      ) || 3000;
 
     const apiPrefix =
       this.config.get<string>('app.apiPrefix') ??
       this.config.get<string>('apiPrefix') ??
       'api';
 
-    const host = 'http://localhost';
+    const base = appUrl ?? `http://localhost:${port}`;
 
     return {
       message: 'Welcome to DKG API!',
-      api: '/api',
-      docs: '/docs',
+      api: `${base}/${apiPrefix}`,
+      docs: `${base}/docs`,
     };
   }
 }

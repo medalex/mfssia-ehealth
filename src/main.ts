@@ -18,7 +18,15 @@ const logger = new Logger('Bootstrap');
 
 async function bootstrap() {
   try {
-    const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule, {
+      logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+    });
+
+    app.enableCors({
+      origin: true,
+      credentials: true,
+    });
+
     useContainer(app.select(AppModule), { fallbackOnErrors: true });
     const configService = app.get(ConfigService);
 
