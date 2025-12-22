@@ -1,20 +1,32 @@
-# Base image
-FROM node:18
-
-# Create app directory
+# ---- STAGE 1: deps ----
+FROM node:25.2.1-alpine AS deps
 WORKDIR /usr/src/app
+COPY package.json package-lock.json ./
+RUN npm ci
 
-# A wildcard is used to ensure both package.json AND package-lock.json are copied
-COPY package*.json ./
-
-# Install app dependencies
-RUN npm install
-
-# Bundle app source
+# ---- STAGE 2: builder ----
+FROM node:25.2.1-alpine AS builder
+WORKDIR /usr/src/app
+COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY . .
-
-# Creates a "dist" folder with the production build
 RUN npm run build
 
-# Start the server using the production build
-CMD [ "node", "dist/main.js" ]
+# ---- STAGE 3: prod ----
+FROM node:25.2.1-alpine AS prod
+WORKDIR /usr/src/app
+
+RUN addgroup -S app && adduser -S -G app app
+
+COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/package.json ./package.json
+COPY --from=builder /usr/src/app/node_modules ./node_modules
+
+ENV NODE_ENV=development
+ENV PORT=4000
+
+RUN chown -R app:app /usr/src/app
+
+EXPOSE 4000
+USER app
+
+CMD ["node", "dist/main.js"]

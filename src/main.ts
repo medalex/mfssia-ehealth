@@ -72,7 +72,7 @@ async function bootstrap() {
       logger.log('Swagger enabled at /docs');
     }  
 
-    await app.listen(port, '0.0.0.0');
+    await app.listen(port || 4000, '0.0.0.0');
     console.log(`Application is running on: ${await app.getUrl()}`);
   } catch (e) {
     logger.error('Failed to start application', (e as Error).stack ?? e);    
