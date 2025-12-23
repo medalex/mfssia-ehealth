@@ -1,5 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { DkgService } from "src/providers/DKGConnector/dkgConnector.service";
+import { DkgService } from "src/providers/dkg/dkg.service";
 import { AssetRequest } from "./asset.request";
 
 @Injectable()
@@ -10,10 +10,11 @@ export class AssetService {
     async publish(asset: AssetRequest) {
         const dkgAsset = this.mapToAsset(asset.content, asset.schema, asset.type);
 
-        return await this.dkgService.dkg.asset.create({public: dkgAsset}, {epochsNum: 2});
+        return await this.dkgService.createAsset(dkgAsset);
     }
 
     
+    //TODO: Change return type to asset dto
     private mapToAsset(asset: Object, schema: string, type: string): Record<string, unknown> {        
         const newAsset: Record<string, unknown> = {
         '@context': schema,
@@ -42,14 +43,14 @@ export class AssetService {
 
         this.logger.debug(`Executing SPARQL query: ${query}`);
 
-        const result = await this.dkgService.dkg.graph.query(query, "SELECT");
+        const result = await this.dkgService.findAssets(query);
 
         this.logger.debug(`SPARQL query result: ${JSON.stringify(result)}`);
 
         return result.data;   
     }
 
-    async fidByUal(ual: string): Promise<unknown> {
+    async findByUal(ual: string): Promise<unknown> {
         return await this.dkgService.readAsset(ual)
     };
 }

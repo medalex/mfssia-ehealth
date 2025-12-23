@@ -12,14 +12,12 @@ export interface WelcomeDto {
 export class AppService {
   constructor(private readonly config: ConfigService) {}
 
-  getHello(): WelcomeDto {
-    // берем заранее настроенный APP_URL, если есть
+  getHello(): WelcomeDto {    
     const appUrl =
       this.config.get<string>('app.appUrl') ??
       this.config.get<string>('APP_URL') ??
       null;
-
-    // порт и префикс как fallback (если APP_URL не задан)
+    
     const port =
       Number(
         this.config.get<number>('app.port') ??

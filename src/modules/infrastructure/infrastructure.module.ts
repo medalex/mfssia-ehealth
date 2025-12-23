@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { InfrastructureService } from './infrastructure.service';
 import { InfrastructureController } from './infrastructure.controller';
-import { DKGConnectorModule } from '../../providers/DKGConnector/dkgConnector.module';
+import { DkgModule } from '../../providers/dkg/dkg.module';
+import { HealthService } from './healthcheck/health.service';
 
 @Module({
-  imports: [DKGConnectorModule],
+  imports: [DkgModule],
   controllers: [InfrastructureController],
-  providers: [InfrastructureService],
+  providers: [InfrastructureService, HealthService],
 })
 export class InfrastructureModule {}

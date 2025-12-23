@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { DkgService } from './dkgConnector.service';
+import { DkgService } from './dkg.service';
 
 @Module({
   providers: [DkgService],
   exports: [DkgService],
 })
-export class DKGConnectorModule {}
+export class DkgModule {}

@@ -49,6 +49,4 @@ Thumbs.db
 *.wmv
 *.lock
 
-package-lock.json
-
 .husky/*

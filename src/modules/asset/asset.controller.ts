@@ -1,36 +1,35 @@
-import { Body, Controller, Get, Header, Logger, Param, Put, Query } from "@nestjs/common";
-import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
+import { Body, Controller, Get, Logger, Param, Post, Query, UsePipes, ValidationPipe } from "@nestjs/common";
+import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { AssetService } from "./asset.service";
 import { AssetRequest } from "./asset.request";
+import { SearchAssetDto } from "./asset.dto.search";
 
-@ApiBearerAuth()
-@ApiTags('Asset')
-@Controller('/api/asset')
+@ApiTags('Assets')
+@Controller('/api/assets')
 export class AssetController {
+    private readonly logger = new Logger(AssetController.name);
     constructor(private readonly assetService: AssetService) {};
 
-    @Put("publish")
-    @Header('Content-Type', 'application/json')
-      async publish(@Body() asset: AssetRequest): Promise<any> {
-        Logger.log({obj: asset})
-    
-        return await this.assetService.publish(asset);
+    @Post("publish")
+    @ApiOperation({ summary: 'Publish asset' })
+    @ApiResponse({ status: 201, description: 'Asset published' })
+    @UsePipes(new ValidationPipe({ transform: true }))    
+    async publish(@Body() asset: AssetRequest): Promise<any> {
+      this.logger.log(`Publishing asset: ${JSON.stringify(asset)}`);
+  
+      return await this.assetService.publish(asset);
     }
     
-    @Get('get')    
-    async getAsset(
-        @Query("property") property: string, 
-        @Query("value") value: string, 
-        @Query("schema") schema: string, 
-        @Query("type-") type: string
-    ): Promise<Object> {
-        return await this.assetService.find(property, value, schema, type);
+    @Get()
+    @ApiOperation({ summary: 'Search assets' })
+    @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))  
+    async getAsset(@Query() q  : SearchAssetDto): Promise<Object> {
+      return await this.assetService.find(q.property, q.value, q.schema, q.type);
     }
 
-      @Get('get/:ual')
-      async getAssetByUal(@Param('ual') ual: string): Promise<unknown> {
-        return await this.assetService.fidByUal(ual);
-      }
-
-
+    @Get(':ual')
+    @ApiOperation({ summary: 'Get asset by UAL' })
+    async getAssetByUal(@Param('ual') ual: string): Promise<unknown> {
+      return await this.assetService.findByUal(ual);
+    }
 }

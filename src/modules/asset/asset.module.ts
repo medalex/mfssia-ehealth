@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { DKGConnectorModule } from "src/providers/DKGConnector/dkgConnector.module";
+import { DkgModule } from "src/providers/dkg/dkg.module";
 import { AssetController } from "./asset.controller";
 import { AssetService } from "./asset.service";
 
 @Module({
-    imports: [DKGConnectorModule],
+    imports: [DkgModule],
     controllers: [AssetController],
     providers: [AssetService]
   })
