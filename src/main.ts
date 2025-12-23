@@ -63,8 +63,7 @@ async function bootstrap() {
       const options = new DocumentBuilder()
         .setTitle('MFSSIA DKG API')
         .setDescription('MFSSIA DKG API docs')
-        .setVersion('1.0')
-        .addBearerAuth()
+        .setVersion('1.0')        
         .build();
 
       const document = SwaggerModule.createDocument(app, options);
