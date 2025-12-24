@@ -120,7 +120,11 @@ Used for fast returning-user authentication.
   const document = SwaggerModule.createDocument(app, config);
 
   SwaggerModule.setup(SWAGGER_PATH, app, document, {
-    customCss: '.swagger-ui .topbar { background-color: #1a1a1a; }',
+    customCss: `
+      .swagger-ui .topbar { background-color: #1a1a1a; }
+      .swagger-ui .info { margin: 50px 0; }
+      .swagger-ui .markdown code { background: #f0f0f0; padding: 2px 6px; border-radius: 4px; }
+    `,
     customSiteTitle: `${appName} | API Docs`,
     swaggerOptions: {
       persistAuthorization: true,
