@@ -6,13 +6,13 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory, Reflector } from '@nestjs/core';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { useContainer } from 'class-validator';
 import { AppModule } from './app.module';
 import validationOptions from './interceptors/validation-options';
 import { HttpExceptionFilter } from './filters/bad-request.filter';
 import 'reflect-metadata';
 import { ApiResponseInterceptor } from './interceptors/response.interceptor';
+import { setupSwagger } from './shared/swagger/swagger.setup';
 
 const logger = new Logger('Bootstrap');
 
@@ -61,14 +61,7 @@ async function bootstrap() {
       'development';
 
     if (nodeEnv !== 'production') {
-      const options = new DocumentBuilder()
-        .setTitle('MFSSIA DKG API')
-        .setDescription('MFSSIA DKG API docs')
-        .setVersion('1.0')
-        .build();
-
-      const document = SwaggerModule.createDocument(app, options);
-      SwaggerModule.setup('docs', app, document);
+      setupSwagger(app);
       logger.log('Swagger enabled at /docs');
     }
 
