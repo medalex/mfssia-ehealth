@@ -1,3 +1,4 @@
+import { Uuid } from '@/common/types/common.type';
 import { IsEnum } from 'class-validator';
 import { AggregationRule } from 'src/common/enums/aggregation-rule.enum';
 import { MfssiaIdentity } from 'src/modules/mfssia-identity/entities/mfssia-identity.entity';
@@ -12,8 +13,10 @@ import {
 
 @Entity('mfssia_attestations')
 export class MfssiaAttestation {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn('uuid', {
+    primaryKeyConstraintName: 'PK_mfssia_attestation',
+  })
+  id: Uuid;
 
   @Column({ type: 'varchar', length: 255 })
   identity: string; // DID

@@ -1,19 +1,27 @@
 import { AggregationRule } from '@/common/enums/aggregation-rule.enum';
+import { Uuid } from '@/common/types/common.type';
 import { ChallengeDefinition } from 'src/modules/challenge-definitions/entities/challenge-definitions.entity';
 import {
   Entity,
-  PrimaryColumn,
   Column,
   CreateDateColumn,
   UpdateDateColumn,
   JoinTable,
   ManyToMany,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 
 @Entity('challenge_sets')
 export class ChallengeSet {
-  @PrimaryColumn({ type: 'varchar', length: 50 })
-  id: string; // e.g., "mfssia:Example-A"
+  @PrimaryGeneratedColumn('uuid', {
+    primaryKeyConstraintName: 'PK_challenge_set',
+  })
+  id: Uuid;
+
+  // Business/natural key — semantic, human-readable, immutable ID
+  // Example: "mfssia:Example-A"
+  @Column({ type: 'varchar', length: 100, unique: true })
+  code: string;
 
   @Column({ type: 'varchar', length: 255 })
   name: string;

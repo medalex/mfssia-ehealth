@@ -1,1 +1,1 @@
-yarn run migration:generate ./src/database/migrations/AddPropertyRecord
+npm run migration:generate ./src/database/migrations/AddPropertyRecord

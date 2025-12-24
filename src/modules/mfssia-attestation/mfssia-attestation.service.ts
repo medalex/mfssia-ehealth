@@ -4,6 +4,7 @@ import { MoreThan, Repository } from 'typeorm';
 import { MfssiaAttestation } from './entities/mfssia-attestation.entity';
 import { DkgService } from 'src/providers/dkg/dkg.service';
 import { ChallengeInstanceService } from '../challenge-instance/challenge-instance.service';
+import { Uuid } from '@/common/types/common.type';
 
 @Injectable()
 export class AttestationService {
@@ -15,7 +16,7 @@ export class AttestationService {
   ) {}
 
   async createFromInstance(
-    instanceId: string,
+    instanceId: Uuid,
     oracleProof: string,
     passedChallenges: string[],
   ): Promise<MfssiaAttestation> {

@@ -21,10 +21,10 @@ export class ChallengeSetService {
   ) {}
 
   async create(dto: CreateChallengeSetDto): Promise<ChallengeSet> {
-    const existing = await this.setRepo.findOneBy({ id: dto.id });
-    if (existing) {
+    const exists = await this.setRepo.findOneBy({ code: dto.code });
+    if (exists) {
       throw new ConflictException(
-        `Challenge Set with id ${dto.id} already exists`,
+        `Challenge Set with code '${dto.code}' already exists`,
       );
     }
 
@@ -54,13 +54,13 @@ export class ChallengeSetService {
     return this.setRepo.find({ relations: ['challengeDefinitions'] });
   }
 
-  async findOne(id: string): Promise<ChallengeSet> {
+  async findOne(code: string): Promise<ChallengeSet> {
     const set = await this.setRepo.findOne({
-      where: { id },
+      where: { code: code },
       relations: ['challengeDefinitions'],
     });
     if (!set) {
-      throw new NotFoundException(`Challenge Set ${id} not found`);
+      throw new NotFoundException(`Challenge Set ${code} not found`);
     }
     return set;
   }

@@ -1,3 +1,4 @@
+import { Uuid } from '@/common/types/common.type';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsNotEmpty, IsObject } from 'class-validator';
 
@@ -8,7 +9,7 @@ export class SubmitEvidenceDto {
   })
   @IsString()
   @IsNotEmpty()
-  challengeInstanceId: string;
+  challengeInstanceId: Uuid;
 
   @ApiProperty({
     description: 'Specific challenge being responded to',

@@ -1,6 +1,5 @@
 import {
   Injectable,
-  NotFoundException,
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
@@ -11,6 +10,7 @@ import { UpdateChallengeDefinitionDto } from './dto/update-challenge-definition.
 import { ChallengeDefinition } from './entities/challenge-definitions.entity';
 import { FactorClass } from '@/common/enums/factor-class.enum';
 import { OracleType } from '@/common/enums/oracle-type.enum';
+import { Uuid } from '@/common/types/common.type';
 
 @Injectable()
 export class ChallengeDefinitionService {
@@ -22,10 +22,10 @@ export class ChallengeDefinitionService {
   async create(
     dto: CreateChallengeDefinitionDto,
   ): Promise<ChallengeDefinition> {
-    const existing = await this.repo.findOneBy({ id: dto.id });
+    const existing = await this.repo.findOneBy({ code: dto.code });
     if (existing) {
       throw new ConflictException(
-        `Challenge Definition with id ${dto.id} already exists`,
+        `Challenge with code ${dto.code} already exists`,
       );
     }
     if (!Object.values(FactorClass).includes(dto.factorClass)) {
@@ -42,16 +42,16 @@ export class ChallengeDefinitionService {
     return this.repo.find();
   }
 
-  async findOne(id: string): Promise<ChallengeDefinition> {
-    const definition = await this.repo.findOneBy({ id });
-    if (!definition) {
-      throw new NotFoundException(`Challenge Definition ${id} not found`);
+  async findOne(code: string): Promise<ChallengeDefinition> {
+    const definition = await this.repo.findOneBy({ code: code });
+    if (definition) {
+      throw new ConflictException(`Challenge with code ${code} not found`);
     }
     return definition;
   }
 
   async update(
-    id: string,
+    id: Uuid,
     dto: UpdateChallengeDefinitionDto,
   ): Promise<ChallengeDefinition> {
     const definition = await this.findOne(id);
@@ -59,7 +59,7 @@ export class ChallengeDefinitionService {
     return this.repo.save(definition);
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: Uuid): Promise<void> {
     const definition = await this.findOne(id);
     await this.repo.remove(definition);
   }

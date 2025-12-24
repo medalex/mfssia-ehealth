@@ -1,8 +1,18 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsString, Matches } from 'class-validator';
 
 export class ChallengeSetResponseDto {
-  @ApiProperty({ description: 'Unique ID', example: 'mfssia:Example-A' })
-  id: string;
+  @ApiProperty({
+    description: 'Unique semantic code for the challenge set',
+    example: 'mfssia:Example-A',
+    pattern: '^mfssia:Example-[A-Z]$',
+  })
+  @IsString()
+  @IsNotEmpty()
+  @Matches(/^mfssia:Example-[A-Z]$/, {
+    message: 'Code must follow format mfssia:Example-X (X = A-Z)',
+  })
+  code: string;
 
   @ApiProperty({
     description: 'Name',

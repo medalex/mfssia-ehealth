@@ -10,11 +10,14 @@ import {
 import { ChallengeEvidence } from '../../challenge-evidence/entities/challenge-evidence.entity';
 import { MfssiaIdentity } from 'src/modules/mfssia-identity/entities/mfssia-identity.entity';
 import { InstanceState } from '@/common/enums/instance-state.enum';
+import { Uuid } from '@/common/types/common.type';
 
 @Entity('challenge_instances')
 export class ChallengeInstance {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn('uuid', {
+    primaryKeyConstraintName: 'PK_challenge_instance',
+  })
+  id: Uuid;
 
   @Column({ type: 'varchar', length: 100 })
   challengeSet: string; // Reference to ChallengeSet.id

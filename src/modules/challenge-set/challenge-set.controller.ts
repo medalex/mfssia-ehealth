@@ -43,10 +43,10 @@ export class ChallengeSetController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a Challenge Set by ID' })
-  @ApiParam({ name: 'id', example: 'mfssia:Example-A' })
+  @ApiParam({ name: 'code', example: 'mfssia:Example-A' })
   @ApiResponse({ status: 200, type: ChallengeSetResponseDto })
-  async findOne(@Param('id') id: string) {
-    return this.service.findOne(id);
+  async findOne(@Param('code') code: string) {
+    return this.service.findOne(code);
   }
 
   @Patch(':id')

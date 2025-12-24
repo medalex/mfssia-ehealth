@@ -1,13 +1,7 @@
 import { OracleType } from '@/common/enums/oracle-type.enum';
 import { ResultType } from '@/constants/resultType';
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsString,
-  IsNotEmpty,
-  IsArray,
-  IsObject,
-  IsEnum,
-} from 'class-validator';
+import { IsString, IsArray, IsObject, IsEnum, Matches } from 'class-validator';
 import { ChallengeStatus } from 'src/common/enums/challenge-status.enum';
 import { FactorClass } from 'src/common/enums/factor-class.enum';
 
@@ -74,13 +68,10 @@ export class EvaluationDto {
 }
 
 export class CreateChallengeDefinitionDto {
-  @ApiProperty({
-    description: 'Unique ID of the challenge',
-    example: 'mfssia:C-A-1',
-  })
+  @ApiProperty({ example: 'mfssia:C-A-1' })
   @IsString()
-  @IsNotEmpty()
-  id: string;
+  @Matches(/^mfssia:C-[A-Z]-\d+$/) // Optional: enforce format
+  code: string;
 
   @ApiProperty({
     description: 'Human-readable name',

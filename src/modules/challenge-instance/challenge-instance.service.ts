@@ -7,6 +7,7 @@ import * as crypto from 'crypto';
 import { ChallengeSetService } from '../challenge-set/challenge-set.service';
 import { IdentityService } from '../mfssia-identity/mfssia-identity.service';
 import { InstanceState } from '@/common/enums/instance-state.enum';
+import { Uuid } from '@/common/types/common.type';
 
 @Injectable()
 export class ChallengeInstanceService {
@@ -35,9 +36,9 @@ export class ChallengeInstanceService {
     return this.repo.save(instance);
   }
 
-  async findOne(id: string): Promise<ChallengeInstance> {
+  async findOne(id: Uuid): Promise<ChallengeInstance> {
     const instance = await this.repo.findOne({
-      where: { id },
+      where: { id: id as any },
       relations: ['identity', 'evidences'],
     });
     if (!instance) {
@@ -46,7 +47,7 @@ export class ChallengeInstanceService {
     return instance;
   }
 
-  async checkAllEvidenceSubmitted(instanceId: string): Promise<boolean> {
+  async checkAllEvidenceSubmitted(instanceId: Uuid): Promise<boolean> {
     const instance = await this.findOne(instanceId);
     const set = await this.setService.findOne(instance.challengeSet);
     const submittedIds = instance.evidences.map((e) => e.challengeId);

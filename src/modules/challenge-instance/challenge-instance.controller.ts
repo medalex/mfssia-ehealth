@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { ChallengeInstanceService } from './challenge-instance.service';
 import { CreateChallengeInstanceDto } from './dto/create-challenge-instance.dto';
 import { ChallengeInstanceResponseDto } from './dto/challenge-instance-response.dto';
+import { Uuid } from '@/common/types/common.type';
 
 @ApiTags('challenge-instances')
 @Controller('challenge-instances')
@@ -20,7 +21,7 @@ export class ChallengeInstanceController {
   @Get(':id')
   @ApiOperation({ summary: 'Get challenge instance details' })
   @ApiResponse({ status: 200, type: ChallengeInstanceResponseDto })
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: Uuid) {
     return this.service.findOne(id);
   }
 }

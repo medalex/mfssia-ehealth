@@ -1,20 +1,27 @@
+import { Uuid } from '@/common/types/common.type';
 import { IsEnum } from 'class-validator';
 import { ChallengeStatus } from 'src/common/enums/challenge-status.enum';
 import { FactorClass } from 'src/common/enums/factor-class.enum';
 import { ChallengeSet } from 'src/modules/challenge-set/entities/challenge-set.entity';
 import {
   Entity,
-  PrimaryColumn,
   Column,
   CreateDateColumn,
   UpdateDateColumn,
   ManyToMany,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 
 @Entity('challenge_definitions')
 export class ChallengeDefinition {
-  @PrimaryColumn({ type: 'varchar', length: 50 })
-  id: string; // e.g., "mfssia:C-A-1"
+  @PrimaryGeneratedColumn('uuid', {
+    primaryKeyConstraintName: 'PK_challenge_definition',
+  })
+  id!: Uuid;
+
+  // Business/natural key — your semantic ID, human-readable and unique
+  @Column({ type: 'varchar', length: 100, unique: true })
+  code: string; // e.g., "mfssia:C-A-1"
 
   @Column({ type: 'varchar', length: 255 })
   name: string;

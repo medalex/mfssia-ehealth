@@ -8,6 +8,7 @@ import {
   IsNumber,
   IsOptional,
   IsEnum,
+  Matches,
 } from 'class-validator';
 
 export class PublishedByDto {
@@ -62,12 +63,16 @@ export class LifecycleDto {
 
 export class CreateChallengeSetDto {
   @ApiProperty({
-    description: 'Unique ID of the set',
+    description: 'Unique semantic code for the challenge set',
     example: 'mfssia:Example-A',
+    pattern: '^mfssia:Example-[A-Z]$',
   })
   @IsString()
   @IsNotEmpty()
-  id: string;
+  @Matches(/^mfssia:Example-[A-Z]$/, {
+    message: 'Code must follow format mfssia:Example-X (X = A-Z)',
+  })
+  code: string;
 
   @ApiProperty({
     description: 'Name of the set',

@@ -20,6 +20,7 @@ import { CreateChallengeDefinitionDto } from './dto/create-challenge-definition.
 import { UpdateChallengeDefinitionDto } from './dto/update-challenge-definition.dto';
 import { ChallengeDefinitionService } from './challenge-definitions.service';
 import { ChallengeDefinitionResponseDto } from './dto/challenge-definition-response.dto';
+import { Uuid } from '@/common/types/common.type';
 
 @ApiTags('challenge-definitions')
 @Controller('challenge-definitions')
@@ -45,10 +46,10 @@ export class ChallengeDefinitionController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a single Challenge Definition by ID' })
-  @ApiParam({ name: 'id', example: 'mfssia:C-A-1' })
+  @ApiParam({ name: 'code', example: 'mfssia:C-A-1' })
   @ApiResponse({ status: 200, type: ChallengeDefinitionResponseDto })
-  async findOne(@Param('id') id: string) {
-    return this.service.findOne(id);
+  async findOne(@Param('code') code: string) {
+    return this.service.findOne(code);
   }
 
   @Patch(':id')
@@ -59,7 +60,7 @@ export class ChallengeDefinitionController {
   @ApiBody({ type: UpdateChallengeDefinitionDto })
   @ApiResponse({ status: 200, type: ChallengeDefinitionResponseDto })
   async update(
-    @Param('id') id: string,
+    @Param('id') id: Uuid,
     @Body() dto: UpdateChallengeDefinitionDto,
   ) {
     return this.service.update(id, dto);
@@ -68,8 +69,8 @@ export class ChallengeDefinitionController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a Challenge Definition (only if not used)' })
-  @ApiParam({ name: 'id', example: 'mfssia:C-A-1' })
-  async remove(@Param('id') id: string) {
+  @ApiParam({ name: 'id', example: 'qeqew-rrtrte22323p-5555' })
+  async remove(@Param('id') id: Uuid) {
     return this.service.remove(id);
   }
 }

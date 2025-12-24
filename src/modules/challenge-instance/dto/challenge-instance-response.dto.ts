@@ -1,9 +1,10 @@
 import { InstanceState } from '@/common/enums/instance-state.enum';
+import { Uuid } from '@/common/types/common.type';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ChallengeInstanceResponseDto {
   @ApiProperty({ description: 'Instance UUID' })
-  id: string;
+  id: Uuid;
 
   @ApiProperty({ description: 'Challenge set ID', example: 'mfssia:Example-A' })
   challengeSet: string;
