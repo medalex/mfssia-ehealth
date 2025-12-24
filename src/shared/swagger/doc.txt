@@ -1,0 +1,41 @@
+### Clarified MFSSIA End-to-End Process Flow  
+**When are Phase 2 (Execution & Response Collection) and Phase 3 (Oracle Evaluation) triggered?**
+
+Here is the precise sequence with exact triggers:
+
+#### Full Flow with Trigger Points
+
+1. **Phase 1 – Challenge Commitment** (Governance, one-time per set)  
+   - Governance creates and publishes Challenge Definitions + Challenge Sets on DKG.  
+   - **No user involvement yet**.  
+   - Ends when a Challenge Set is published and appears in the Marketplace.
+
+2. **Phase 2 – Execution & Response Collection** (User-driven)  
+   **Trigger**: The user (or pipeline) **explicitly starts an authentication attempt** by:  
+   - Registering their DID (if first time) **and**  
+   - Selecting a published Challenge Set (e.g., Example-D)  
+   → Backend creates a **Challenge Instance** (nonce, timestamps).  
+
+   From this moment, Phase 2 begins:  
+   - User submits evidence for each challenge in the instance.  
+   - Backend stores evidence locally (transient).  
+   - Phase 2 continues until **all mandatory challenges have received evidence** (or instance expires).
+
+3. **Phase 3 – Oracle Evaluation** (Backend-triggered)  
+   **Trigger**: **All mandatory evidence has been submitted** for the Challenge Instance.  
+   - Backend detects "complete evidence set".  
+   - Backend immediately calls Chainlink Functions (batch verification).  
+   - Oracle executes the verification script → returns result.  
+
+   Phase 3 ends when oracle fulfillment is received.
+
+4. **Phase 4 – Aggregation & Decision**  
+   - Backend applies the Challenge Set’s policy to oracle result.  
+   - Success → Phase 5 (Attestation on DKG)  
+   - Failure → User notified (retry)
+
+5. **Phase 5 – Binding & Persistence**  
+   - Attestation anchored on DKG → reusable for future fast login.
+
+6. **Phase 6 – Returning User Fast-Path**  
+   - User presents DID + UAL → skip Phases 2–4 if attestation valid.
