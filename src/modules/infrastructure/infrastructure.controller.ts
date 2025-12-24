@@ -1,5 +1,10 @@
 import { Controller, Get } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { InfrastructureService } from './infrastructure.service';
 import { HealthResponseDto, HealthService } from './healthcheck/health.service';
 import { NodeInfoResponseDto } from './node.-info.dto';
@@ -9,7 +14,7 @@ import { NodeInfoResponseDto } from './node.-info.dto';
 export class InfrastructureController {
   constructor(
     private readonly infrastructureService: InfrastructureService,
-    private readonly healthService: HealthService
+    private readonly healthService: HealthService,
   ) {}
 
   @Get('healthcheck')
@@ -17,7 +22,7 @@ export class InfrastructureController {
   @ApiResponse({
     status: 200,
     description: 'Service is up',
-    type: HealthResponseDto
+    type: HealthResponseDto,
   })
   healthCheck(): HealthResponseDto {
     return this.healthService.getBasicHealth();
@@ -26,9 +31,9 @@ export class InfrastructureController {
   @Get('node-info')
   @ApiOperation({ summary: 'Get node info' })
   @ApiOkResponse({
-  description: 'Node info successfully retrieved',
-  type: NodeInfoResponseDto,
-})
+    description: 'Node info successfully retrieved',
+    type: NodeInfoResponseDto,
+  })
   async nodeInfo(): Promise<NodeInfoResponseDto> {
     return await this.infrastructureService.getNodeInfo();
   }

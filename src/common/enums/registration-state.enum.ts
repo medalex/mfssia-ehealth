@@ -1,0 +1,5 @@
+export enum RegistrationState {
+  PENDING_CHALLENGE = 'PENDING_CHALLENGE',
+  REGISTERED = 'REGISTERED',
+  VERIFIED = 'VERIFIED',
+}

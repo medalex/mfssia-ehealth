@@ -5,27 +5,27 @@ import { IAssetResponse } from '../../interfaces/IAssetResponse';
 import { DkgQueryResultDto } from './dkg-query-result.dto';
 import { NodeInfoResponseDto } from 'src/modules/infrastructure/node.-info.dto';
 
-
 @Injectable()
-export class DkgService {   
-  
+export class DkgService {
   private readonly logger = new Logger(DkgService.name);
-  private readonly dkg: DKG;  
+  private readonly dkg: DKG;
 
   constructor(private config: ConfigService) {
-    this.dkg = new DKG(this.config.get('dkg'));
+    this.dkg = this.config.get('app.dkg'); // Adjust path based on your config nesting
   }
 
-  async getDkgNodeInfo(): Promise<NodeInfoResponseDto> {    
-      return await this.dkg.node.info(); 
+  async getDkgNodeInfo(): Promise<NodeInfoResponseDto> {
+    return await this.dkg.node.info();
   }
 
   async createAsset(asset: Record<string, unknown>): Promise<IAssetResponse> {
     try {
-      const response = await this.dkg.asset.create({public: asset}, {epochsNum: 2});
-      this.logger.debug(response);    
+      const response = await this.dkg.asset.create(
+        { public: asset },
+        { epochsNum: 2 },
+      );
+      this.logger.debug(response);
       return response;
-
     } catch (e) {
       this.logger.error(`Error creating asset: ${e.message}`);
 
@@ -34,16 +34,16 @@ export class DkgService {
   }
 
   //TODO: Check if options param is required or it is enough to use the default configuration
-  async readAsset(ual: string): Promise<unknown> {   
+  async readAsset(ual: string): Promise<unknown> {
     return await this.dkg.asset.get(ual, {
       validate: true,
       commitOffset: 0,
       maxNumberOfRetries: 5,
-      blockchain: this.dkg.blockchain
-    });    
+      blockchain: this.dkg.blockchain,
+    });
   }
 
-  async findAssets(sparqlQuery: string): Promise<DkgQueryResultDto> {    
-    return await this.dkg.graph.query(sparqlQuery, "SELECT");    
+  async findAssets(sparqlQuery: string): Promise<DkgQueryResultDto> {
+    return await this.dkg.graph.query(sparqlQuery, 'SELECT');
   }
 }

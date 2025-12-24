@@ -1,12 +1,16 @@
 {
+  "ts-node": {
+    "require": ["tsconfig-paths/register"] // configuration for typeorm migration
+  },
   "compilerOptions": {
+    "jsx": "react",
     "module": "commonjs",
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
-    "target": "es2021",
+    "target": "ES2022",
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
@@ -17,13 +21,10 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
-    "resolveJsonModule": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true
-  },
-  "include": ["./src/**/*", "./src/**/*.json"],
-  "exclude": [
-    "node_modules",
-    "typings"
-  ]
+    "esModuleInterop": true,
+    "importHelpers": true,
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  }
 }

@@ -1,4 +1,3 @@
-// src/app.service.ts
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
@@ -12,12 +11,12 @@ export interface WelcomeDto {
 export class AppService {
   constructor(private readonly config: ConfigService) {}
 
-  getHello(): WelcomeDto {    
+  getHello(): WelcomeDto {
     const appUrl =
       this.config.get<string>('app.appUrl') ??
       this.config.get<string>('APP_URL') ??
       null;
-    
+
     const port =
       Number(
         this.config.get<number>('app.port') ??
