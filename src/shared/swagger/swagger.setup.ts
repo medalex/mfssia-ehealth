@@ -15,7 +15,17 @@ export function setupSwagger(app: INestApplication): void {
     .setTitle(`${appName} - API Documentation`)
     .setDescription(
       `
-# MFSSIA (Multi-Factor Self-Sovereign Authentication) API
+# MFSSIA — Multi-Factor Self-Sovereign Authentication Protocol
+
+**Why this name?**
+
+- **Multi-Factor**: Trust is established through **multiple independent verification factors** (source, data, process, provenance, governance) bundled in a Challenge Set and evaluated via policy.
+
+- **Self-Sovereign**: Users control their identity (DID) and receive a **portable, verifiable proof** (Identity Attestation on DKG) — no central issuer or password storage.
+
+- **Authentication Protocol**: A complete, standardized flow for proving claims using evidence + decentralized oracle verification, resulting in reusable, tamper-proof credentials.
+
+This enables high-assurance, privacy-preserving authentication without relying on traditional centralized credentials.
 
 **Environment**: ${nodeEnv.toUpperCase()}
 
