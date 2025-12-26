@@ -7,6 +7,7 @@ import { Uuid } from '@/common/types/common.type';
 import { PendingVerificationRepository } from '@/modules/pending-verification/pending-verification.repository';
 import rawAbi from './abi/MfssiaOracleConsumer.json';
 import { PendingVerificationStatus } from '@/modules/pending-verification/pending-verification.enums';
+import { GlobalConfig } from '@/config/config.type';
 
 @Injectable()
 export class VerificationService {
@@ -17,20 +18,17 @@ export class VerificationService {
   private readonly MfssiaOracleConsumerABI = rawAbi.abi;
 
   constructor(
-    private config: ConfigService,
+    private config: ConfigService<GlobalConfig, true>,
     private challengeInstanceService: ChallengeInstanceService,
     private challengeSetService: ChallengeSetService,
     private pendingRepo: PendingVerificationRepository,
   ) {
-    this.provider = new ethers.JsonRpcProvider(
-      this.config.get('blockchain.rpcUrl'),
-    );
-    this.signer = new ethers.Wallet(
-      this.config.get('blockchain.privateKey'),
-      this.provider,
-    );
+    const blockchain = this.config.get('blockchain', { infer: true });
+
+    this.provider = new ethers.JsonRpcProvider(blockchain.rpcUrl);
+    this.signer = new ethers.Wallet(blockchain.privateKey, this.provider);
     this.contract = new ethers.Contract(
-      this.config.get('oracle.consumerAddress'),
+      blockchain.consumerAddress,
       this.MfssiaOracleConsumerABI,
       this.signer,
     );
@@ -114,12 +112,15 @@ export class VerificationService {
     try {
       this.logger.log(`⛓️ Sending requestVerification transaction...`);
 
+      const chainlink = this.config.get('blockchain.chainlink', {
+        infer: true,
+      });
       const tx = await this.contract.requestVerification(
         instanceKey,
         challengeSet.code,
         args,
-        this.config.get('chainlink.subscriptionId'),
-        600000,
+        chainlink.subscriptionId,
+        chainlink.gasLimit,
       );
 
       this.logger.verbose(`Transaction submitted — hash: ${tx.hash}`);

@@ -8,26 +8,27 @@ import { DkgService } from '@/providers/dkg/dkg.service';
 import { PendingVerification } from '@/modules/pending-verification/entities/pending-verification.entity';
 import { PendingVerificationStatus } from '@/modules/pending-verification/pending-verification.enums';
 import { Uuid } from '@/common/types/common.type';
+import { GlobalConfig } from '@/config/config.type';
 
 @Injectable()
 export class OracleListenerService implements OnModuleInit {
   private readonly logger = new Logger(OracleListenerService.name);
   private provider: ethers.JsonRpcProvider;
   private contract: ethers.Contract;
-  private readonly abi = rawAbi.abi;
+  private readonly MfssiaOracleConsumerABI = rawAbi.abi;
 
   constructor(
-    private config: ConfigService,
+    private config: ConfigService<GlobalConfig, true>,
     private pendingVerificationService: PendingVerificationService,
     private attestationService: AttestationService,
     private dkgService: DkgService,
   ) {
-    this.provider = new ethers.JsonRpcProvider(
-      this.config.get('blockchain.rpcUrl'),
-    );
+    const blockchain = this.config.get('blockchain', { infer: true });
+
+    this.provider = new ethers.JsonRpcProvider(blockchain.rpcUrl);
     this.contract = new ethers.Contract(
-      this.config.get('oracle.consumerAddress'),
-      this.abi,
+      blockchain.consumerAddress,
+      this.MfssiaOracleConsumerABI,
       this.provider,
     );
   }
