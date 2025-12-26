@@ -1,6 +1,6 @@
 {
   "ts-node": {
-    "require": ["tsconfig-paths/register"] // configuration for typeorm migration
+    "require": ["tsconfig-paths/register"]
   },
   "compilerOptions": {
     "jsx": "react",
@@ -23,6 +23,7 @@
     "noFallthroughCasesInSwitch": false,
     "esModuleInterop": true,
     "importHelpers": true,
+    "resolveJsonModule": true,      
     "paths": {
       "@/*": ["src/*"]
     }
