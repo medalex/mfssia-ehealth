@@ -29,12 +29,12 @@ export class ChallengeSetService {
     }
 
     // Validate that all referenced definitions exist
-    const allIds = [
+    const allCodes = [
       ...dto.mandatoryChallenges,
       ...(dto.optionalChallenges || []),
     ];
-    const definitions = await this.defRepo.findBy({ id: In(allIds) });
-    if (definitions.length !== allIds.length) {
+    const definitions = await this.defRepo.findBy({ code: In(allCodes) });
+    if (definitions.length !== allCodes.length) {
       throw new BadRequestException(
         'One or more referenced Challenge Definitions do not exist',
       );
