@@ -1,0 +1,131 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0xaD5aD7B8B244c14b4C86ee3cA61cB4a4f79b02a4",
+      "txHash": "0x95cb7323591e7cde7c7677497cbfe1b3532c3919b39e8c39ff851123ff532534",
+      "kind": "uups"
+    }
+  ],
+  "impls": {
+    "a63026f9c465f9f7da511af52a012cbd83cef4b9252c6cee7cb8cab97a722b4e": {
+      "address": "0x175714b122cA0c3d8A4DDf4CD9c36060940c0447",
+      "txHash": "0xb58c0f62d9cf45b8672fd4d9c9f484d667c08b648beb562e5a0bf4056305422c",
+      "layout": {
+        "solcVersion": "0.8.22",
+        "storage": [
+          {
+            "label": "donId",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_bytes32",
+            "contract": "MfssiaOracleConsumer",
+            "src": "contracts/MfssiaOracleConsumer.sol:25"
+          },
+          {
+            "label": "batchVerificationLogic",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_string_storage",
+            "contract": "MfssiaOracleConsumer",
+            "src": "contracts/MfssiaOracleConsumer.sol:26"
+          },
+          {
+            "label": "pendingVerifications",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_mapping(t_bytes32,t_bytes32)",
+            "contract": "MfssiaOracleConsumer",
+            "src": "contracts/MfssiaOracleConsumer.sol:29"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)905_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)845_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_bytes32)": {
+            "label": "mapping(bytes32 => bytes32)",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

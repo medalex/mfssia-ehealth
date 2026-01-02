@@ -12,8 +12,6 @@ export function getConfig(): BlockchainConfig {
 
   if (!rpcUrl) throw new Error('BLOCKCHAIN_RPC_URL is required');
   if (!privateKey) throw new Error('BLOCKCHAIN_PRIVATE_KEY is required');
-  if (!privateKey.startsWith('0x'))
-    throw new Error('BLOCKCHAIN_PRIVATE_KEY must start with 0x');
   if (!consumerAddress) throw new Error('ORACLE_CONSUMER_ADDRESS is required');
   if (!subscriptionIdStr || !isNumberString(subscriptionIdStr)) {
     throw new Error('CHAINLINK_SUBSCRIPTION_ID must be a valid number');

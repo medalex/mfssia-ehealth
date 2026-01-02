@@ -4,11 +4,16 @@ import { ChallengeEvidence } from './entities/challenge-evidence.entity';
 import { ChallengeEvidenceService } from './challenge-evidence.service';
 import { ChallengeEvidenceController } from './challenge-evidence.controller';
 import { ChallengeInstanceModule } from '../challenge-instance/challenge-instance.module';
+import { OracleVerificationModule } from '@/providers/oracle/oracle-verification.module';
+import { ChallengeSetModule } from '../challenge-set/challenge-set.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([ChallengeEvidence]),
-    ChallengeInstanceModule,
+    ChallengeInstanceModule, // Provides ChallengeInstanceService
+    ChallengeSetModule, // ← Provides ChallengeSetService
+    OracleVerificationModule, // ← Provides OracleVerificationService
+    OracleVerificationModule,
   ],
   providers: [ChallengeEvidenceService],
   controllers: [ChallengeEvidenceController],

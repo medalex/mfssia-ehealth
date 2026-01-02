@@ -1,0 +1,6 @@
+Flow
+1. User submits all evidence
+2. Backend calls triggerBatchVerification()
+3. Contract emits VerificationRequested
+4. DON runs your JS → calls back fulfillRequest
+5. Event VerificationResponse emitted → backend processes result → anchors on DKG if PASS

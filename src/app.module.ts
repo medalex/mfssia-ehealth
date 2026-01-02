@@ -14,13 +14,15 @@ import { AttestationModule } from './modules/mfssia-attestation/mfssia-attestati
 import databaseConfig from './config/database/database.config';
 import appConfig from './config/app/app.config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { OracleVerificationModule } from './providers/oracle/oracle-verification.module';
+import blockchainConfig from './config/blockchain/blockchain.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       cache: false,
-      load: [appConfig, databaseConfig],
+      load: [appConfig, databaseConfig, blockchainConfig],
       envFilePath: ['.env'],
     }),
     TypeOrmModule.forRootAsync({
@@ -35,6 +37,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     ChallengeInstanceModule,
     ChallengeEvidenceModule,
     AttestationModule,
+    OracleVerificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

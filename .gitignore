@@ -50,3 +50,11 @@ Thumbs.db
 *.lock
 
 .husky/*
+
+# Hardhat
+/cache
+/artifacts
+/typechain-types
+/coverage
+/coverage.json
+/ignition

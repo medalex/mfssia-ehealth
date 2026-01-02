@@ -9,9 +9,10 @@ import rawAbi from './abi/MfssiaOracleConsumer.json';
 import { PendingVerificationStatus } from '@/modules/pending-verification/pending-verification.enums';
 import { GlobalConfig } from '@/config/config.type';
 
+// /home/sunday/workspace/dymaxion/mfssia-ehealth/artifacts/contracts/MfssiaOracleConsumer.sol/MfssiaOracleConsumer.json
 @Injectable()
-export class VerificationService {
-  private readonly logger = new Logger(VerificationService.name);
+export class OracleVerificationService {
+  private readonly logger = new Logger(OracleVerificationService.name);
   private provider: ethers.JsonRpcProvider;
   private signer: ethers.Wallet;
   private contract: ethers.Contract;
