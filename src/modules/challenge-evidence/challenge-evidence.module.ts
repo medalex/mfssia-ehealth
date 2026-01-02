@@ -13,7 +13,6 @@ import { ChallengeSetModule } from '../challenge-set/challenge-set.module';
     ChallengeInstanceModule, // Provides ChallengeInstanceService
     ChallengeSetModule, // ← Provides ChallengeSetService
     OracleVerificationModule, // ← Provides OracleVerificationService
-    OracleVerificationModule,
   ],
   providers: [ChallengeEvidenceService],
   controllers: [ChallengeEvidenceController],
