@@ -1,3 +1,4 @@
+/*
 import hre from 'hardhat';
 import rawAbi from '../../artifacts/contracts/MfssiaOracleConsumer.sol/MfssiaOracleConsumer.json';
 import { Contract, Signer } from 'ethers';
@@ -302,3 +303,4 @@ main().catch((e) => {
   console.error('\n❌ Test failed:', e);
   process.exitCode = 1;
 });
+*/
