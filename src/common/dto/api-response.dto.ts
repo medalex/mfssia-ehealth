@@ -7,7 +7,10 @@ export class ApiResponseDto<T> {
   @ApiProperty({ example: 'Success' })
   message: string;
 
-  @ApiProperty({ type: 'object', description: 'Response payload' })
+  @ApiProperty({ 
+    type: 'object', 
+    description: 'Response payload',
+    additionalProperties: true})
   data: T;
 
   @ApiProperty({ example: 200 })
