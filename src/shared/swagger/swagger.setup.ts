@@ -19,20 +19,59 @@ export function setupSwagger(app: INestApplication): void {
 
 **Why this name?**
 
-- **Multi-Factor**: Trust is established through **multiple independent verification factors** (source, data, process, provenance, governance) bundled in a Challenge Set and evaluated via policy.
-
-- **Self-Sovereign**: Users control their identity (DID) and receive a **portable, verifiable proof** (Identity Attestation on DKG) — no central issuer or password storage.
-
-- **Authentication Protocol**: A complete, standardized flow for proving claims using evidence + decentralized oracle verification, resulting in reusable, tamper-proof credentials.
-
-This enables high-assurance, privacy-preserving authentication without relying on traditional centralized credentials.
+- **Multi-Factor**: Trust is established through **multiple independent verification factors** bundled in a Challenge Set and evaluated via policy.
+- **Self-Sovereign**: Users control their identity (DID) and receive **portable, verifiable proof** (Identity Attestation on DKG) — no central issuer.
+- **Authentication Protocol**: Standardized flow using evidence + decentralized oracle verification → reusable, tamper-proof credentials.
 
 **Environment**: ${nodeEnv.toUpperCase()}
 
+---
+
+## 🔹 Frontend Integration Guide (JavaScript)
+
+### 1️⃣ Connect to the Oracle WebSocket Gateway
+\`\`\`js
+import { io } from 'socket.io-client';
+
+const socket = io('wss://<backend-domain>/ws/oracle', {
+  path: '/ws/oracle',
+  transports: ['websocket'],
+});
+
+socket.on('connect', () => {
+  console.log('Connected to Oracle Gateway:', socket.id);
+});
+\`\`\`
+
+### 2️⃣ Subscribe to a Verification Instance
+\`\`\`js
+const verificationInstanceId = 'INSTANCE_ID_HERE';
+socket.emit('oracle.subscribe', { verificationInstanceId });
+\`\`\`
+
+### 3️⃣ Listen for Real-time Events
+\`\`\`js
+const events = [
+  'oracle.connected',
+  'oracle.verification.requested',
+  'oracle.verification.processing',
+  'oracle.verification.success',
+  'oracle.verification.failed',
+  'oracle.verification.error',
+];
+
+events.forEach((event) => {
+  socket.on(event, (payload) => {
+    console.log(\`Event: \${event}\`, payload);
+  });
+});
+\`\`\`
+
+> Only events for the subscribed verificationInstanceId will be received.
+
+---
+
 ## Process Flow Diagram
-
-Below is the end-to-end MFSSIA authentication flow as a Mermaid sequence diagram.
-
 \`\`\`mermaid
 sequenceDiagram
     participant Governance as Governance/DAO
@@ -42,81 +81,53 @@ sequenceDiagram
     participant Oracle as Chainlink Functions DON
     participant DKG as Distributed Knowledge Graph
 
-    %% Phase 1: Governance Setup
     Governance->>Backend: Create Challenge Definitions (C-A-1, C-B-4, etc.)
     Backend->>DKG: Anchor Challenge Definitions (immutable)
     Governance->>Backend: Create Challenge Sets (Example-A, B, C, D)
     Backend->>DKG: Anchor Challenge Sets (published to marketplace)
-
-    %% Phase 2: User Registration & Selection
     User->>Marketplace: Browse available Challenge Sets
     Marketplace-->>User: List Example-A, B, C, D
-    User->>Backend: Register DID + Select Challenge Set (e.g., Example-D)
-    Backend->>Backend: Create Identity record (local DB, state: PENDING_CHALLENGE)
-
-    %% Phase 3: Challenge Instance & Evidence Submission
-    Backend->>User: Issue Challenge Instance (nonce, expiresAt)
-    User->>Backend: Submit Evidence for each challenge (hashes, spans, signatures, etc.)
-    Backend->>Backend: Store evidence (local, not trusted yet)
-    Note over Backend: When all mandatory evidence received
-
-    %% Phase 4: Oracle Verification
-    Backend->>Oracle: Trigger batch verification (inline JS script + args)
-    Oracle->>Oracle: Execute verification logic (pure compute, consensus)
+    User->>Backend: Register DID + Select Challenge Set
+    Backend->>User: Issue Challenge Instance
+    User->>Backend: Submit Evidence
+    Backend->>Oracle: Trigger batch verification
     Oracle-->>Backend: Return result (finalResult, passedChallenges, confidence)
-
-    %% Phase 5: Aggregation & Attestation
     alt Verification PASS
-        Backend->>Backend: Apply Challenge Set policy (e.g., weighted confidence ≥ 0.85)
-        Backend->>DKG: Anchor Identity Attestation (UAL)
+        Backend->>DKG: Anchor Identity Attestation
         Backend->>User: Return success + Attestation UAL
-        Note over User,DKG: Returning user can now present UAL for fast auth
     else Verification FAIL
-        Backend->>User: Return failure (retry or support)
-    end
-
-    %% Phase 6: Returning User (Fast Path)
-    User->>Backend: Present DID + Attestation UAL
-    Backend->>DKG: Query & verify Attestation (valid, unexpired, oracle proof)
-    alt Valid
-        Backend->>User: Grant access (no new challenge)
-    else Expired/Invalid
-        Backend->>User: Issue new Challenge Instance → repeat flow
+        Backend->>User: Return failure
     end
 \`\`\`
+
+---
 
 ## Integration Points: DKG Anchoring & Oracle Invocation
 
 ### What is Anchored on DKG (Immutable Knowledge Assets)
-These objects are **permanently stored** on the Distributed Knowledge Graph for global auditability:
-
-| Object                        | When Anchored                          | Purpose |
-|-------------------------------|----------------------------------------|---------|
-| **Challenge Definitions**     | After governance creation              | Reusable atomic verification rules |
-| **Challenge Sets**            | After governance approval (Example-A to D) | Trust policy bundles (marketplace) |
-| **Identity Attestation**      | **Only on successful verification** (after oracle PASS) | Proof of DID passing a challenge set → enables fast login |
+| Object | When Anchored | Purpose |
+|--------|---------------|--------|
+| Challenge Definitions | After governance creation | Reusable verification rules |
+| Challenge Sets | After approval | Policy bundles (marketplace) |
+| Identity Attestation | After oracle PASS | Proof of DID passed verification |
 
 > Transient data (evidence, instances) is **never** anchored on DKG.
 
-### When & Where the Oracle is Invoked
-| Trigger Condition                          | Invocation Point                  | Details |
-|--------------------------------------------|-----------------------------------|---------|
-| All **mandatory** evidence submitted       | **Automatically** by backend      | In \`VerificationService.triggerBatchVerification()\` |
-| Never manual — fully automated             | End of Phase 2 → Start of Phase 3 | Ensures no tampering; oracle runs pure compute-only JS |
+### Oracle Invocation
+- Triggered automatically when **all mandatory evidence is submitted**
+- Runs via "VerificationService.triggerBatchVerification()"
+- Results drive **policy evaluation & attestation anchoring**
 
-> Oracle result drives final policy decision and attestation anchoring.
+---
 
 ## Data Persistence: Local DB vs DKG Anchoring
 
-### What is Stored in Local Database (PostgreSQL)
-The local DB holds **transient, session-specific data** — never trusted until verified.
-
-| Entity                     | Stored Fields                              | Purpose & Lifecycle (Technical + Business) |
-|----------------------------|--------------------------------------------|-------------------------------------------|
-| **MfssiaIdentity**         | DID, requestedChallengeSet, registrationState | **Technical**: Tracks user onboarding and selected challenge set.<br>**Business**: Ensures each DID has a single active registration path; prevents duplicate or conflicting attempts.<br>Lifecycle: Persistent until user deletion. |
-| **ChallengeInstance**      | nonce, issuedAt, expiresAt, state (IN_PROGRESS → VERIFIED/FAILED) | **Technical**: Enforces anti-replay and time-bounding for authentication sessions.<br>**Business**: Guarantees freshness of evidence submission and prevents replay attacks.<br>Lifecycle: Short-lived (expires in minutes); cleaned up after completion or timeout. |
-| **ChallengeEvidence**      | evidence JSON, submittedAt                 | **Technical**: Temporarily holds user-submitted proofs before oracle verification.<br>**Business**: Enables asynchronous submission while maintaining audit trail of what was provided.<br>Lifecycle: Deleted after oracle processing or instance expiry. |
-| **MfssiaAttestation** (local copy) | UAL, validFrom/Until, oracle proof          | **Technical**: Fast cache for returning-user validation without DKG query.<br>**Business**: Enables instant login for valid attestations; improves UX while preserving security.<br>Lifecycle: Updated on renewal; kept for performance. |
+| Entity | Stored Fields | Purpose & Lifecycle |
+|--------|---------------|------------------|
+| MfssiaIdentity | DID, requestedChallengeSet, registrationState | Tracks onboarding; persistent until deletion |
+| ChallengeInstance | nonce, issuedAt, expiresAt, state | Session-bound; cleaned after completion/timeout |
+| ChallengeEvidence | evidence JSON, submittedAt | Temporary; deleted after oracle processing |
+| MfssiaAttestation | UAL, validFrom/Until, oracle proof | Cached locally for returning-user validation |
 
 > Local DB data is **ephemeral or cached** — not authoritative.
 
@@ -129,52 +140,21 @@ stateDiagram-v2
     ORACLE_PENDING --> VERIFIED : Oracle returns PASS + policy satisfied
     ORACLE_PENDING --> FAILED : Oracle FAIL or policy not met
     VERIFIED --> ATTESTATION_ANCHORED : Saved to DKG
-    IN_PROGRESS --> EXPIRED : Timeout (no full evidence)
+    IN_PROGRESS --> EXPIRED : Timeout
     FAILED --> [*]
     EXPIRED --> [*]
     ATTESTATION_ANCHORED --> VALID : Used for returning login
     VALID --> EXPIRED : validUntil reached
 \`\`\`
 
-### When Data is Saved to DKG (Immutable & Authoritative)
-**Only final, verified outcomes** are anchored on DKG:
+> Only final verified outcomes are saved on DKG — everything else remains local and ephemeral.
 
-| Data                          | Trigger Condition                                | When Saved | Technical + Business Value |
-|-------------------------------|--------------------------------------------------|------------|----------------------------|
-| **Challenge Definitions**     | Governance creates & approves                    | Immediately after creation | **Technical**: Immutable verification primitives.<br>**Business**: Ensures all verifications use the exact same rules — no drift or tampering. |
-| **Challenge Sets**            | Governance publishes (Example-A to D)             | Immediately after approval | **Technical**: Fixed trust policy bundles.<br>**Business**: Guarantees users and auditors know exactly what level of trust was required. |
-| **Identity Attestation**      | **Oracle returns PASS** AND policy satisfied     | **Only in Phase 5** — after successful verification | **Technical**: Cryptographic proof of verification.<br>**Business**: Enables reusable, portable, self-sovereign identity across systems — the core MFSSIA value. |
+---
 
-> **Nothing else** (evidence, instances, failed attempts) is ever saved to DKG.  
-> This ensures DKG contains **only immutable, verified truth** — the foundation of trust-by-verification.
+> All responses: { success, message, data, statusCode, timestamp }  
+> Use **Bearer JWT** for protected endpoints (governance actions).
 
-## Module Overview & Purpose
-
-### challenge-definitions
-**Purpose**: Governance-managed atomic verification rules (e.g., source authenticity, hash check, provenance).  
-These are reusable primitives used across all challenge sets.
-
-### challenge-sets
-**Purpose**: Pre-approved bundles of challenge definitions (Example-A, B, C, etc.).  
-Defines trust policy: mandatory/optional challenges and aggregation rules.
-
-### identities
-**Purpose**: Register and manage user DIDs within the MFSSIA ecosystem.
-
-### challenge-instances
-**Purpose**: Create time-bound, nonce-protected authentication sessions for a DID + selected challenge set.
-
-### challenge-evidence
-**Purpose**: Submit structured proof artifacts (hashes, spans, signatures) for individual challenges.
-
-### attestations
-**Purpose**: Retrieve and verify final Identity Attestations anchored on DKG.  
-Used for fast returning-user authentication.
-
-> All responses are wrapped in a consistent format: { success, message, data, statusCode, timestamp }
-
-> Use Bearer token for protected endpoints (governance actions).
-    `,
+`,
     )
     .setVersion('1.0')
     .addBearerAuth(
