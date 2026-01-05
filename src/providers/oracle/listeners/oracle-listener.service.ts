@@ -9,6 +9,8 @@ import { PendingVerification } from '@/modules/pending-verification/entities/pen
 import { PendingVerificationStatus } from '@/modules/pending-verification/pending-verification.enums';
 import { Uuid } from '@/common/types/common.type';
 import { GlobalConfig } from '@/config/config.type';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { OracleEvent } from '@/shared/realtime/events/oracle.event';
 
 @Injectable()
 export class OracleListenerService implements OnModuleInit {
@@ -22,6 +24,7 @@ export class OracleListenerService implements OnModuleInit {
     private pendingVerificationService: PendingVerificationService,
     private attestationService: AttestationService,
     private dkgService: DkgService,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     const blockchain = this.config.get('blockchain', { infer: true });
     this.provider = new ethers.JsonRpcProvider(blockchain.rpcUrl);
@@ -41,7 +44,7 @@ export class OracleListenerService implements OnModuleInit {
 
     void this.contract.on(
       'VerificationResponseReceived',
-      async (requestId, instanceKey, response, err) => {
+      async (requestId, _instanceKey, response, err) => {
         const requestIdStr = requestId.toString();
         this.logger.log(`Response received — requestId=${requestIdStr}`);
 
@@ -52,6 +55,12 @@ export class OracleListenerService implements OnModuleInit {
           this.logger.warn(`No pending record for requestId=${requestIdStr}`);
           return;
         }
+        /** 🔔 processing */
+        this.eventEmitter.emit(OracleEvent.VERIFICATION_PROCESSING, {
+          instanceId: pending.instanceId,
+          requestId: requestIdStr,
+          startedAt: new Date().toISOString(),
+        });
 
         try {
           const parsed = this.safeParseOracleResponse(response, err);
@@ -190,7 +199,11 @@ export class OracleListenerService implements OnModuleInit {
       rawResponse: JSON.stringify(result),
     });
 
-    this.notifyFrontend(pending.instanceId, result);
+    this.eventEmitter.emit(OracleEvent.VERIFICATION_SUCCESS, {
+      instanceId: pending.instanceId,
+      requestId: requestId,
+      result: result,
+    });
     this.logger.log(
       `Attestation & backend update complete — instance=${pending.instanceId}`,
     );
@@ -212,7 +225,11 @@ export class OracleListenerService implements OnModuleInit {
       rawResponse: JSON.stringify(result),
     });
 
-    this.notifyFrontend(pending.instanceId, result);
+    this.eventEmitter.emit(OracleEvent.VERIFICATION_FAILED, {
+      instanceId: pending.instanceId,
+      requestId: requestId,
+      result: result,
+    });
   }
 
   private async handleProcessingError(
@@ -227,14 +244,10 @@ export class OracleListenerService implements OnModuleInit {
       errorMessage: error.message,
     });
 
-    this.notifyFrontend(pending.instanceId, {
-      status: 'ERROR',
-      message: error.message || 'Internal processing error',
+    this.eventEmitter.emit(OracleEvent.VERIFICATION_ERROR, {
+      instanceId: pending.instanceId,
+      requestId: requestId,
+      error: error.message,
     });
-  }
-
-  private notifyFrontend(instanceId: string, payload: any): void {
-    this.logger.verbose(`Notifying frontend — instance=${instanceId}`);
-    console.log('Frontend update:', { instanceId, payload });
   }
 }

@@ -8,6 +8,8 @@ import { PendingVerificationRepository } from '@/modules/pending-verification/pe
 import rawAbi from './abi/MfssiaOracleConsumer.json';
 import { PendingVerificationStatus } from '@/modules/pending-verification/pending-verification.enums';
 import { GlobalConfig } from '@/config/config.type';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { OracleEvent } from '@/shared/realtime/events/oracle.event';
 
 @Injectable()
 export class OracleVerificationService {
@@ -22,6 +24,7 @@ export class OracleVerificationService {
     private challengeInstanceService: ChallengeInstanceService,
     private challengeSetService: ChallengeSetService,
     private pendingRepo: PendingVerificationRepository,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     const blockchain = this.config.get('blockchain', { infer: true });
 
@@ -35,7 +38,10 @@ export class OracleVerificationService {
   }
 
   /**
+   *  COMMAND: Trigger oracle verification
    * Trigger batch verification — called when all mandatory evidence is collected
+   * - instanceKey is ONLY for on-chain correlation
+   * - instanceId is authoritative backend identity
    */
   async triggerBatchVerification(
     instanceId: Uuid,
@@ -164,6 +170,13 @@ export class OracleVerificationService {
       });
 
       this.logger.log(`📝 Pending verification record saved`);
+
+      /** 🔔 Domain event */
+      this.eventEmitter.emit(OracleEvent.VERIFICATION_REQUESTED, {
+        instanceId,
+        requestId,
+        challengeSet: challengeSet.code,
+      });
 
       return requestId.toString();
     } catch (error: any) {

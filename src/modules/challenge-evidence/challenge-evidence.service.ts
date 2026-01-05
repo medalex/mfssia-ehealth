@@ -1,4 +1,3 @@
-// src/modules/challenge-evidence/challenge-evidence.service.ts
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -22,37 +21,33 @@ export class ChallengeEvidenceService {
   ) {}
 
   /**
-   * Submit evidence for a specific challenge within an instance
-   * Triggers oracle batch verification when all mandatory evidence is complete
+   * Submit evidence for a specific challenge instance
    */
   async submit(dto: SubmitEvidenceDto): Promise<ChallengeEvidence> {
     this.logger.log(
       `Submitting evidence for challenge ${dto.challengeId} in instance ${dto.challengeInstanceId}`,
     );
 
-    // 1. Load instance with relations
+    // Load instance with relations
     const instance = await this.instanceService.findOneWithRelations(
       dto.challengeInstanceId,
     );
 
-    // 2. Validate state
+    // Validate instance state
     if (instance.state !== InstanceState.IN_PROGRESS) {
       throw new BadRequestException(
-        `Challenge instance is not in progress (current: ${instance.state})`,
+        `Challenge instance is not in progress (current state: ${instance.state})`,
       );
     }
 
-    // 3. Prevent duplicate submission
-    const existing = instance.evidences.find(
-      (e) => e.challengeId === dto.challengeId,
-    );
-    if (existing) {
+    // Prevent duplicate evidence for the same challenge
+    if (instance.evidences.some((e) => e.challengeId === dto.challengeId)) {
       throw new BadRequestException(
         `Evidence for challenge ${dto.challengeId} already submitted`,
       );
     }
 
-    // 4. Save evidence
+    // Save new evidence
     const evidence = this.evidenceRepo.create({
       challengeId: dto.challengeId,
       evidence: dto.evidence,
@@ -60,16 +55,16 @@ export class ChallengeEvidenceService {
     });
 
     const savedEvidence = await this.evidenceRepo.save(evidence);
-    this.logger.log(`Evidence saved for ${dto.challengeId}`);
+    this.logger.log(`Evidence saved for challenge ${dto.challengeId}`);
 
-    // 5. Check if all mandatory evidence is now complete
+    // Check if all mandatory evidence is submitted and trigger oracle
     await this.checkAndTriggerOracleVerification(instance);
 
     return savedEvidence;
   }
 
   /**
-   * Check if all mandatory challenges have evidence and trigger oracle if ready
+   * Check mandatory evidence and trigger oracle verification
    */
   private async checkAndTriggerOracleVerification(
     instance: any,
@@ -77,6 +72,7 @@ export class ChallengeEvidenceService {
     const challengeSet = await this.challengeSetService.findOne(
       instance.challengeSet,
     );
+
     if (!challengeSet) {
       this.logger.warn(
         `Challenge set ${instance.challengeSet} not found — skipping oracle trigger`,
@@ -84,13 +80,13 @@ export class ChallengeEvidenceService {
       return;
     }
 
-    const mandatoryChallengeIds = challengeSet.mandatoryChallenges;
+    const mandatoryChallengeIds = challengeSet.mandatoryChallenges || [];
     if (mandatoryChallengeIds.length === 0) {
-      this.logger.verbose('No mandatory challenges — nothing to verify');
+      this.logger.verbose('No mandatory challenges — skipping verification');
       return;
     }
 
-    // Count how many mandatory challenges have submitted evidence
+    // Determine submitted mandatory challenges
     const submittedMandatoryIds = instance.evidences
       .filter((e: any) => mandatoryChallengeIds.includes(e.challengeId))
       .map((e: any) => e.challengeId);
@@ -99,10 +95,11 @@ export class ChallengeEvidenceService {
       submittedMandatoryIds.includes(id),
     );
 
-    // Prevent double-triggering
-    const hasPendingVerification = instance.pendingVerification !== null;
+    // Use state instead of pendingVerification
+    const isVerificationInProgress =
+      instance.state === InstanceState.VERIFICATION_IN_PROGRESS;
 
-    if (allMandatorySubmitted && !hasPendingVerification) {
+    if (allMandatorySubmitted && !isVerificationInProgress) {
       this.logger.log(
         `All mandatory evidence collected for instance ${instance.id} — triggering oracle verification`,
       );
@@ -111,38 +108,49 @@ export class ChallengeEvidenceService {
         const requestId =
           await this.oracleVerificationService.triggerBatchVerification(
             instance.id,
-            instance.subjectDid, // assuming you store this on the instance
+            instance.identity.identifier, // identity DID
           );
 
         this.logger.log(
           `Oracle verification triggered successfully — requestId: ${requestId}`,
         );
 
-        // Optional: update instance status
-        instance.status = InstanceState.VERIFICATION_IN_PROGRESS;
+        // Update instance state
+        instance.state = InstanceState.VERIFICATION_IN_PROGRESS;
         await this.instanceService.update(instance.id, {
-          state: instance.status,
+          state: instance.state,
         });
       } catch (error: any) {
         this.logger.error(
           `Failed to trigger oracle verification: ${error.message}`,
           error.stack,
         );
-        // Don't throw — evidence was saved successfully; oracle can be retried later
       }
     } else if (!allMandatorySubmitted) {
-      const missing = mandatoryChallengeIds.filter(
-        (id) => !submittedMandatoryIds.includes(id),
+      const missing = this.getMissingMandatoryChallenges(
+        instance,
+        mandatoryChallengeIds,
       );
       this.logger.verbose(
         `Waiting for ${
           missing.length
         } more mandatory evidence(s): ${missing.join(', ')}`,
       );
-    } else if (hasPendingVerification) {
+    } else if (isVerificationInProgress) {
       this.logger.verbose(
         `Oracle verification already in progress for instance ${instance.id}`,
       );
     }
+  }
+
+  /**
+   * Helper: get missing mandatory challenges
+   */
+  private getMissingMandatoryChallenges(
+    instance: any,
+    mandatoryChallengeIds: string[],
+  ): string[] {
+    const submittedIds = instance.evidences.map((e: any) => e.challengeId);
+    return mandatoryChallengeIds.filter((id) => !submittedIds.includes(id));
   }
 }

@@ -6,6 +6,7 @@ import { ChallengeInstanceModule } from '@/modules/challenge-instance/challenge-
 import { ChallengeSetModule } from '@/modules/challenge-set/challenge-set.module';
 import { AttestationModule } from '@/modules/mfssia-attestation/mfssia-attestation.module';
 import { DkgModule } from '../dkg/dkg.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { DkgModule } from '../dkg/dkg.module';
     ChallengeSetModule,
     AttestationModule,
     DkgModule,
+    EventEmitterModule.forRoot(), // ✅ Add this to provide EventEmitter2
   ],
   providers: [OracleVerificationService, OracleListenerService],
   exports: [OracleVerificationService],
