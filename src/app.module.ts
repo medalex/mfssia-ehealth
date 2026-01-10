@@ -1,9 +1,7 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { CorsMiddleware } from './middlewares/cors/cors.middleware';
-import { OriginMiddleware } from './middlewares/origin/origin.middleware';
 import { InfrastructureModule } from './modules/infrastructure/infrastructure.module';
 import { ChallengeSetModule } from './modules/challenge-set/challenge-set.module';
 import { ChallengeDefinitionModule } from './modules/challenge-definitions/challenge-definitions.module';
@@ -16,6 +14,7 @@ import appConfig from './config/app/app.config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { OracleVerificationModule } from './providers/oracle/oracle-verification.module';
 import blockchainConfig from './config/blockchain/blockchain.config';
+import { OracleBaseModule } from './shared/realtime/base.module';
 
 @Module({
   imports: [
@@ -38,14 +37,9 @@ import blockchainConfig from './config/blockchain/blockchain.config';
     ChallengeEvidenceModule,
     AttestationModule,
     OracleVerificationModule,
+    OracleBaseModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-
-// export class AppModule {}
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(CorsMiddleware, OriginMiddleware).forRoutes('*');
-  }
-}
+export class AppModule {}

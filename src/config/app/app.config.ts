@@ -6,13 +6,13 @@ import validateConfig from 'src/common/utils/validate-config';
 export default registerAs<AppConfig>('app', () => {
   validateConfig(process.env, AppConfigValidator);
 
-  const port = parseInt(process.env.APP_PORT || process.env.PORT || '3000', 10);
+  const port = parseInt(process.env.APP_PORT || '4000', 10);
 
   return {
     nodeEnv: process.env.NODE_ENV || 'development',
     name: process.env.APP_NAME || 'MFSSIA API',
     port,
-    apiPrefix: process.env.API_PREFIX || 'api',
+    apiPrefix: process.env.API_PREFIX?.replace(/^\//, '') || 'api', // strip leading slash if present
 
     dkg: {
       endpoint: process.env.DKG_HOSTNAME || 'localhost',

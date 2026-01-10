@@ -5,6 +5,7 @@ import {
   OnGatewayDisconnect,
   SubscribeMessage,
   MessageBody,
+  ConnectedSocket,
 } from '@nestjs/websockets';
 import { Injectable } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
@@ -15,6 +16,7 @@ import { OracleEvent } from './events/oracle.event';
 
 @WebSocketGateway({
   path: '/ws/oracle',
+  allowEIO3: true,
   cors: { origin: '*', credentials: false },
 })
 @Injectable()
@@ -27,6 +29,7 @@ export class OracleGateway
 
   constructor() {
     super(OracleGateway.name);
+    this.logger.log('🔥 OracleGateway initialized');
   }
 
   handleConnection(socket: Socket) {
@@ -47,7 +50,7 @@ export class OracleGateway
    */
   @SubscribeMessage('oracle.subscribe')
   handleSubscribe(
-    socket: Socket,
+    @ConnectedSocket() socket: Socket,
     @MessageBody() body: { verificationInstanceId: string },
   ) {
     const verificationInstanceId = body?.verificationInstanceId;

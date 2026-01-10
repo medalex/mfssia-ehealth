@@ -1,0 +1,36 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html>
+<body>
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js" integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+" crossorigin="anonymous"></script>
+  <script>
+    // Connect to the NestJS server running on port 3000 (default)
+const socket = io('http://127.0.0.1:4000', {
+  path: '/ws/oracle',
+  transports: ['websocket'],
+});
+
+
+    socket.on('connect', () => {
+      console.log('Connected to server:', socket.id);
+    });
+
+    socket.on('message', (data) => {
+      console.log('Message from server:', data);
+    });
+
+    socket.on('response', (data) => {
+      console.log('Response from server (from events handler):', data);
+    });
+
+    socket.on('receiveMessage', (data) => {
+      console.log('Broadcast message received:', data);
+    });
+
+    // Send a message to the 'events' handler after connection
+    setTimeout(() => {
+        socket.emit('events', 'Hello from the client!');
+    }, 1000);
+  </script>
+</body>
+</html>

@@ -7,10 +7,10 @@ export class ChallengeEvidenceResponseDto {
   @ApiProperty({ description: 'Challenge ID', example: 'mfssia:C-A-1' })
   challengeId: string;
 
-  @ApiProperty({ 
-    description: 'Submitted evidence data', 
-    additionalProperties: true,
-    type: 'object' })
+  @ApiProperty({
+    description: 'Submitted evidence data',
+    example: 'Data submitted',
+  })
   evidence: Record<string, any>;
 
   @ApiProperty({ description: 'Submission timestamp' })

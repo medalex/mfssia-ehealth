@@ -13,6 +13,7 @@ import { HttpExceptionFilter } from './filters/bad-request.filter';
 import 'reflect-metadata';
 import { ApiResponseInterceptor } from './interceptors/response.interceptor';
 import { setupSwagger } from './shared/swagger/swagger.setup';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 
 const logger = new Logger('Bootstrap');
 
@@ -22,10 +23,10 @@ async function bootstrap() {
       logger: ['error', 'warn', 'log', 'debug', 'verbose'],
     });
 
-    app.enableCors({
-      origin: true,
-      credentials: true,
-    });
+    // Attach Socket.IO adapter
+    app.useWebSocketAdapter(new IoAdapter(app));
+
+    app.enableCors({ origin: '*', credentials: false });
 
     useContainer(app.select(AppModule), { fallbackOnErrors: true });
     const configService = app.get(ConfigService);
