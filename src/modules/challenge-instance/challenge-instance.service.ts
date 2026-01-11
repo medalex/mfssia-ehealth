@@ -43,11 +43,7 @@ export class ChallengeInstanceService {
   async findOneWithRelations(id: Uuid): Promise<ChallengeInstance> {
     const instance = await this.repo.findOne({
       where: { id: id as any },
-      relations: [
-        'identity',
-        'evidences',
-        'pendingVerification', // If you have a relation to PendingVerification
-      ],
+      relations: ['identity', 'evidences'],
     });
 
     if (!instance) {

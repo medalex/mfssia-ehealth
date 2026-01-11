@@ -6,7 +6,7 @@ import { Logger } from '@nestjs/common';
 /**
  * SERVER CONFIG
  */
-const SERVER_URL = 'http://localhost:4000'; // must match your Nest server
+const SERVER_URL = 'https://api.dymaxion-ou.co';
 const WS_PATH = '/ws/oracle'; // must match your @WebSocketGateway path
 const VERIFICATION_INSTANCE_ID = 'b7a8f4c0-1c2d-4c5f-9a11-ffae12345678';
 

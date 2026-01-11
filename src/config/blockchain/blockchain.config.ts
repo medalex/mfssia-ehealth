@@ -9,8 +9,10 @@ export function getConfig(): BlockchainConfig {
   const consumerAddress = process.env.ORACLE_CONSUMER_ADDRESS;
   const subscriptionIdStr = process.env.CHAINLINK_SUBSCRIPTION_ID;
   const gasLimitStr = process.env.CHAINLINK_GAS_LIMIT || '600000';
+  const wsUrl = process.env.BLOCKCHAIN_WS_URL; // <-- new environment variable
 
   if (!rpcUrl) throw new Error('BLOCKCHAIN_RPC_URL is required');
+  if (!wsUrl) throw new Error('BLOCKCHAIN_WS_URL is required'); // ensure WS URL exists
   if (!privateKey) throw new Error('BLOCKCHAIN_PRIVATE_KEY is required');
   if (!consumerAddress) throw new Error('ORACLE_CONSUMER_ADDRESS is required');
   if (!subscriptionIdStr || !isNumberString(subscriptionIdStr)) {
@@ -28,6 +30,7 @@ export function getConfig(): BlockchainConfig {
 
   return {
     rpcUrl,
+    wsUrl,
     privateKey,
     consumerAddress,
     chainlink: {
