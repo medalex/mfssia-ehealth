@@ -34,12 +34,13 @@ export class AttestationService {
     const saved = await this.repo.save(attestation);
 
     // Anchor to DKG
-    const ual: any = await this.dkgService.createAsset({
+    /*const ual: any = await this.dkgService.createAsset({
       '@type': 'mfssia:IdentityAttestation',
       ...attestation,
     });
 
     saved.ual = ual;
+    */
     return this.repo.save(saved);
   }
 

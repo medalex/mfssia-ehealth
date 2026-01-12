@@ -11,31 +11,42 @@ import { ChallengeDefinition } from './entities/challenge-definitions.entity';
 import { FactorClass } from '@/common/enums/factor-class.enum';
 import { OracleType } from '@/common/enums/oracle-type.enum';
 import { Uuid } from '@/common/types/common.type';
+import { DkgService } from '@/providers/dkg/dkg.service';
+import { ChallengeDefinitionDkgMapper } from './challenge-definition.dkg.mapper';
 
 @Injectable()
 export class ChallengeDefinitionService {
   constructor(
     @InjectRepository(ChallengeDefinition)
     private readonly repo: Repository<ChallengeDefinition>,
+    private readonly dkgService: DkgService,
   ) {}
 
   async create(
     dto: CreateChallengeDefinitionDto,
   ): Promise<ChallengeDefinition> {
     const existing = await this.repo.findOneBy({ code: dto.code });
+
     if (existing) {
-      throw new ConflictException(
-        `Challenge with code ${dto.code} already exists`,
-      );
+      throw new ConflictException(`Challenge with code ${dto.code} already exists`);
     }
+
     if (!Object.values(FactorClass).includes(dto.factorClass)) {
       throw new BadRequestException('Invalid factor class');
     }
+    
     if (!Object.values(OracleType).includes(dto.oracle.oracleType)) {
       throw new BadRequestException('Invalid oracle type');
     }
+
     const definition = this.repo.create(dto);
-    return this.repo.save(definition);
+    const dkgDto = ChallengeDefinitionDkgMapper.toDkgDto(definition);
+
+    const dkgChallengeDefinition = await this.dkgService.createAsset(dkgDto);
+    
+    definition.ual = dkgChallengeDefinition.UAL;
+
+    return this.repo.save(definition); 
   }
 
   async findAll(): Promise<ChallengeDefinition[]> {

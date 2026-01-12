@@ -4,6 +4,7 @@ import DKGClient from 'dkg.js'; // ← Correct default import
 import { IAssetResponse } from '../../interfaces/IAssetResponse';
 import { DkgQueryResultDto } from './dkg-query-result.dto';
 import { NodeInfoResponseDto } from '@/modules/infrastructure/node.-info.dto';
+import { BaseDkgAssetDto } from './base-dkg-asset.dto';
 
 @Injectable()
 export class DkgService {
@@ -49,10 +50,10 @@ export class DkgService {
     }
   }
 
-  async createAsset(asset: Record<string, unknown>): Promise<IAssetResponse> {
+  async createAsset(asset: BaseDkgAssetDto): Promise<IAssetResponse> {
     this.logger.log('🗄️ Creating general DKG asset');
     this.logger.debug(
-      `Asset payload: ${JSON.stringify(asset).substring(0, 300)}...`,
+      `Asset payload:\n${JSON.stringify(asset, null, 2)}`
     );
 
     try {
@@ -62,12 +63,14 @@ export class DkgService {
       );
 
       this.logger.log(`✅ General asset created: UAL=${response.UAL}`);
+
       return response;
     } catch (error: any) {
       this.logger.error(
         `❌ Error creating general asset: ${error.message}`,
         error.stack,
       );
+
       throw error;
     }
   }

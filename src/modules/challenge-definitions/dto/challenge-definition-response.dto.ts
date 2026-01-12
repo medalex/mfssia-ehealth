@@ -71,4 +71,7 @@ export class ChallengeDefinitionResponseDto {
 
   @ApiProperty({ description: 'Status', example: 'ACTIVE' })
   status: string;
+
+  @ApiProperty({ description: 'UAL from DKG', example: '...'})
+  ual: string;
 }
