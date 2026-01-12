@@ -69,7 +69,7 @@ export class ChallengeEvidenceService {
   private async checkAndTriggerOracleVerification(
     instance: any,
   ): Promise<void> {
-    const challengeSet = await this.challengeSetService.findOne(
+    const challengeSet = await this.challengeSetService.findById(
       instance.challengeSet,
     );
 

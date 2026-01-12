@@ -65,6 +65,17 @@ export class ChallengeSetService {
     return set;
   }
 
+  async findById(id: any): Promise<ChallengeSet> {
+    const set = await this.setRepo.findOne({
+      where: { id: id },
+      relations: ['challengeDefinitions'],
+    });
+    if (!set) {
+      throw new NotFoundException(`Challenge Set ${id} not found`);
+    }
+    return set;
+  }
+
   async update(id: string, dto: UpdateChallengeSetDto): Promise<ChallengeSet> {
     const set = await this.findOne(id);
 
