@@ -121,6 +121,9 @@ export class OracleVerificationService {
       const chainlink = this.config.get('blockchain.chainlink', {
         infer: true,
       });
+
+      this.logger.verbose(`Using Chainlink: ${chainlink}`);
+
       const tx = await this.contract.requestVerification(
         instanceKey,
         challengeSet.code,
