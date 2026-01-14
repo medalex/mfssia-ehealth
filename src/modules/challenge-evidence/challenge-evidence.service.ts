@@ -46,7 +46,7 @@ export class ChallengeEvidenceService {
       );
     }
 
-    const challengeSet = await this.challengeSetService.findOne(
+    const challengeSet = await this.challengeSetService.findById(
       instance.challengeSet,
     );
 
