@@ -8,7 +8,7 @@ export function getConfig(): BlockchainConfig {
   const privateKey = process.env.BLOCKCHAIN_PRIVATE_KEY;
   const consumerAddress = process.env.ORACLE_CONSUMER_ADDRESS;
   const subscriptionIdStr = process.env.CHAINLINK_SUBSCRIPTION_ID;
-  const gasLimitStr = process.env.CHAINLINK_GAS_LIMIT || '600000';
+  const gasLimitStr = process.env.CHAINLINK_GAS_LIMIT || '300_000';
   const wsUrl = process.env.BLOCKCHAIN_WS_URL; // <-- new environment variable
 
   if (!rpcUrl) throw new Error('BLOCKCHAIN_RPC_URL is required');

@@ -123,6 +123,8 @@ export class OracleVerificationService {
       });
 
       this.logger.verbose(`Using Chainlink: ${chainlink}`);
+      this.logger.verbose(`Using challenge set code: ${challengeSet.code}`);
+      this.logger.verbose(`Using chainlink subscription id: ${chainlink.subscriptionId}`);
 
       const tx = await this.contract.requestVerification(
         instanceKey,
