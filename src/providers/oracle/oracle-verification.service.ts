@@ -58,7 +58,7 @@ export class OracleVerificationService {
     );
 
     // Load challenge set
-    const challengeSet = await this.challengeSetService.findOne(
+    const challengeSet = await this.challengeSetService.findById(
       instance.challengeSet,
     );
     if (!challengeSet) {
