@@ -1,18 +1,17 @@
 import { Uuid } from '@/common/types/common.type';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsObject } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsArray,
+  ValidateNested,
+  IsObject,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 
-export class SubmitEvidenceDto {
+export class ChallengeEvidenceDto {
   @ApiProperty({
-    description: 'ID of the challenge instance',
-    example: 'a1b2c3d4-e5f6-7890-g1h2-i3j4k5l6m7n8',
-  })
-  @IsString()
-  @IsNotEmpty()
-  challengeInstanceId: Uuid;
-
-  @ApiProperty({
-    description: 'Specific challenge being responded to',
+    description: 'Challenge ID being responded to',
     example: 'mfssia:C-A-1',
   })
   @IsString()
@@ -22,8 +21,30 @@ export class SubmitEvidenceDto {
   @ApiProperty({
     description:
       'Evidence artifact matching expectedEvidence in ChallengeDefinition',
-    example: { source: 'err.ee', contentHash: '0xabc123...' },
+    example: {
+      source: 'err.ee',
+      contentHash: '0xabc123...',
+    },
   })
   @IsObject()
   evidence: Record<string, any>;
+}
+
+export class SubmitEvidenceBatchDto {
+  @ApiProperty({
+    description: 'ID of the challenge instance',
+    example: 'a1b2c3d4-e5f6-7890-g1h2-i3j4k5l6m7n8',
+  })
+  @IsString()
+  @IsNotEmpty()
+  challengeInstanceId: Uuid;
+
+  @ApiProperty({
+    description: 'Batch responses for all challenges in the ChallengeSet',
+    type: [ChallengeEvidenceDto],
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ChallengeEvidenceDto)
+  responses: ChallengeEvidenceDto[];
 }
