@@ -10,6 +10,8 @@ import { ChallengeSet } from './entities/challenge-set.entity';
 import { CreateChallengeSetDto } from './dto/create-challenge-set.dto';
 import { UpdateChallengeSetDto } from './dto/update-challenge-set.dto';
 import { ChallengeDefinition } from '../challenge-definitions/entities/challenge-definitions.entity';
+import { ChallengeSetDkgMapper } from './challenge-set.dkg.mapper';
+import { DkgService } from '@/providers/dkg/dkg.service';
 
 @Injectable()
 export class ChallengeSetService {
@@ -18,6 +20,7 @@ export class ChallengeSetService {
     private readonly setRepo: Repository<ChallengeSet>,
     @InjectRepository(ChallengeDefinition)
     private readonly defRepo: Repository<ChallengeDefinition>,
+    private readonly dkgService: DkgService,
   ) {}
 
   async create(dto: CreateChallengeSetDto): Promise<ChallengeSet> {
@@ -46,6 +49,12 @@ export class ChallengeSetService {
       mandatoryChallenges: dto.mandatoryChallenges,
       optionalChallenges: dto.optionalChallenges || [],
     });
+
+    const dkgDto = ChallengeSetDkgMapper.toDkgDto(set);
+    
+    const dkgChallengeSet = await this.dkgService.createAsset(dkgDto);
+        
+    set.ual = dkgChallengeSet.UAL;
 
     return this.setRepo.save(set);
   }

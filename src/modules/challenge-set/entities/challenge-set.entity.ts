@@ -74,4 +74,7 @@ export class ChallengeSet {
 
   @UpdateDateColumn({ name: 'updatedAt', type: 'timestamp' })
   updatedAt: Date;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  ual: string | null; 
 }

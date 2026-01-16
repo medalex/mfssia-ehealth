@@ -47,7 +47,7 @@ export class OracleListenerService implements OnModuleInit {
       async (requestId, _instanceKey, response, err) => {
         const requestIdStr = requestId.toString();
         this.logger.log(`Response received — requestId=${requestIdStr}`);
-
+        this.logger.debug({ requestId, _instanceKey, response, err });
         const pending = await this.pendingVerificationService.findByRequestId(
           requestIdStr,
         );
@@ -64,6 +64,15 @@ export class OracleListenerService implements OnModuleInit {
 
         try {
           const parsed = this.safeParseOracleResponse(response, err);
+
+          this.logger.log(
+            `Oracle response parsed — finalResult=${parsed.finalResult}, aggregateConfidence=${parsed.aggregateConfidence}, passedChallenges=[${parsed.passedChallenges.join(
+              ', ',
+            )}]`,
+          );
+
+          this.logger.debug(parsed.rawResponse);
+          this.logger.debug(parsed);
 
           if (parsed.finalResult === 'PASS') {
             await this.handleVerificationSuccess(pending, requestIdStr, parsed);

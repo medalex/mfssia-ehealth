@@ -5,6 +5,8 @@ import { MfssiaAttestation } from './entities/mfssia-attestation.entity';
 import { DkgService } from 'src/providers/dkg/dkg.service';
 import { ChallengeInstanceService } from '../challenge-instance/challenge-instance.service';
 import { Uuid } from '@/common/types/common.type';
+import { MfssiaAttestationDkgMapper } from './mfssia-attestation.dkg.mapper';
+import { ChallengeSetService } from '../challenge-set/challenge-set.service';
 
 @Injectable()
 export class AttestationService {
@@ -13,6 +15,7 @@ export class AttestationService {
     private readonly repo: Repository<MfssiaAttestation>,
     private readonly dkgService: DkgService,
     private readonly instanceService: ChallengeInstanceService,
+    private readonly challengeSetService: ChallengeSetService,
   ) {}
 
   async createFromInstance(
@@ -21,6 +24,7 @@ export class AttestationService {
     passedChallenges: string[],
   ): Promise<MfssiaAttestation> {
     const instance = await this.instanceService.findOne(instanceId);
+    const challengeSet = await this.challengeSetService.findById(instance.challengeSet);
 
     const attestation = this.repo.create({
       identity: instance.identity.identifier,
@@ -29,19 +33,15 @@ export class AttestationService {
       oracleAttestation: oracleProof,
       validFrom: new Date(),
       validUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      aggregationRule: challengeSet.policy.aggregationRule
     });
 
-    const saved = await this.repo.save(attestation);
+    const dkgDto = MfssiaAttestationDkgMapper.toDkgDto(attestation);
+    const dkgAttestation = await this.dkgService.createAsset(dkgDto);
 
-    // Anchor to DKG
-    /*const ual: any = await this.dkgService.createAsset({
-      '@type': 'mfssia:IdentityAttestation',
-      ...attestation,
-    });
+    attestation.ual = dkgAttestation.UAL;
 
-    saved.ual = ual;
-    */
-    return this.repo.save(saved);
+    return await this.repo.save(attestation);
   }
 
   async findValidByDid(did: string): Promise<MfssiaAttestation[]> {
