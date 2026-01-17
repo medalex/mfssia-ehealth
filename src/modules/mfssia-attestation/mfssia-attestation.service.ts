@@ -24,7 +24,9 @@ export class AttestationService {
     passedChallenges: string[],
   ): Promise<MfssiaAttestation> {
     const instance = await this.instanceService.findOne(instanceId);
-    const challengeSet = await this.challengeSetService.findById(instance.challengeSet);
+    const challengeSet = await this.challengeSetService.findById(
+      instance.challengeSet,
+    );
 
     const attestation = this.repo.create({
       identity: instance.identity.identifier,
@@ -33,7 +35,7 @@ export class AttestationService {
       oracleAttestation: oracleProof,
       validFrom: new Date(),
       validUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-      aggregationRule: challengeSet.policy.aggregationRule
+      aggregationRule: challengeSet.policy.aggregationRule,
     });
 
     const dkgDto = MfssiaAttestationDkgMapper.toDkgDto(attestation);

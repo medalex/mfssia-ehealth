@@ -15,7 +15,7 @@ import { OracleEvent } from '@/shared/realtime/events/oracle.event';
 @Injectable()
 export class OracleListenerService implements OnModuleInit {
   private readonly logger = new Logger(OracleListenerService.name);
-  private provider: ethers.JsonRpcProvider;
+  private provider: ethers.JsonRpcProvider | ethers.WebSocketProvider;
   private contract: ethers.Contract;
   private readonly MfssiaOracleConsumerABI = rawAbi.abi;
 
@@ -26,16 +26,52 @@ export class OracleListenerService implements OnModuleInit {
     private dkgService: DkgService,
     private readonly eventEmitter: EventEmitter2,
   ) {
-    const blockchain = this.config.get('blockchain', { infer: true });
-    this.provider = new ethers.JsonRpcProvider(blockchain.rpcUrl);
+    const { rpcUrl, wsUrl, consumerAddress } = this.config.get('blockchain', {
+      infer: true,
+    });
+
+    const url = wsUrl || rpcUrl;
+    const isWs = url.startsWith('wss://');
+
+    this.provider = isWs
+      ? new ethers.WebSocketProvider(url)
+      : new ethers.JsonRpcProvider(rpcUrl);
+    this.logger.log(
+      `Oracle listener using ${isWs ? 'WebSocket' : 'HTTP RPC'}: ${url}`,
+    );
+
+    // Quiet noisy low-level provider errors
+    void this.provider.on('error', (err: any) => {
+      const msg = err.message || err.toString();
+      if (
+        msg.includes('timeout') ||
+        msg.includes('404') ||
+        msg.includes('429') ||
+        msg.includes('ECONNRESET')
+      ) {
+        this.logger.debug(`RPC noise suppressed: ${msg}`);
+        return;
+      }
+      this.logger.warn(`Provider error: ${msg}`, err);
+    });
+
     this.contract = new ethers.Contract(
-      blockchain.consumerAddress,
+      consumerAddress,
       this.MfssiaOracleConsumerABI,
       this.provider,
+    );
+
+    // Quiet low-level network errors
+    void this.provider.on('error', (err) =>
+      this.logger.warn(`RPC background error (ignored): ${err.message}`),
     );
   }
 
   onModuleInit(): void {
+    // Silence provider-level errors
+    void this.provider.on('error', (err) => {
+      this.logger.warn(`Provider background error (ignored): ${err.message}`);
+    });
     this.startListening();
   }
 
@@ -44,10 +80,15 @@ export class OracleListenerService implements OnModuleInit {
 
     void this.contract.on(
       'VerificationResponseReceived',
-      async (requestId, _instanceKey, response, err) => {
+      async (
+        requestId: ethers.BigNumberish,
+        _instanceKey: any,
+        response,
+        err,
+      ) => {
         const requestIdStr = requestId.toString();
         this.logger.log(`Response received — requestId=${requestIdStr}`);
-        this.logger.debug({ requestId, _instanceKey, response, err });
+
         const pending = await this.pendingVerificationService.findByRequestId(
           requestIdStr,
         );
@@ -64,15 +105,6 @@ export class OracleListenerService implements OnModuleInit {
 
         try {
           const parsed = this.safeParseOracleResponse(response, err);
-
-          this.logger.log(
-            `Oracle response parsed — finalResult=${parsed.finalResult}, aggregateConfidence=${parsed.aggregateConfidence}, passedChallenges=[${parsed.passedChallenges.join(
-              ', ',
-            )}]`,
-          );
-
-          this.logger.debug(parsed.rawResponse);
-          this.logger.debug(parsed);
 
           if (parsed.finalResult === 'PASS') {
             await this.handleVerificationSuccess(pending, requestIdStr, parsed);

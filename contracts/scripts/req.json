@@ -1,0 +1,21 @@
+ {
+  "challengeInstanceId": "c1f395c2-e7b8-487c-ab17-c4b723327c16",
+  "responses": [
+    {
+      "challengeId": "mfssia:C-A-1",
+      "evidence": {
+        "signature": "0x5ecf277ddba4c0442ff2141d9601b2f0edf9268fd455c75a7f4ef590d183edfd60d3b21a75bb80d7c1e2caa507b2287d5ebe19ea58832397ca4411e5415e2d501c",
+        "message": "MFSSIA Challenge\nNonce: 0xe2f2afaba43732970dbe7448b45cd0a2\nAddress: 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720\nTimestamp: 2026-01-14T17:01:31.432Z",
+        "publicKey": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720"
+      }
+    },
+    {
+      "challengeId": "mfssia:C-A-2",
+      "evidence": {
+        "interactionTime": 1387,
+        "userAgent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0",
+        "timestamp": "2026-01-14T17:01:34.877Z"
+      }
+    }
+  ]
+}
