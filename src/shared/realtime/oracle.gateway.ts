@@ -51,30 +51,34 @@ export class OracleGateway
   @SubscribeMessage('oracle.subscribe')
   handleSubscribe(
     @ConnectedSocket() socket: Socket,
-    @MessageBody() body: { verificationInstanceId: string },
+    @MessageBody() body: { instanceId: string },
   ) {
-    this.logger.log(`CLIENT SUBSCRIBE → ${body?.verificationInstanceId}`);
+    this.logger.log(`CLIENT SUBSCRIBE → ${body?.instanceId}`);
 
-    const verificationInstanceId = body?.verificationInstanceId;
+    const instanceId = body?.instanceId;
 
-    if (!verificationInstanceId) {
+    if (!instanceId) {
       socket.emit('oracle.error', {
-        message: 'Missing verificationInstanceId',
+        message: 'Missing instanceId',
         timestamp: new Date().toISOString(),
       });
       this.logger.warn(
-        `⚠️ Socket ${socket.id} tried to subscribe without verificationInstanceId`,
+        `⚠️ Socket ${socket.id} tried to subscribe without instanceId`,
       );
       return;
     }
 
-    this.registerListener(socket, verificationInstanceId);
+    this.registerListener(socket, instanceId);
 
     // Acknowledge subscription
     socket.emit('oracle.subscribed', {
-      verificationInstanceId,
+      instanceId,
       timestamp: new Date().toISOString(),
     });
+
+    this.logger.log(
+      `📡 Socket ${socket.id} subscribed to instance ${instanceId}`,
+    );
   }
 
   // ====================================================
@@ -110,16 +114,16 @@ export class OracleGateway
    * Forward event to subscribed sockets and cleanup if terminal
    */
   private forward(payload: any, event: OracleEvent) {
-    const { verificationInstanceId, ...data } = payload;
+    const { instanceId, ...data } = payload;
 
-    if (!verificationInstanceId) {
-      this.logger.warn(`⚠️ Missing verificationInstanceId for ${event}`);
+    if (!instanceId) {
+      this.logger.warn(`⚠️ Missing instanceId for ${event}`);
       return;
     }
 
-    this.logger.log(`FORWARD ${event} → ${verificationInstanceId}`);
+    this.logger.log(`FORWARD ${event} → ${instanceId}`);
 
-    this.emitToInstance(this.server, verificationInstanceId, event, {
+    this.emitToInstance(this.server, instanceId, event, {
       ...data,
       event,
       timestamp: new Date().toISOString(),
@@ -131,7 +135,7 @@ export class OracleGateway
       event === OracleEvent.VERIFICATION_FAILED ||
       event === OracleEvent.VERIFICATION_ERROR
     ) {
-      this.cleanupInstance(verificationInstanceId);
+      this.cleanupInstance(instanceId);
     }
   }
 }

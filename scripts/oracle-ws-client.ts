@@ -5,7 +5,7 @@ import { Logger } from '@nestjs/common';
 
 const SERVER_URL = 'https://api.dymaxion-ou.co';
 const WS_PATH = '/ws/oracle';
-const VERIFICATION_INSTANCE_ID =
+const instanceId =
   '0x2aae12b9f71b95b3c0c4cb6fc64deec956afd7e8133b023726b39ac58a1ac04f';
 
 enum OracleEvent {
@@ -31,7 +31,7 @@ function createOracleClient(): Socket {
     Logger.log(chalk.green(`🟢 Connected (socketId: ${socket.id})`));
 
     socket.emit('oracle.subscribe', {
-      verificationInstanceId: VERIFICATION_INSTANCE_ID,
+      instanceId: instanceId,
     });
   });
 
@@ -44,7 +44,7 @@ function createOracleClient(): Socket {
   });
 
   socket.on('oracle.subscribed', (data) => {
-    Logger.log(chalk.cyan(`📡 Subscribed to ${data.verificationInstanceId}`));
+    Logger.log(chalk.cyan(`📡 Subscribed to ${data.instanceId}`));
   });
 
   socket.on(OracleEvent.ORACLE_CONNECTED, (payload) => {

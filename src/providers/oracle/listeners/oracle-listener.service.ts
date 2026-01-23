@@ -281,15 +281,15 @@ export class OracleListenerService implements OnModuleInit {
   ) {
     this.logger.error(`Processing failed: ${error.message}`, error.stack);
 
-    await this.pendingVerificationService.updateByRequestId(requestId, {
-      status: PendingVerificationStatus.ERROR,
-      errorMessage: error.message,
-    });
-
     this.eventEmitter.emit(OracleEvent.VERIFICATION_ERROR, {
       instanceId: pending.instanceId,
       requestId: requestId,
       error: error.message,
+    });
+
+    await this.pendingVerificationService.updateByRequestId(requestId, {
+      status: PendingVerificationStatus.ERROR,
+      errorMessage: error.message,
     });
   }
 }
