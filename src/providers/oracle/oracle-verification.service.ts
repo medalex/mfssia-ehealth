@@ -124,7 +124,9 @@ export class OracleVerificationService {
 
       this.logger.verbose(`Using Chainlink: ${chainlink}`);
       this.logger.verbose(`Using challenge set code: ${challengeSet.code}`);
-      this.logger.verbose(`Using chainlink subscription id: ${chainlink.subscriptionId}`);
+      this.logger.verbose(
+        `Using chainlink subscription id: ${chainlink.subscriptionId}`,
+      );
 
       const tx = await this.contract.requestVerification(
         instanceKey,
@@ -163,6 +165,13 @@ export class OracleVerificationService {
 
       this.logger.log(`🎯 Oracle request submitted — requestId=${requestId}`);
 
+      /** 🔔 Domain event */
+      this.eventEmitter.emit(OracleEvent.VERIFICATION_REQUESTED, {
+        instanceId,
+        requestId,
+        challengeSet: challengeSet.code,
+      });
+
       // Save pending record
       await this.pendingRepo.save({
         requestId: requestId.toString(),
@@ -175,13 +184,6 @@ export class OracleVerificationService {
       });
 
       this.logger.log(`📝 Pending verification record saved`);
-
-      /** 🔔 Domain event */
-      this.eventEmitter.emit(OracleEvent.VERIFICATION_REQUESTED, {
-        instanceId,
-        requestId,
-        challengeSet: challengeSet.code,
-      });
 
       return requestId.toString();
     } catch (error: any) {

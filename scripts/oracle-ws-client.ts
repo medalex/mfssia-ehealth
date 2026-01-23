@@ -3,15 +3,13 @@ import { io, Socket } from 'socket.io-client';
 import chalk from 'chalk';
 import { Logger } from '@nestjs/common';
 
-/**
- * SERVER CONFIG
- */
 const SERVER_URL = 'https://api.dymaxion-ou.co';
-const WS_PATH = '/ws/oracle'; // must match your @WebSocketGateway path
-const VERIFICATION_INSTANCE_ID = 'b7a8f4c0-1c2d-4c5f-9a11-ffae12345678';
+const WS_PATH = '/ws/oracle';
+const VERIFICATION_INSTANCE_ID =
+  '0x2aae12b9f71b95b3c0c4cb6fc64deec956afd7e8133b023726b39ac58a1ac04f';
 
 enum OracleEvent {
-  ORACLE_CONNECTED = 'oracle.connected',
+  ORACLE_CONNECTED = 'oracle_connected',
   VERIFICATION_REQUESTED = 'oracle.verification.requested',
   VERIFICATION_PROCESSING = 'oracle.verification.processing',
   VERIFICATION_SUCCESS = 'oracle.verification.success',
@@ -19,58 +17,38 @@ enum OracleEvent {
   VERIFICATION_ERROR = 'oracle.verification.error',
 }
 
-/**
- * Create Socket.IO client
- */
 function createOracleClient(): Socket {
   const socket = io(SERVER_URL, {
     path: WS_PATH,
-    transports: ['websocket'], // force WebSocket
-    timeout: 20000, // 20s timeout
-    reconnectionAttempts: 3, // try 3 times before failing
+    transports: ['websocket'],
+    timeout: 20000,
+    reconnection: true,
+    reconnectionAttempts: Infinity,
     reconnectionDelay: 2000,
   });
 
-  // Lifecycle logs
   socket.on('connect', () => {
-    Logger.log(
-      chalk.green(`🟢 Connected to Oracle WS (socketId: ${socket.id})`),
-    );
+    Logger.log(chalk.green(`🟢 Connected (socketId: ${socket.id})`));
 
-    // Subscribe to verification instance
     socket.emit('oracle.subscribe', {
       verificationInstanceId: VERIFICATION_INSTANCE_ID,
     });
   });
 
   socket.on('disconnect', (reason) => {
-    Logger.log(chalk.red(`🔴 Disconnected from Oracle WS: ${reason}`));
+    Logger.warn(chalk.red(`🔴 Disconnected: ${reason}`));
   });
 
   socket.on('connect_error', (err: any) => {
     Logger.error(chalk.yellow(`⚠️ Connect error:`), err.message);
   });
 
-  socket.on('connect_timeout', () => {
-    Logger.error(chalk.yellow('⚠️ Connection timed out!'));
-  });
-
-  // Subscription acknowledgement
   socket.on('oracle.subscribed', (data) => {
-    Logger.log(
-      chalk.cyan(
-        `📡 Subscribed to verification instance: ${data.verificationInstanceId}`,
-      ),
-    );
+    Logger.log(chalk.cyan(`📡 Subscribed to ${data.verificationInstanceId}`));
   });
 
-  socket.on('oracle.error', (err) => {
-    Logger.error(chalk.red(`❌ Oracle error:`), err);
-  });
-
-  // Oracle lifecycle events
   socket.on(OracleEvent.ORACLE_CONNECTED, (payload) => {
-    Logger.log(chalk.gray(`🤝 Oracle gateway ready @ ${payload.timestamp}`));
+    Logger.log(chalk.gray(`🤝 Oracle ready @ ${payload.timestamp}`));
   });
 
   socket.on(OracleEvent.VERIFICATION_REQUESTED, (payload) => {
@@ -78,44 +56,35 @@ function createOracleClient(): Socket {
   });
 
   socket.on(OracleEvent.VERIFICATION_PROCESSING, (payload) => {
-    Logger.log(
-      chalk.yellow.bold(`⚙️ Oracle processing verification...`),
-      payload,
-    );
+    Logger.log(chalk.yellow.bold(`⚙️ Processing...`), payload);
   });
 
   socket.on(OracleEvent.VERIFICATION_SUCCESS, (payload) => {
-    Logger.log(chalk.green.bold(`✅ Verification SUCCESS`));
-    console.dir(payload, { depth: null });
+    Logger.log(chalk.green.bold(`✅ SUCCESS`), payload);
   });
 
   socket.on(OracleEvent.VERIFICATION_FAILED, (payload) => {
-    Logger.log(chalk.red.bold(`❌ Verification FAILED`));
-    console.dir(payload, { depth: null });
+    Logger.log(chalk.red.bold(`❌ FAILED`), payload);
   });
 
   socket.on(OracleEvent.VERIFICATION_ERROR, (payload) => {
-    Logger.log(chalk.bgRed.white.bold(`💥 Verification ERROR`));
-    console.dir(payload, { depth: null });
+    Logger.log(chalk.bgRed.white.bold(`💥 ERROR`), payload);
   });
 
   return socket;
 }
 
-/**
- * Run simulation
- */
 async function simulateOracleFlow() {
-  Logger.log(chalk.magenta.bold(`🚀 Starting Oracle WS client simulation`));
+  Logger.log(chalk.magenta.bold(`🚀 Oracle WS client started`));
 
   const socket = createOracleClient();
 
-  // Keep process alive for observation
-  setTimeout(() => {
-    Logger.log(chalk.gray(`🧹 Closing Oracle WS client...`));
+  // Graceful shutdown
+  process.on('SIGINT', () => {
+    Logger.log(chalk.gray(`🛑 Shutting down oracle listener...`));
     socket.disconnect();
     process.exit(0);
-  }, 60000);
+  });
 }
 
 void simulateOracleFlow();

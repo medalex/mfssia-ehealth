@@ -235,16 +235,17 @@ export class OracleListenerService implements OnModuleInit {
       result.passedChallenges,
     );
 
-    await this.pendingVerificationService.updateByRequestId(requestId, {
-      status: PendingVerificationStatus.SUCCESS,
-      rawResponse: JSON.stringify(result),
-    });
-
     this.eventEmitter.emit(OracleEvent.VERIFICATION_SUCCESS, {
       instanceId: pending.instanceId,
       requestId: requestId,
       result: result,
     });
+
+    await this.pendingVerificationService.updateByRequestId(requestId, {
+      status: PendingVerificationStatus.SUCCESS,
+      rawResponse: JSON.stringify(result),
+    });
+
     this.logger.log(
       `Attestation & backend update complete — instance=${pending.instanceId}`,
     );
@@ -261,15 +262,15 @@ export class OracleListenerService implements OnModuleInit {
       )}`,
     );
 
-    await this.pendingVerificationService.updateByRequestId(requestId, {
-      status: PendingVerificationStatus.FAILED,
-      rawResponse: JSON.stringify(result),
-    });
-
     this.eventEmitter.emit(OracleEvent.VERIFICATION_FAILED, {
       instanceId: pending.instanceId,
       requestId: requestId,
       result: result,
+    });
+
+    await this.pendingVerificationService.updateByRequestId(requestId, {
+      status: PendingVerificationStatus.FAILED,
+      rawResponse: JSON.stringify(result),
     });
   }
 

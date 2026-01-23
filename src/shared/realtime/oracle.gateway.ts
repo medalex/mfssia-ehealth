@@ -53,6 +53,8 @@ export class OracleGateway
     @ConnectedSocket() socket: Socket,
     @MessageBody() body: { verificationInstanceId: string },
   ) {
+    this.logger.log(`CLIENT SUBSCRIBE → ${body?.verificationInstanceId}`);
+
     const verificationInstanceId = body?.verificationInstanceId;
 
     if (!verificationInstanceId) {
@@ -114,6 +116,8 @@ export class OracleGateway
       this.logger.warn(`⚠️ Missing verificationInstanceId for ${event}`);
       return;
     }
+
+    this.logger.log(`FORWARD ${event} → ${verificationInstanceId}`);
 
     this.emitToInstance(this.server, verificationInstanceId, event, {
       ...data,
