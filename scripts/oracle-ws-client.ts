@@ -5,8 +5,7 @@ import { Logger } from '@nestjs/common';
 
 const SERVER_URL = 'https://api.dymaxion-ou.co';
 const WS_PATH = '/ws/oracle';
-const instanceId =
-  '0x2aae12b9f71b95b3c0c4cb6fc64deec956afd7e8133b023726b39ac58a1ac04f';
+const instanceId = 'b674e27c-ac69-4c12-a0a6-f30ff234cd1e';
 
 enum OracleEvent {
   ORACLE_CONNECTED = 'oracle_connected',
