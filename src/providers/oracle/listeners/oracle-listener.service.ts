@@ -152,7 +152,7 @@ export class OracleListenerService implements OnModuleInit {
     const maskHex = parsed.m ?? '0x0';
     const passedChallenges = this.decodeBitmask(maskHex);
 
-     this.logger.verbose('Parsed' + parsed);
+     this.logger.verbose('Parsed' + JSON.stringify(parsed));
      this.logger.verbose('resultStr' + resultStr);
 
     return {
