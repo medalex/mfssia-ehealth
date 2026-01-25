@@ -105,6 +105,7 @@ export class OracleVerificationService {
     ];
 
     this.logger.debug(`Oracle args ready — ${args.length} arguments prepared`);
+    this.logger.debug(`Oracle args ready — ${args} `);
 
     // Generate instance key for ✔ On-chain correlation strategy
     const instanceKey = ethers.keccak256(
