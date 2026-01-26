@@ -17,7 +17,7 @@ export class OracleListenerService implements OnModuleInit {
   private provider: ethers.JsonRpcProvider | ethers.WebSocketProvider;
   private contract: ethers.Contract;
   private lastBlock = 0;
-  private pollIntervalMs = 5000; // default 5s
+  private pollIntervalMs = 10000; // default 10s
   private readonly MfssiaOracleConsumerABI = rawAbi.abi;
 
   constructor(
