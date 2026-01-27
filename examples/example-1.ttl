@@ -1,0 +1,23 @@
+@prefix art: <http://mkm.ee/article/> .
+@prefix cls: <http://mkm.ee/classification/> .
+@prefix dct: <http://purl.org/cdt/terms/> .
+@prefix ex: <http://mkm.ee/schema/> .
+@prefix nlp: <http://mkm.ee/nlp/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+art:20240210_003 a ex:Article ;
+    cls:hasEMTAKClassification cls:84114,
+        cls:84123 ;
+    nlp:keywords ( "kokkuhoiukulu" "pressikonverents" "linnapea" "elekter" "tänavavalgustus" "ülesanne" "valgus" "kuritegevus" "kroon" "võimalik" "vastutus" "riigiisa" "eelarve" "kommunaalamet" "valutum" "inimene" "suurem" "vähendamine" "savisaar" "tubli" "kate" ) ;
+    nlp:lemmas ( "kokkuhoiuvõimalus" "savisaar" "riigiisa" "valutum" "kommunaalamet" "tänavavalgustus" "nähtavasti" "kuritegevus" ) ;
+    ex:bodyText """Savisaar: elektri arvelt on võimalik kokku hoida 12 miljonit
+"Jah, olukord on niisugune, et elektri hind tõusis 10%. Katet sellele pole," rääkis Savisaar linnavalitsuse pressikonverentsil. "Kommunaalamet sai ülesande töötada läbi võimalikud kokkuhoiukulud. Võime kokku hoida kuskil 12 miljonit krooni. Tehakse katsetusi, millal see oleks kõige valutum inimestele ja millal see oleks kõige suurema kokkuhoiuvõimalusega linnale," selgitas linnapea.Savisaar kinnitas, et tänaval peab ikkagi valgus olema ja nende piirangutega ei minda liiale.Linnapea ei eitanud, et tänavavalgustuse vähendamine võib kaasa tuua kuritegevuse kasvu. "Kardame muidugi, aga nähtavasti meie tublid riigiisad, kui nad otsustasid kohalike omavalitsuste eelarveid vähendada, võtsid endale ka selle vastutuse," lisas Savisaar.
+""" ;
+    ex:source "eol" ;
+    dct:created "2009-03-18"^^xsd:date ;
+    dct:title "Savisaar: elektri arvelt on võimalik kokku hoida 12 miljonit" ;
+    prov:generatedAtTime "2026-01-23T12:47:14"^^xsd:datetime .
+
+

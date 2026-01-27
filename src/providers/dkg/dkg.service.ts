@@ -220,4 +220,39 @@ export class DkgService {
       throw error;
     }
   }
+
+  async publishRdf(
+    rdf: string,
+    contentType: string = 'text/turtle',
+  ): Promise<IAssetResponse> {
+    this.logger.log('🧠 Publishing raw RDF graph to DKG');
+    this.logger.debug(`RDF size: ${rdf.length} bytes`);
+    this.logger.debug(`RDF ${rdf} bytes`);
+
+    if (!rdf || rdf.length < 10) {
+      throw new BadRequestException('Empty RDF payload');
+    }
+
+    try {
+      const response: IAssetResponse = await this.dkg.asset.create(
+        {
+          public: rdf,
+        },
+        {
+          epochsNum: 2,
+          maxNumberOfRetries: 5,
+        },
+      );
+
+      this.logger.log(`🎉 RDF graph published: UAL=${response.UAL}`);
+      return response;
+    } catch (error: any) {
+      this.logger.error(
+        `❌ Failed to publish RDF graph: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
 }

@@ -15,6 +15,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { OracleVerificationModule } from './providers/oracle/oracle-verification.module';
 import blockchainConfig from './config/blockchain/blockchain.config';
 import { OracleBaseModule } from './shared/realtime/base.module';
+import { RdfModule } from './modules/rdf/rdf.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { OracleBaseModule } from './shared/realtime/base.module';
     AttestationModule,
     OracleVerificationModule,
     OracleBaseModule,
+    RdfModule
   ],
   controllers: [AppController],
   providers: [AppService],

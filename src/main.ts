@@ -7,6 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { useContainer } from 'class-validator';
+import bodyParser from 'body-parser';
 import { AppModule } from './app.module';
 import validationOptions from './interceptors/validation-options';
 import { HttpExceptionFilter } from './filters/bad-request.filter';
@@ -25,6 +26,7 @@ async function bootstrap() {
 
     // Attach Socket.IO adapter
     app.useWebSocketAdapter(new IoAdapter(app));
+    app.use(bodyParser.text({ type: '*/*' }));
 
     app.enableCors({ origin: '*', credentials: false });
 
