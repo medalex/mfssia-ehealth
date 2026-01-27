@@ -10,108 +10,171 @@ import { Uuid } from '@/common/types/common.type';
 import { GlobalConfig } from '@/config/config.type';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OracleEvent } from '@/shared/realtime/events/oracle.event';
+import { OraclePoll } from '@/constants/oracle.constant';
+import { sleep, withTimeout } from '@/shared/utils/sleep';
 
 @Injectable()
 export class OracleListenerService implements OnModuleInit {
   private readonly logger = new Logger(OracleListenerService.name);
-  private provider: ethers.JsonRpcProvider | ethers.WebSocketProvider;
-  private contract: ethers.Contract;
+
+  private provider!: ethers.JsonRpcProvider;
+  private contract!: ethers.Contract;
+
   private lastBlock = 0;
-  private pollIntervalMs = 10000; // default 10s
-  private readonly MfssiaOracleConsumerABI = rawAbi.abi;
+  private lastProgressAt = Date.now();
+  private shuttingDown = false;
+
+  private readonly abi = rawAbi.abi;
+  private readonly rpcUrl: string;
+  private readonly consumerAddress: string;
 
   constructor(
-    private config: ConfigService<GlobalConfig, true>,
-    private pendingVerificationService: PendingVerificationService,
-    private attestationService: AttestationService,
-    private dkgService: DkgService,
+    private readonly config: ConfigService<GlobalConfig, true>,
+    private readonly pendingVerificationService: PendingVerificationService,
+    private readonly attestationService: AttestationService,
+    private readonly dkgService: DkgService,
     private readonly eventEmitter: EventEmitter2,
   ) {
-    const { rpcUrl, wsUrl, consumerAddress } = this.config.get('blockchain', {
+    const { rpcUrl, consumerAddress } = this.config.get('blockchain', {
       infer: true,
     });
 
-    const url = wsUrl || rpcUrl;
-    const isWs = url.startsWith('wss://');
+    this.rpcUrl = rpcUrl;
+    this.consumerAddress = consumerAddress;
 
-    this.provider = isWs
-      ? new ethers.WebSocketProvider(url)
-      : new ethers.JsonRpcProvider(rpcUrl);
+    this.createProvider();
+  }
 
-    this.logger.log(
-      `Oracle polling listener using ${
-        isWs ? 'WebSocket' : 'HTTP RPC'
-      }: ${url}`,
-    );
+  onModuleInit() {
+    void this.bootstrap();
+    this.startWatchdog();
+  }
 
+  // ──────────────────────────────────────────────
+
+  private async bootstrap() {
+    const head = await withTimeout(this.provider.getBlockNumber());
+    this.lastBlock = Math.max(0, head - OraclePoll.cSTARTUP_REWIND_BLOCKS);
+
+    this.logger.log(`Oracle listener starting at block ${this.lastBlock}`);
+
+    void this.pollLoop();
+  }
+
+  private createProvider() {
+    this.logger.warn('Creating RPC provider');
+
+    try {
+      this.provider?.destroy?.();
+    } catch {}
+
+    this.provider = new ethers.JsonRpcProvider(this.rpcUrl);
     this.contract = new ethers.Contract(
-      consumerAddress,
-      this.MfssiaOracleConsumerABI,
+      this.consumerAddress,
+      this.abi,
       this.provider,
     );
   }
 
-  onModuleInit(): void {
-    this.logger.log(`Starting polling loop every ${this.pollIntervalMs}ms`);
-    void this.startPolling();
-  }
+  // ──────────────────────────────────────────────
 
-  private async startPolling(): Promise<void> {
-    while (true) {
+  private async pollLoop() {
+    while (!this.shuttingDown) {
+      const loopStart = Date.now();
+
       try {
-        const currentBlock = await this.provider.getBlockNumber();
-        if (this.lastBlock === 0) this.lastBlock = currentBlock - 1;
-
-        const events = await this.contract.queryFilter(
-          this.contract.filters.VerificationResponseReceived(),
-          this.lastBlock + 1,
-          currentBlock,
+        await this.pollOnce();
+        this.lastProgressAt = Date.now();
+      } catch (err: any) {
+        this.logger.error(
+          `Polling iteration failed: ${err.message}`,
+          err.stack,
         );
 
-        for (const ev of events as any[]) {
-          const args = ev.args;
-          if (!args) continue;
-
-          const [requestId, , response, err] = args; // skip unused _instanceKey
-          const requestIdStr = requestId.toString();
-          this.logger.log(`Polled Response — requestId=${requestIdStr}`);
-
-          const pending = await this.pendingVerificationService.findByRequestId(
-            requestIdStr,
-          );
-          if (!pending) {
-            this.logger.warn(`No pending record for requestId=${requestIdStr}`);
-            continue;
-          }
-
-          try {
-            const parsed = this.safeParseOracleResponse(response, err);
-
-            if (parsed.finalResult === 'PASS') {
-              await this.handleVerificationSuccess(
-                pending,
-                requestIdStr,
-                parsed,
-              );
-            } else {
-              await this.handleVerificationFailure(
-                pending,
-                requestIdStr,
-                parsed,
-              );
-            }
-          } catch (error: any) {
-            await this.handleProcessingError(pending, requestIdStr, error);
-          }
+        if (err.message.includes('timeout')) {
+          this.createProvider();
         }
-
-        this.lastBlock = currentBlock;
-      } catch (error: any) {
-        this.logger.warn(`Polling loop error (ignored): ${error.message}`);
       }
 
-      await new Promise((resolve) => setTimeout(resolve, this.pollIntervalMs));
+      const elapsed = Date.now() - loopStart;
+      await sleep(Math.max(0, OraclePoll.POLL_INTERVAL_MS - elapsed));
     }
+  }
+
+  private async pollOnce() {
+    const head = await withTimeout(this.provider.getBlockNumber());
+    const safeBlock = head - OraclePoll.CONFIRMATIONS;
+
+    if (safeBlock <= this.lastBlock) {
+      return;
+    }
+
+    const fromBlock = this.lastBlock + 1;
+    const toBlock = safeBlock;
+
+    this.logger.debug(`Polling blocks ${fromBlock} → ${toBlock}`);
+
+    const events = await withTimeout(
+      this.contract.queryFilter(
+        this.contract.filters.VerificationResponseReceived(),
+        fromBlock,
+        toBlock,
+      ),
+    );
+
+    for (const ev of events as any[]) {
+      await this.processEvent(ev);
+    }
+
+    this.lastBlock = toBlock;
+  }
+
+  // ──────────────────────────────────────────────
+
+  private async processEvent(ev: any) {
+    const args = ev.args;
+    if (!args) return;
+
+    const [requestId, , response, err] = args;
+    const requestIdStr = requestId.toString();
+
+    const pending = await this.pendingVerificationService.findByRequestId(
+      requestIdStr,
+    );
+
+    if (!pending) {
+      this.logger.warn(`No pending verification for ${requestIdStr}`);
+      return;
+    }
+
+    try {
+      const parsed = this.safeParseOracleResponse(response, err);
+
+      if (parsed.finalResult === 'PASS') {
+        await this.handleVerificationSuccess(pending, requestIdStr, parsed);
+      } else {
+        await this.handleVerificationFailure(pending, requestIdStr, parsed);
+      }
+    } catch (error: any) {
+      await this.handleProcessingError(pending, requestIdStr, error);
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // 🐶 Watchdog
+
+  private startWatchdog() {
+    setInterval(() => {
+      const stalledFor = Date.now() - this.lastProgressAt;
+
+      if (stalledFor > OraclePoll.STALL_TIMEOUT_MS) {
+        this.logger.error(
+          `Listener stalled for ${stalledFor}ms — resetting provider`,
+        );
+        this.createProvider();
+        this.lastProgressAt = Date.now();
+      }
+    }, 30_000);
   }
 
   private safeParseOracleResponse(response: string, err: string) {
@@ -152,8 +215,8 @@ export class OracleListenerService implements OnModuleInit {
     const maskHex = parsed.m ?? '0x0';
     const passedChallenges = this.decodeBitmask(maskHex);
 
-     this.logger.verbose('Parsed' + JSON.stringify(parsed));
-     this.logger.verbose('resultStr' + resultStr);
+    this.logger.verbose('Parsed' + JSON.stringify(parsed));
+    this.logger.verbose('resultStr' + resultStr);
 
     return {
       finalResult: parsed.r === 1 ? 'PASS' : 'FAIL',
@@ -164,7 +227,7 @@ export class OracleListenerService implements OnModuleInit {
   }
 
   private decodeBitmask(maskHex: string): string[] {
-const CHALLENGE_INDEX: Record<string, number> = {
+    const CHALLENGE_INDEX: Record<string, number> = {
       'mfssia:C-A-1': 0,
       'mfssia:C-A-2': 1,
       'mfssia:C-A-3': 2,
