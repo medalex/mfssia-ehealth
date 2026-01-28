@@ -1,0 +1,22 @@
+@prefix art: <http://mkm.ee/article/> .
+@prefix cls: <http://mkm.ee/classification/> .
+@prefix dct: <http://purl.org/cdt/terms/> .
+@prefix ex: <http://mkm.ee/schema/> .
+@prefix nlp: <http://mkm.ee/nlp/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+art:20240210_003 a ex:Article ;
+    cls:hasEMTAKClassification cls:84112 ;
+    nlp:keywords ( "lisaeelarve" "maksutulu" "valitsussektor" "rahandusministeerium" "risk" "majanduskeskkond" "tulu" "mittemaksuline" "vähenemine" "tööturg" "juulikuu" "mõju" "planeeritud" "kroon" "riigilõiv" "perspektiiv" "aasta" "müük" "negatiivne" "protsent" "sihtasutus" "institutsioon" "välisvahend" "lõpp" "kohalik" "suurem" "maht" "kuu" "vara" "seotud" ) ;
+    nlp:lemmas ( "kavandatus" "mittemaksuline" "planeeritud" "mittelaekumine" "välisvahend" "eelarvepositsioon" "valitsussektor" "aastaeelarve" ) ;
+    ex:bodyText """Riigieelarve kulud ületavad tulusid nelja miljardiga
+"Juulikuu laekumistes ja väljamaksetes on juba tuntavalt märgata lisaeelarvete mõjusid;" teatas rahandusministeerium. "Suurimad eelarvega seotud riskid on jätkuvalt maksutulude oodatud mahus mittelaekumine, valitsussektori eelarvepositsiooni mõjutavate kohalike omavalitsuste, valitsussektori sihtasutuste ja avalik-õiguslike institutsioonide tegevus ning negatiivsed arengud tööturul. "Juulis laekus riigieelarvesse 7 miljardit, sellest  maksutulusid 6,2 miljardit krooni. Võrreldes möödunud aasta juuliga  tulude laekumine kahanenud 7,6 protsenti. Seitsme kuuga on maksutulusid laekunud eelarvesse 35,7 miljardit krooni ehk 56,3 protsenti aastaeelarves kavandatust."Majanduskeskkonna ja tööturu arenguid arvestades on aasta perspektiivis oodata jätkuvalt maksulaekumiste vähenemist," hoiatas ministeerium. Mittemaksulisi tulusid on juuli lõpuks laekunud 10,7 miljardit krooni, mis on 49,3 protsenti riigieelarves kavandatust. Juulis laekus sellest ligi 900 miljonit krooni. "Võrreldes eelmise aasta seitsme kuuga kasvas mittemaksuliste tulude laekumine 1,1 miljardi krooni võrra. Mittemaksuliste tulude laekumise osas on kõige suurema riskiga varade müügi, riigilõivude ning trahvide laekumine eelarves kavandatud mahus," märkis ministeerium. Kulusid tehti seitsme kuuga kokku 50,5 miljardit krooni ehk 55,2 protsendi ulatuses eelarvest.Välisvahendite arvelt tehti seitsme kuu jooksul väljamakseid 4,5 miljardi krooni ulatuses, mis moodustab riigieelarves planeeritud mahust 34,4 protsenti.
+""" ;
+    ex:source "eol" ;
+    dct:created "2009-08-19"^^xsd:date ;
+    dct:title "Riigieelarve kulud ületavad tulusid nelja miljardiga" ;
+    prov:generatedAtTime "2026-01-23T12:47:14"^^xsd:datetime .
+
+

@@ -26,7 +26,7 @@ async function bootstrap() {
 
     // Attach Socket.IO adapter
     app.useWebSocketAdapter(new IoAdapter(app));
-    app.use(bodyParser.text({ type: '*/*' }));
+    app.use('/api/rdf', bodyParser.text({ type: 'text/turtle' }));
 
     app.enableCors({ origin: '*', credentials: false });
 
