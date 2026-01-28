@@ -7,11 +7,13 @@ export class RdfService {
     private readonly dkgService: DkgService,
   ) {}
 
-  async ingest(rdf: string, contentType: string) {
+  async ingest(rdf: string, contentType: string): Promise<string> {
     if (!rdf || rdf.length < 10) {
       throw new BadRequestException('Empty RDF');
     }
 
-    return this.dkgService.publishRdf(rdf, contentType);
+    const dkgResponse = await this.dkgService.publishRdf(rdf, contentType);
+
+    return dkgResponse.UAL;
   }
 }

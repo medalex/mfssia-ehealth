@@ -19,12 +19,6 @@ export class RdfController {
     @Body() rdf: string,
     @Headers('content-type') contentType: string,
   ) {
-    await this.rdfService.ingest(rdf, contentType);
-
-    return {
-      status: 'ok',
-      bytes: rdf.length,
-      contentType,
-    };
+    return {UAL: await this.rdfService.ingest(rdf, contentType)};
   }
 }
