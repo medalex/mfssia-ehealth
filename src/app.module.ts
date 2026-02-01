@@ -14,6 +14,7 @@ import appConfig from './config/app/app.config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { OracleVerificationModule } from './providers/oracle/oracle-verification.module';
 import blockchainConfig from './config/blockchain/blockchain.config';
+import challengesConfig from './config/challenges/challenges.config';
 import { OracleBaseModule } from './shared/realtime/base.module';
 import { RdfModule } from './modules/rdf/rdf.module';
 
@@ -22,7 +23,7 @@ import { RdfModule } from './modules/rdf/rdf.module';
     ConfigModule.forRoot({
       isGlobal: true,
       cache: false,
-      load: [appConfig, databaseConfig, blockchainConfig],
+      load: [appConfig, databaseConfig, blockchainConfig, challengesConfig],
       envFilePath: ['.env'],
     }),
     TypeOrmModule.forRootAsync({

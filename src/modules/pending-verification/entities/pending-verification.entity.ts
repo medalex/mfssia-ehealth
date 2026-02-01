@@ -30,6 +30,7 @@ export class PendingVerification {
   @Column({ type: 'varchar', length: 100 })
   challengeSetCode: string; // e.g., "mfssia:Example-D"
 
+  @Index()
   @Column({
     type: 'enum',
     enum: PendingVerificationStatus,

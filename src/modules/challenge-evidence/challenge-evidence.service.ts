@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { ChallengeEvidence } from './entities/challenge-evidence.entity';
 import { ChallengeInstanceService } from '../challenge-instance/challenge-instance.service';
 import { ChallengeSetService } from '../challenge-set/challenge-set.service';
@@ -18,6 +18,7 @@ export class ChallengeEvidenceService {
     private readonly instanceService: ChallengeInstanceService,
     private readonly challengeSetService: ChallengeSetService,
     private readonly oracleVerificationService: OracleVerificationService,
+    private readonly dataSource: DataSource,
   ) {}
 
   /**
@@ -103,7 +104,7 @@ export class ChallengeEvidenceService {
       );
     }
 
-    // ✅ Persist all evidence atomically
+    // ✅ Persist all evidence atomically with oracle trigger in transaction
     const evidenceEntities = dto.responses.map((r) =>
       this.evidenceRepo.create({
         challengeId: r.challengeId,
@@ -112,49 +113,45 @@ export class ChallengeEvidenceService {
       }),
     );
 
-    const savedEvidence = await this.evidenceRepo.save(evidenceEntities);
+    // Wrap in transaction: save evidence + trigger oracle + update state
+    const savedEvidence = await this.dataSource.transaction(
+      async (manager) => {
+        // 1. Save evidence
+        const evidence = await manager.save(ChallengeEvidence, evidenceEntities);
 
-    this.logger.log(
-      `Saved ${savedEvidence.length} evidence records for instance ${instance.id}`,
-    );
-
-    // 🔁 Trigger oracle verification (once)
-    await this.triggerOracleVerification(instance);
-
-    return savedEvidence;
-  }
-
-  /**
-   * Trigger oracle verification exactly once
-   */
-  private async triggerOracleVerification(instance: any): Promise<void> {
-    if (instance.state === InstanceState.VERIFICATION_IN_PROGRESS) {
-      this.logger.verbose(
-        `Oracle verification already in progress for instance ${instance.id}`,
-      );
-      return;
-    }
-
-    try {
-      const requestId =
-        await this.oracleVerificationService.triggerBatchVerification(
-          instance.id,
-          instance.identity.identifier, // DID
+        this.logger.log(
+          `Saved ${evidence.length} evidence records for instance ${instance.id}`,
         );
 
-      this.logger.log(
-        `Oracle verification triggered — requestId: ${requestId}`,
-      );
+        try {
+          // 2. Trigger oracle verification (blockchain call)
+          const requestId =
+            await this.oracleVerificationService.triggerBatchVerification(
+              instance.id,
+              instance.identity.identifier,
+            );
 
-      await this.instanceService.update(instance.id, {
-        state: InstanceState.VERIFICATION_IN_PROGRESS,
-      });
-    } catch (error: any) {
-      this.logger.error(
-        `Failed to trigger oracle verification: ${error.message}`,
-        error.stack,
-      );
-      throw error;
-    }
+          this.logger.log(
+            `Oracle verification triggered — requestId: ${requestId}`,
+          );
+
+          // 3. Update instance state (within same transaction)
+          await this.instanceService.updateWithManager(manager, instance.id, {
+            state: InstanceState.VERIFICATION_IN_PROGRESS,
+          });
+
+          return evidence;
+        } catch (error: any) {
+          this.logger.error(
+            `Failed to trigger oracle verification: ${error.message}`,
+            error.stack,
+          );
+          // Transaction will be rolled back, evidence won't be saved
+          throw error;
+        }
+      },
+    );
+
+    return savedEvidence;
   }
 }

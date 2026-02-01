@@ -6,6 +6,7 @@ import {
   OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 import { ChallengeEvidence } from '../../challenge-evidence/entities/challenge-evidence.entity';
 import { MfssiaIdentity } from 'src/modules/mfssia-identity/entities/mfssia-identity.entity';
@@ -28,9 +29,11 @@ export class ChallengeInstance {
   @Column({ type: 'timestamp' })
   issuedAt: Date;
 
+  @Index()
   @Column({ type: 'timestamp' })
   expiresAt: Date;
 
+  @Index()
   @Column({ type: 'varchar', length: 50, default: InstanceState.IN_PROGRESS })
   state: InstanceState;
 

@@ -7,6 +7,7 @@ import { ChallengeInstanceService } from '../challenge-instance/challenge-instan
 import { Uuid } from '@/common/types/common.type';
 import { MfssiaAttestationDkgMapper } from './mfssia-attestation.dkg.mapper';
 import { ChallengeSetService } from '../challenge-set/challenge-set.service';
+import { ATTESTATION_VALIDITY_MS } from '@/constants/time.constant';
 
 @Injectable()
 export class AttestationService {
@@ -34,7 +35,7 @@ export class AttestationService {
       verifiedChallenges: passedChallenges,
       oracleAttestation: oracleProof,
       validFrom: new Date(),
-      validUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      validUntil: new Date(Date.now() + ATTESTATION_VALIDITY_MS),
       aggregationRule: challengeSet.policy.aggregationRule,
     });
 

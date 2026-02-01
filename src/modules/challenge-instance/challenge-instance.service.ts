@@ -1,7 +1,7 @@
 // src/modules/challenge-instance/challenge-instance.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, EntityManager } from 'typeorm';
 import { ChallengeInstance } from './entities/challenge-instance.entity';
 import { CreateChallengeInstanceDto } from './dto/create-challenge-instance.dto';
 import * as crypto from 'crypto';
@@ -9,6 +9,7 @@ import { ChallengeSetService } from '../challenge-set/challenge-set.service';
 import { IdentityService } from '../mfssia-identity/mfssia-identity.service';
 import { InstanceState } from '@/common/enums/instance-state.enum';
 import { Uuid } from '@/common/types/common.type';
+import { CHALLENGE_INSTANCE_EXPIRATION_MS } from '@/constants/time.constant';
 
 @Injectable()
 export class ChallengeInstanceService {
@@ -29,7 +30,7 @@ export class ChallengeInstanceService {
       challengeSet: challengeSet.id,
       nonce: `0x${nonce}`,
       issuedAt: new Date(),
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+      expiresAt: new Date(Date.now() + CHALLENGE_INSTANCE_EXPIRATION_MS),
       state: InstanceState.IN_PROGRESS, // Better than VERIFIED at creation
       identity,
     });
@@ -72,6 +73,27 @@ export class ChallengeInstanceService {
     Object.assign(instance, updates);
 
     return this.repo.save(instance);
+  }
+
+  /**
+   * Update instance within an existing transaction
+   */
+  async updateWithManager(
+    manager: EntityManager,
+    id: Uuid,
+    updates: Partial<ChallengeInstance>,
+  ): Promise<ChallengeInstance> {
+    const instance = await manager.findOne(ChallengeInstance, {
+      where: { id: id as any },
+    });
+
+    if (!instance) {
+      throw new NotFoundException(`Challenge instance ${id} not found`);
+    }
+
+    Object.assign(instance, updates);
+
+    return manager.save(ChallengeInstance, instance);
   }
 
   /**

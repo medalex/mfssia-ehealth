@@ -151,7 +151,8 @@ export class OracleVerificationService {
             this.contract.interface.parseLog(log).name ===
             'VerificationRequested'
           );
-        } catch {
+        } catch (error: any) {
+          this.logger.debug(`Skipped non-parseable log: ${error.message}`);
           return false;
         }
       });
