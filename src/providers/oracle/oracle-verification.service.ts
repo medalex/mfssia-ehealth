@@ -27,6 +27,7 @@ export class OracleVerificationService {
     private readonly eventEmitter: EventEmitter2,
   ) {
     const blockchain = this.config.get('blockchain', { infer: true });
+    if (!blockchain.enabled) return;
 
     this.provider = new ethers.JsonRpcProvider(blockchain.rpcUrl);
     this.signer = new ethers.Wallet(blockchain.privateKey, this.provider);
