@@ -1,17 +1,49 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 # MFSSIA Prescription Extension — Full Ontology (TBox + ABox)
-# Single file for Protégé / OWL reasoner validation
+# Aligned with current paper formalization (Definitions 1–3, §§ 2.3, 4–7)
 #
 # Source: "Resolving Semantic Conflicts in Decentralized E-Health Governance
-#          Using Zero-Knowledge Proofs" (Kormiltsyn, Udokwu, Norta, 2025)
+#          Using Zero-Knowledge Proofs" (Kormiltsyn, Udokwu, Norta, 2026)
+#
+# Notable changes vs. previous (v1.0) ontology:
+#   - Evaluation context restructured: Γ = ⟨cred, refs, t_req⟩.
+#     Added rx:hasReference (multi-valued) so that each request explicitly
+#     references the labeled records in M it relies upon.
+#   - Labeled-fact representation: every clinical record is a first-class
+#     entity in M with its own rx:hasSource and rx:hasTimestamp (per-record
+#     provenance), unifying the previous measuredBy / measuredAt /
+#     recordedAt asymmetry between Allergy and LabResult.
+#   - rx:LabeledRecord introduced as the unifying superclass of Allergy,
+#     LabResult, and PatientAttribute, matching the paper's "labeled entity"
+#     vocabulary.
+#   - rx:PatientAttribute added (W3C n-ary relation pattern) to model
+#     hasPatientAttr(p, t, v): patient-specific attributes such as age,
+#     weight, pregnancy status, used in conditional policy thresholds.
+#   - Predicate vocabulary aligned with the paper:
+#       Auth(cred)      →  CredValid(cred)
+#       Valid(Γ)        →  ContextTrusted(Γ, M)
+#       Au(d,prescribe) →  REMOVED (folded into CredValid; paper §III-A)
+#       PolOk(p,m)      →  PolicySatisfied(p, m, n)   [dose n added]
+#       Rx(d,p,m)       →  RxValid(d, p, m, n)        [dose n added]
+#     Added: Exists(r, M), Accept(M, Γ, φ).
+#   - Removed: rx:PrescribingAuthority class, rx:grantsAuthorityTo,
+#     rx:isAuthorizedBy, rx:holdsAttestation, rx:PhysicianAuth_doc1.
+#   - rx:validityPeriod added on Medication (paper Eq. ValidityPeriod(m, τ_m),
+#     used by pharmacy's dispensing-time check t_req + τ_m ≥ Ct_disp).
+#   - rx:prescribedDose added on Prescription (the parameter n in RxValid).
+#   - rx:Medication owl:disjointWith rx:MedicationClass (D_M ⊥ D_S).
+#   - rx:deltaMax kept per-policy (governance-approved per ClinicalPolicy);
+#     no longer asserted as system-wide in the comment.
+#   - Hard-coded equation numbers ((Eq.4), (Eq.13), …) replaced with
+#     semantic descriptions to keep comments robust against paper edits.
 #
 # How to open in Protégé:
-#   1. File → Open → выбери этот файл
-#   2. Protégé спросит про импорт MFSSIA.owl — укажи локальный путь
-#      или скачай: https://raw.githubusercontent.com/mubashar-iqbal/MFSSIA-ontology/main/MFSSIA.owl
-#   3. Reasoner → Start Reasoner (HermiT или Pellet)
-#   4. Window → Tabs → OntoGraf  (диаграмма связей)
-#      или Window → Tabs → OWLViz (иерархия классов)
+#   1. File → Open → select this file
+#   2. Protégé will prompt for MFSSIA.owl import — provide local path
+#      or download: https://raw.githubusercontent.com/mubashar-iqbal/MFSSIA-ontology/main/MFSSIA.owl
+#   3. Reasoner → Start Reasoner (HermiT or Pellet)
+#   4. Window → Tabs → OntoGraf  (relationship diagram)
+#      or Window → Tabs → OWLViz (class hierarchy)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @prefix owl:    <http://www.w3.org/2002/07/owl#> .
@@ -36,19 +68,34 @@
 <https://mfssia.io/ontology/prescription>
     a owl:Ontology ;
     owl:imports <http://www.semanticweb.org/mubashar/ontologies/2024/4/MFSSIA-ontology> ;
-    owl:versionInfo "1.0"^^xsd:decimal ;
+    owl:versionInfo "2.0"^^xsd:decimal ;
     dc:creator "Aleksandr Kormiltsyn (aleksandr.kormiltson@taltech.ee)" ;
     dc:title "MFSSIA Prescription Extension — Running Case (ZKP e-Health)" ;
     rdfs:comment """
-        Full ontology (TBox + ABox) for the decentralized e-health prescription running case.
-        Extends MFSSIA via owl:imports with UFO-annotated classes for:
+        Full ontology (TBox + ABox) for the decentralized e-health prescription
+        running case, aligned with the paper's labeled-fact semantic model.
+
+        Imports MFSSIA via owl:imports. Covers:
           - Healthcare stakeholder roles: Physician, Patient, Laboratory, Pharmacy
-          - Clinical entities: Medication, MedicationClass, Allergy, LabResult
-          - Semantic predicates from Definition 2: Al(p,s), Ct(p,m), Au(d,a), PolOk(p,m), Rx(d,p,m)
-          - Evaluation context Γ = ⟨src, ts, cred⟩ (Definition 1)
-          - MFSSIA Challenge Sets for each healthcare role
+          - Labeled clinical records: Allergy, LabResult, PatientAttribute
+            (each carries per-record hasSource and hasTimestamp)
+          - Medication / MedicationClass hierarchy with subsumption (⊑)
+          - Semantic predicates from Definitions 1–3:
+              * CredValid(cred), Exists(r,M), SourceTrusted(r,M),
+                Fresh(r,M,t_req), ContextTrusted(Γ,M)
+              * Allergy(p,s), Contraindication(p,m),
+                PolicySatisfied(p,m,n), RxValid(d,p,m,n)
+              * Accept(M, Γ, φ)
+          - Evaluation context Γ = ⟨cred, refs, t_req⟩ (Definition 1)
+          - MFSSIA Challenge Sets per healthcare role
           - Clinical policy axioms: Pol(m, t, op, θ)
-          - Running case instances: Rx(doc1, pat1, Metformin) → outcome=1
+          - Medication validity periods τ_m for dispensing-time checks
+          - Running case instances: RxValid(doc1, pat1, Metformin, n) → outcome=1
+
+        Derived predicates (Accept, ContextTrusted, Exists, Fresh, SourceTrusted)
+        are NOT encoded as OWL properties — they are checked by the zk-SNARK
+        circuit (paper §V). The ontology models the data over which those
+        predicates are evaluated.
     """ ;
     terms:license <https://creativecommons.org/licenses/by/4.0> .
 
@@ -64,21 +111,21 @@ rx:prescribedBy
     rdfs:domain rx:Prescription ;
     rdfs:range  rx:Physician ;
     rdfs:label  "prescribedBy" ;
-    rdfs:comment "Prescription → Physician. DL: prescribedBy exactly 1 Physician." .
+    rdfs:comment "Prescription → Physician. Identifies prescriber d in RxValid(d,p,m,n)." .
 
 rx:prescribes
     a owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain rx:Prescription ;
     rdfs:range  rx:Medication ;
     rdfs:label  "prescribes" ;
-    rdfs:comment "Prescription → Medication. DL: prescribes exactly 1 Medication." .
+    rdfs:comment "Prescription → Medication. Identifies medication m in RxValid(d,p,m,n)." .
 
 rx:prescribedFor
     a owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain rx:Prescription ;
     rdfs:range  rx:Patient ;
     rdfs:label  "prescribedFor" ;
-    rdfs:comment "Prescription → Patient. DL: prescribedFor exactly 1 Patient." .
+    rdfs:comment "Prescription → Patient. Identifies patient p in RxValid(d,p,m,n)." .
 
 rx:governedBy
     a owl:ObjectProperty ;
@@ -92,101 +139,135 @@ rx:evaluatedUnder
     rdfs:domain rx:Prescription ;
     rdfs:range  rx:EvaluationContext ;
     rdfs:label  "evaluatedUnder" ;
-    rdfs:comment "Links Prescription to EvaluationContext Γ = ⟨src, ts, cred⟩ used during validation." .
+    rdfs:comment "Links Prescription to the EvaluationContext Γ = ⟨cred, refs, t_req⟩ under which it was evaluated." .
 
-# ── Allergy / Contraindication ────────────────────────────────────────────────
+# ── Labeled-fact provenance (per-record, paper Definition 2 & §II-C) ──────────
+
+rx:hasSource
+    a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain rx:LabeledRecord ;
+    rdfs:range  rx:TrustedDataSource ;
+    rdfs:label  "hasSource" ;
+    rdfs:comment "LabeledRecord → TrustedDataSource. Per-record provenance attribute. Used by SourceTrusted(r,M) predicate (Def. 1). Committed in root_TS." .
+
+rx:hasTimestamp
+    a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain rx:LabeledRecord ;
+    rdfs:range  xsd:dateTime ;
+    rdfs:label  "hasTimestamp" ;
+    rdfs:comment "LabeledRecord → time. Per-record provenance attribute. Used by Fresh(r, M, t_req) predicate (Def. 1): (t_req − t) ≤ Δmax." .
+
+rx:hasPatient
+    a owl:ObjectProperty ;
+    rdfs:domain rx:LabeledRecord ;
+    rdfs:range  rx:Patient ;
+    rdfs:label  "hasPatient" ;
+    rdfs:comment "LabeledRecord → Patient. Binary relation linking a labeled record to its subject (e.g., the patient that an allergy or lab result pertains to)." .
+
+# ── Allergy-specific relations (paper Eq. eq:sat-allergy) ─────────────────────
+
+rx:hasSubstance
+    a owl:ObjectProperty ;
+    rdfs:domain rx:Allergy ;
+    rdfs:range  rx:MedicationClass ;
+    rdfs:label  "hasSubstance" ;
+    rdfs:comment "Allergy → MedicationClass. Binary relation in I(hasSubstance). The substance s the patient is allergic to (D_S element)." .
 
 rx:hasAllergy
     a owl:ObjectProperty ;
     rdfs:domain rx:Patient ;
     rdfs:range  rx:Allergy ;
     rdfs:label  "hasAllergy" ;
-    rdfs:comment "Patient → Allergy. Al(p,s): ⟨p,s⟩ ∈ I(Al). Private witness in ZKP." .
+    rdfs:comment "Patient → Allergy. Inverse-style shortcut: links patient to their labeled allergy records. Off-chain ZKP witness." ;
+    owl:inverseOf rx:hasPatient .
 
-rx:allergicToSubstance
-    a owl:ObjectProperty ;
-    rdfs:domain rx:Allergy ;
-    rdfs:range  rx:MedicationClass ;
-    rdfs:label  "allergicToSubstance" ;
-    rdfs:comment "Allergy → MedicationClass (substance s). Populates I(Al)." .
+# ── Lab-result-specific relations (paper Eq. eq:attr-value) ───────────────────
 
-rx:hasContraindication
-    a owl:ObjectProperty ;
-    rdfs:domain rx:Patient ;
-    rdfs:range  rx:Medication ;
-    rdfs:label  "hasContraindication" ;
-    rdfs:comment "Ct(p,m). Derived: Al(p,s) ∧ (m ⊑ s) → Ct(p,m). Computed by Hypothesis Checker." .
+rx:hasMetric
+    a owl:DatatypeProperty ;
+    rdfs:domain rx:LabResult ;
+    rdfs:range  xsd:string ;
+    rdfs:label  "hasMetric" ;
+    rdfs:comment "LabResult → metric name. Identifies the clinical attribute t in I(hasMetric) (e.g., 'eGFR', 'INR', 'creatinine'). Used by PolicySatisfied to match Pol(m, t, op, θ)." .
 
-# ── Medication hierarchy ──────────────────────────────────────────────────────
-
-rx:belongsToClass
-    a owl:ObjectProperty ;
-    rdfs:domain rx:Medication ;
-    rdfs:range  rx:MedicationClass ;
-    rdfs:label  "belongsToClass" ;
-    rdfs:comment "Medication → MedicationClass. Supports subsumption m ⊑ s in ZKP circuit." .
-
-rx:subsumes
-    a owl:ObjectProperty, owl:TransitiveProperty ;
-    rdfs:domain rx:MedicationClass ;
-    rdfs:range  rx:MedicationClass ;
-    rdfs:label  "subsumes" ;
-    rdfs:comment "Ontological hierarchy: s1 ⊑ s2. E.g., Penicillin ⊑ β-lactam (Eq.4). Transitive." .
-
-# ── Lab results ───────────────────────────────────────────────────────────────
+rx:hasValue
+    a owl:DatatypeProperty ;
+    rdfs:domain rx:LabResult ;
+    rdfs:range  xsd:decimal ;
+    rdfs:label  "hasValue" ;
+    rdfs:comment "LabResult → measured value. The value v in I(hasValue). Compared arithmetically against θ in the PolicySatisfied range-check sub-circuit. Private ZKP witness." .
 
 rx:hasLabResult
     a owl:ObjectProperty ;
     rdfs:domain rx:Patient ;
     rdfs:range  rx:LabResult ;
     rdfs:label  "hasLabResult" ;
-    rdfs:comment "Patient → LabResult. ClinVal(p,t) is derived from LabResult instances." .
+    rdfs:comment "Patient → LabResult. Convenience inverse-style shortcut for the per-record hasPatient relation." ;
+    owl:inverseOf rx:hasPatient .
 
-rx:measuredBy
+# ── Patient attributes (W3C n-ary relation pattern, paper Eq. eq:attr-value) ──
+
+rx:hasPatientAttr
     a owl:ObjectProperty ;
-    rdfs:domain rx:LabResult ;
-    rdfs:range  rx:TrustedDataSource ;
-    rdfs:label  "measuredBy" ;
-    rdfs:comment "LabResult → TrustedDataSource. Populates src in Γ." .
+    rdfs:domain rx:Patient ;
+    rdfs:range  rx:PatientAttribute ;
+    rdfs:label  "hasPatientAttr" ;
+    rdfs:comment "Patient → PatientAttribute. Ternary relation I(hasPatientAttr)(p, t, v) reified as a labeled record. Supports demographic/physiological policy constraints (age-conditional dosing, pregnancy contraindication, weight-adjusted limits)." .
 
-# ── Authorization ─────────────────────────────────────────────────────────────
+rx:hasAttrName
+    a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain rx:PatientAttribute ;
+    rdfs:range  xsd:string ;
+    rdfs:label  "hasAttrName" ;
+    rdfs:comment "PatientAttribute → attribute name t. E.g., 'age', 'weight', 'pregnancyStatus'." .
 
-rx:grantsAuthorityTo
+rx:hasAttrValue
+    a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain rx:PatientAttribute ;
+    rdfs:range  rdfs:Literal ;
+    rdfs:label  "hasAttrValue" ;
+    rdfs:comment "PatientAttribute → attribute value v. Typed per attribute (xsd:integer for age, xsd:boolean for pregnancyStatus, xsd:decimal for weight, …)." .
+
+# ── Medication hierarchy (paper Eq. eq:subsumption) ───────────────────────────
+
+rx:belongsToClass
     a owl:ObjectProperty ;
-    rdfs:domain rx:PrescribingAuthority ;
-    rdfs:range  rx:Physician ;
-    rdfs:label  "grantsAuthorityTo" ;
-    rdfs:comment "PrescribingAuthority → Physician. Au(d, prescribe)." .
+    rdfs:domain rx:Medication ;
+    rdfs:range  rx:MedicationClass ;
+    rdfs:label  "belongsToClass" ;
+    rdfs:comment "Medication → MedicationClass. Supports subsumption m ⊑ s used by NoContraindication sub-circuit." .
 
-rx:isAuthorizedBy
-    a owl:ObjectProperty ;
-    rdfs:domain rx:PrescribingAuthority ;
-    rdfs:range  mfssia:Authentication ;
-    rdfs:label  "isAuthorizedBy" ;
-    rdfs:comment "PrescribingAuthority → MFSSIA Authentication that established it." .
+rx:isSubtypeOf
+    a owl:ObjectProperty, owl:TransitiveProperty ;
+    rdfs:domain rx:MedicationClass ;
+    rdfs:range  rx:MedicationClass ;
+    rdfs:label  "isSubtypeOf" ;
+    rdfs:comment "Ontological hierarchy s1 ⊑ s2. E.g., Penicillin ⊑ β-lactam. Transitive. Governance-approved subsumption closure committed in root(T) on the DKG." .
 
-rx:holdsAttestation
+# ── Credential (paper Definition 1: CredValid) ────────────────────────────────
+
+rx:holdsCredential
     a owl:ObjectProperty ;
     rdfs:domain rx:Physician ;
     rdfs:range  mfssia:Authentication ;
-    rdfs:label  "holdsAttestation" ;
-    rdfs:comment "Physician → MFSSIA Authentication (cred in Γ). Auth(cred) verified here." .
+    rdfs:label  "holdsCredential" ;
+    rdfs:comment "Physician → MFSSIA Authentication. The credential cred presented in Γ. Verified via CredValid(cred) — Merkle membership in the governance-approved credential registry committed in root_M." .
 
-# ── Consent ───────────────────────────────────────────────────────────────────
+# ── Evaluation context Γ = ⟨cred, refs, t_req⟩  (paper Eq. eq:ctx) ────────────
 
-rx:hasConsent
+rx:usesCredential
+    a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain rx:EvaluationContext ;
+    rdfs:range  mfssia:Authentication ;
+    rdfs:label  "usesCredential" ;
+    rdfs:comment "EvaluationContext → Authentication. The credential component of Γ. Checked by CredValid(cred)." .
+
+rx:hasReference
     a owl:ObjectProperty ;
-    rdfs:domain rx:Patient ;
-    rdfs:range  rx:DataSharingConsent ;
-    rdfs:label  "hasConsent" ;
-    rdfs:comment "Patient → DataSharingConsent. Required for cross-organizational data access." .
-
-rx:consentCovers
-    a owl:ObjectProperty ;
-    rdfs:domain rx:DataSharingConsent ;
-    rdfs:range  mfssia:Organization ;
-    rdfs:label  "consentCovers" ;
-    rdfs:comment "DataSharingConsent → Organization. Specifies which orgs patient has consented to." .
+    rdfs:domain rx:EvaluationContext ;
+    rdfs:range  rx:LabeledRecord ;
+    rdfs:label  "hasReference" ;
+    rdfs:comment "EvaluationContext → LabeledRecord. Multi-valued: the explicit set of record identifiers (refs) in Γ that the request relies upon. Each r ∈ refs is checked by Exists(r,M) ∧ SourceTrusted(r,M) ∧ Fresh(r,M,t_req) in the ContextTrusted predicate." .
 
 # ── Clinical policy ───────────────────────────────────────────────────────────
 
@@ -195,79 +276,72 @@ rx:appliesToMedication
     rdfs:domain rx:ClinicalPolicy ;
     rdfs:range  rx:Medication ;
     rdfs:label  "appliesToMedication" ;
-    rdfs:comment "ClinicalPolicy → Medication. Pol(m, t, op, θ) → m." .
+    rdfs:comment "ClinicalPolicy → Medication. The m in Pol(m, t, op, θ)." .
 
-# ── Evaluation context ────────────────────────────────────────────────────────
+# ── Consent ───────────────────────────────────────────────────────────────────
 
-rx:hasDataSource
-    a owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:domain rx:EvaluationContext ;
-    rdfs:range  rx:TrustedDataSource ;
-    rdfs:label  "hasDataSource" ;
-    rdfs:comment "EvaluationContext → TrustedDataSource. src in Γ = ⟨src, ts, cred⟩." .
+rx:hasConsent
+    a owl:ObjectProperty ;
+    rdfs:domain rx:Patient ;
+    rdfs:range  rx:DataSharingConsent ;
+    rdfs:label  "hasConsent" ;
+    rdfs:comment "Patient → DataSharingConsent. Required for cross-organizational data access. Out of scope of the protocol (institutional process)." .
 
-rx:usesCredential
-    a owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:domain rx:EvaluationContext ;
-    rdfs:range  mfssia:Authentication ;
-    rdfs:label  "usesCredential" ;
-    rdfs:comment "EvaluationContext → MFSSIA Authentication. cred in Γ. Auth(cred) checked here." .
+rx:consentCovers
+    a owl:ObjectProperty ;
+    rdfs:domain rx:DataSharingConsent ;
+    rdfs:range  mfssia:Organization ;
+    rdfs:label  "consentCovers" ;
+    rdfs:comment "DataSharingConsent → Organization. Specifies which organizations the patient has consented to share data with." .
 
 # ── MFSSIA challenge sets ─────────────────────────────────────────────────────
 
 rx:requiresChallengeSet
     a owl:ObjectProperty ;
     rdfs:label  "requiresChallengeSet" ;
-    rdfs:comment "Links a stakeholder role class to its required MFSSIA ChallengeSet." .
+    rdfs:comment "Links a stakeholder role class to its required MFSSIA ChallengeSet (out-of-band credential issuance)." .
 
 rx:alignsTo
     a owl:ObjectProperty ;
     rdfs:label  "alignsTo" ;
-    rdfs:comment "Terminology bridge property. E.g., local Sensitivity aligns to SNOMED Allergy." .
+    rdfs:comment "Terminology bridge property: a local term aligns to a governance-approved term in T (e.g., local 'beta-lac-sens' aligns to SNOMED Penicillin allergy)." .
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TBOX — SECTION 2: DATA PROPERTIES
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# ── ZKP binding (Table II) ────────────────────────────────────────────────────
+# ── ZKP public-input bindings (paper Eq. eq:public-inputs, eq:stmt-hash) ──────
 
 rx:stmtHash
     a owl:DatatypeProperty ;
     rdfs:domain rx:Prescription ;
     rdfs:range  xsd:string ;
     rdfs:label  "stmtHash" ;
-    rdfs:comment "H(φ+ ∥ policyVersion ∥ nonce). Binds ZKP proof to prescription instance (Eq.14)." .
+    rdfs:comment "stmt_hash = H(φ+ ∥ nonce). Public input binding the proof π to one ground prescription instance under one governance-approved snapshot of T." .
 
 rx:proofOutcome
     a owl:DatatypeProperty ;
     rdfs:domain rx:Prescription ;
     rdfs:range  xsd:boolean ;
     rdfs:label  "proofOutcome" ;
-    rdfs:comment "ZKP circuit output: true=accept, false=reject. Recorded on-chain." .
+    rdfs:comment "outcome ∈ {0,1} computed by the circuit as ctx_ok · rx_ok. Public input. true = governance accepts; false = governance rejects." .
 
 rx:nonce
     a owl:DatatypeProperty ;
     rdfs:domain rx:Prescription ;
     rdfs:range  xsd:string ;
     rdfs:label  "nonce" ;
-    rdfs:comment "Per-prescription unique value in stmtHash. Prevents replay attacks." .
+    rdfs:comment "Per-statement unique value bound into stmt_hash. Prevents replay and reduces linkability across prescriptions." .
 
-rx:policyVersion
-    a owl:DatatypeProperty ;
-    rdfs:domain rx:ClinicalPolicy ;
-    rdfs:range  xsd:string ;
-    rdfs:label  "policyVersion" ;
-    rdfs:comment "DKG UAL of the governance-approved T snapshot. Embedded in stmtHash." .
-
-# ── Clinical policy Pol(m, t, op, θ) ─────────────────────────────────────────
+# ── Clinical policy Pol(m, t, op, θ) — paper Eq. eq:pol ───────────────────────
 
 rx:clinicalCondition
     a owl:DatatypeProperty ;
     rdfs:domain rx:ClinicalPolicy ;
     rdfs:range  xsd:string ;
     rdfs:label  "clinicalCondition" ;
-    rdfs:comment "t in Pol(m, t, op, θ). E.g., 'eGFR', 'age', 'pregnancyStatus'." .
+    rdfs:comment "Attribute t in Pol(m, t, op, θ). Ranges over: clinical observations (e.g., 'eGFR'), patient attributes (e.g., 'age'), or prescription-internal attributes (e.g., 'dose')." .
 
 rx:comparisonOperator
     a owl:DatatypeProperty ;
@@ -279,62 +353,23 @@ rx:comparisonOperator
 rx:threshold
     a owl:DatatypeProperty ;
     rdfs:domain rx:ClinicalPolicy ;
-    rdfs:range  xsd:integer ;
+    rdfs:range  xsd:decimal ;
     rdfs:label  "threshold" ;
-    rdfs:comment "θ in Pol(m, t, op, θ). E.g., 30 for eGFR >= 30." .
+    rdfs:comment "Threshold θ in Pol(m, t, op, θ). Either a governance-approved constant or, via rx:conditionalThreshold, a conditional expression θ(p) over patient attributes." .
+
+rx:conditionalThreshold
+    a owl:DatatypeProperty ;
+    rdfs:domain rx:ClinicalPolicy ;
+    rdfs:range  xsd:string ;
+    rdfs:label  "conditionalThreshold" ;
+    rdfs:comment "Optional encoding of a conditional threshold θ(p) (paper §III-B). E.g., 'age >= 11 ? x_adult : y_child'. Resolved at evaluation time via the resolve(θ, p) function." .
 
 rx:deltaMax
     a owl:DatatypeProperty ;
     rdfs:domain rx:ClinicalPolicy ;
     rdfs:range  xsd:integer ;
     rdfs:label  "deltaMax" ;
-    rdfs:comment "Δmax in seconds. Freshness bound: (tnow - ts) ≤ Δmax." .
-
-# ── Lab result ────────────────────────────────────────────────────────────────
-
-rx:clinicalValue
-    a owl:DatatypeProperty ;
-    rdfs:domain rx:LabResult ;
-    rdfs:range  xsd:decimal ;
-    rdfs:label  "clinicalValue" ;
-    rdfs:comment "ClinVal(p,t). E.g., eGFR=45. Private ZKP witness — never on-chain." .
-
-rx:conditionType
-    a owl:DatatypeProperty ;
-    rdfs:domain rx:LabResult ;
-    rdfs:range  xsd:string ;
-    rdfs:label  "conditionType" ;
-    rdfs:comment "Type of measurement t. E.g., 'eGFR'. Maps to t in Pol(m,t,op,θ)." .
-
-rx:measuredAt
-    a owl:DatatypeProperty ;
-    rdfs:domain rx:LabResult ;
-    rdfs:range  xsd:dateTime ;
-    rdfs:label  "measuredAt" ;
-    rdfs:comment "Timestamp ts of measurement. Used in freshness check (tnow - ts) ≤ Δmax." .
-
-# ── Allergy ───────────────────────────────────────────────────────────────────
-
-rx:snomedCode
-    a owl:DatatypeProperty ;
-    rdfs:domain rx:Allergy ;
-    rdfs:range  xsd:string ;
-    rdfs:label  "snomedCode" ;
-    rdfs:comment "SNOMED CT code. E.g., '416098002' = Penicillin allergy." .
-
-rx:localCode
-    a owl:DatatypeProperty ;
-    rdfs:domain rx:Allergy ;
-    rdfs:range  xsd:string ;
-    rdfs:label  "localCode" ;
-    rdfs:comment "Local lab code aligned via terminology bridge Sens(p,s) ↔ Al(p,s) in T." .
-
-rx:recordedAt
-    a owl:DatatypeProperty ;
-    rdfs:domain rx:Allergy ;
-    rdfs:range  xsd:dateTime ;
-    rdfs:label  "recordedAt" ;
-    rdfs:comment "Timestamp when allergy was recorded." .
+    rdfs:comment "Δmax in seconds: governance-approved freshness bound used by Fresh(r, M, t_req). The bound is governance-approved and committed in T on the DKG; it MAY be uniform across record types or type-specific depending on deployment configuration." .
 
 # ── Medication ────────────────────────────────────────────────────────────────
 
@@ -349,7 +384,34 @@ rx:medicationId
     rdfs:domain rx:Medication ;
     rdfs:range  xsd:integer ;
     rdfs:label  "medicationId" ;
-    rdfs:comment "Numeric id(m) encoded as field element in ZKP circuit." .
+    rdfs:comment "Numeric id(m) ∈ F encoded as a field element in the zk-SNARK circuit (paper §V-B)." .
+
+rx:validityPeriod
+    a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain rx:Medication ;
+    rdfs:range  xsd:integer ;
+    rdfs:label  "validityPeriod" ;
+    rdfs:comment "τ_m in seconds, governance-approved operational window. ValidityPeriod(m, τ_m) axiom in T. Used by the pharmacy's dispensing-time check t_req + τ_m ≥ Ct_disp (paper §IV-B, step 8)." .
+
+# ── LabResult ─────────────────────────────────────────────────────────────────
+# (clinical content captured by rx:hasMetric and rx:hasValue above;
+#  provenance captured by rx:hasSource and rx:hasTimestamp from LabeledRecord)
+
+# ── Allergy ───────────────────────────────────────────────────────────────────
+
+rx:snomedCode
+    a owl:DatatypeProperty ;
+    rdfs:domain rx:Allergy ;
+    rdfs:range  xsd:string ;
+    rdfs:label  "snomedCode" ;
+    rdfs:comment "SNOMED CT concept code. E.g., '416098002' = Penicillin allergy." .
+
+rx:localCode
+    a owl:DatatypeProperty ;
+    rdfs:domain rx:Allergy ;
+    rdfs:range  xsd:string ;
+    rdfs:label  "localCode" ;
+    rdfs:comment "Local code from heterogeneous coding system. Aligned to a governance-approved term in T via the terminology-bridge property rx:alignsTo." .
 
 # ── Agent ─────────────────────────────────────────────────────────────────────
 
@@ -364,7 +426,7 @@ rx:licenseNumber
     rdfs:domain rx:Physician ;
     rdfs:range  xsd:string ;
     rdfs:label  "licenseNumber" ;
-    rdfs:comment "Medical license number. Verified via challenge C-DOC-1." .
+    rdfs:comment "Medical license number. Verified via challenge C-DOC-1 prior to credential issuance." .
 
 # ── Data source ───────────────────────────────────────────────────────────────
 
@@ -373,7 +435,7 @@ rx:sourceIdentifier
     rdfs:domain rx:TrustedDataSource ;
     rdfs:range  xsd:string ;
     rdfs:label  "sourceIdentifier" ;
-    rdfs:comment "Governance-approved src identifier. Member of Strusted." .
+    rdfs:comment "Governance-approved source identifier. Committed in root_TS on the DKG and checked by SourceTrusted(r, M)." .
 
 rx:organizationType
     a owl:DatatypeProperty ;
@@ -382,23 +444,30 @@ rx:organizationType
     rdfs:label  "organizationType" ;
     rdfs:comment "'hospital' | 'laboratory' | 'pharmacy'." .
 
-# ── Evaluation context ────────────────────────────────────────────────────────
+# ── Evaluation context (paper Eq. eq:ctx) ─────────────────────────────────────
 
-rx:contextTimestamp
+rx:requestTimestamp
     a owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain rx:EvaluationContext ;
     rdfs:range  xsd:dateTime ;
-    rdfs:label  "contextTimestamp" ;
-    rdfs:comment "ts in Γ. Used in freshness check Valid(Γ)." .
+    rdfs:label  "requestTimestamp" ;
+    rdfs:comment "t_req in Γ: time at which the request was initiated. Anchors all per-reference freshness checks." .
 
 rx:tsAnchor
     a owl:DatatypeProperty ;
     rdfs:domain rx:EvaluationContext ;
     rdfs:range  xsd:integer ;
     rdfs:label  "tsAnchor" ;
-    rdfs:comment "Coarse time anchor — public ZKP input for auditability." .
+    rdfs:comment "Coarse time anchor exposed as a public ZKP input for auditability (paper §VI-C)." .
 
 # ── Prescription workflow ─────────────────────────────────────────────────────
+
+rx:prescribedDose
+    a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain rx:Prescription ;
+    rdfs:range  xsd:decimal ;
+    rdfs:label  "prescribedDose" ;
+    rdfs:comment "Dose n in RxValid(d, p, m, n) carried by the ground statement φ+. Treated as a prescription-internal attribute by PolicySatisfied (paper Eq. eq:attr-value, third disjunct)." .
 
 rx:prescriptionStatus
     a owl:DatatypeProperty ;
@@ -418,18 +487,38 @@ rx:dkgUal
     rdfs:domain rx:Prescription ;
     rdfs:range  xsd:string ;
     rdfs:label  "dkgUal" ;
-    rdfs:comment "DKG UAL where the prescription governance record is anchored." .
+    rdfs:comment "DKG Universal Asset Locator where the prescription governance record is anchored." .
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TBOX — SECTION 3: CLASSES
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# ── Healthcare Agents ─────────────────────────────────────────────────────────
+# ── Labeled-record superclass (paper §II-C) ───────────────────────────────────
+
+rx:LabeledRecord
+    a owl:Class ;
+    rdfs:subClassOf mfssia:Data ;
+    rdfs:subClassOf [
+        a owl:Restriction ;
+        owl:onProperty rx:hasSource ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass rx:TrustedDataSource
+    ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ;
+        owl:onProperty rx:hasTimestamp ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onDataRange xsd:dateTime
+    ] ;
+    rdfs:label "LabeledRecord" ;
+    rdfs:comment "Abstract superclass of first-class clinical records in M. Each labeled record carries provenance (hasSource, hasTimestamp) and is referenced explicitly from Γ via hasReference. Committed as a leaf of root_M (paper Eq. eq:leaf). Subclasses: Allergy, LabResult, PatientAttribute." .
+
+# ── Healthcare Agents (D_P, D_D in paper §III) ────────────────────────────────
 
 rx:Physician
     a owl:Class ;
-    rdfs:subClassOf mfssia:Agent ;
+    rdfs:subClassOf mfssia:Human ;
     rdfs:subClassOf [
         a owl:Restriction ;
         owl:onProperty mfssia:isRegisteredBy ;
@@ -437,16 +526,16 @@ rx:Physician
     ] ;
     rdfs:subClassOf [
         a owl:Restriction ;
-        owl:onProperty rx:holdsAttestation ;
+        owl:onProperty rx:holdsCredential ;
         owl:someValuesFrom mfssia:Authentication
     ] ;
     ufo:role "UFO Role — Physician plays a context-dependent prescribing role within a HealthcareProvider." ;
     rdfs:label "Physician" ;
-    rdfs:comment "Licensed medical physician (d ∈ D_D). Au(d,prescribe) verified via MFSSIA PhysicianChallengeSet." .
+    rdfs:comment "Licensed medical physician (d ∈ D_D). Prescriber authorisation is established at the credential level via CredValid (Def. 1); no separate Au(d,prescribe) predicate is required at the satisfaction level (paper §III-B)." .
 
 rx:Patient
     a owl:Class ;
-    rdfs:subClassOf mfssia:Agent ;
+    rdfs:subClassOf mfssia:Human ;
     rdfs:subClassOf [
         a owl:Restriction ;
         owl:onProperty rx:hasConsent ;
@@ -469,23 +558,23 @@ rx:Laboratory
     rdfs:subClassOf rx:TrustedDataSource ;
     ufo:kind "UFO Kind — Laboratory is a specialized organization providing diagnostic services." ;
     rdfs:label "Laboratory" ;
-    rdfs:comment "Diagnostic lab (src ∈ Strusted). Authenticated via LaboratoryChallengeSet." .
+    rdfs:comment "Diagnostic lab. Authenticated via LaboratoryChallengeSet, then included in S_trusted." .
 
 rx:Pharmacy
     a owl:Class ;
     rdfs:subClassOf mfssia:Organization ;
     ufo:kind "UFO Kind — Pharmacy is an organization that dispenses medications." ;
     rdfs:label "Pharmacy" ;
-    rdfs:comment "Community pharmacy. Dispenses after prescription validation. Authenticated via PharmacyChallengeSet." .
+    rdfs:comment "Community pharmacy. Dispenses after verifying the issuance proof π and performing the dispensing-time validity-window and anti-replay checks (paper §IV-B, step 8). Authenticated via PharmacyChallengeSet." .
 
 rx:TrustedDataSource
     a owl:Class ;
     rdfs:subClassOf mfssia:Organization ;
     ufo:role "UFO Role — TrustedDataSource is a role played by an Organization approved by governance as a reliable data provider." ;
     rdfs:label "TrustedDataSource" ;
-    rdfs:comment "Governance-approved data source. src ∈ Strusted. Checked in Valid(Γ) Definition 1." .
+    rdfs:comment "Governance-approved data source. Member of S_trusted committed in root_TS. Checked per record by SourceTrusted(r, M)." .
 
-# ── Clinical Entities ─────────────────────────────────────────────────────────
+# ── Clinical Entities (D_M, D_S, labeled records in M) ────────────────────────
 
 rx:Medication
     a owl:Class ;
@@ -497,40 +586,90 @@ rx:Medication
     ] ;
     ufo:kind "UFO Kind — Medication is a functional object with identity provided by pharmacological classification." ;
     rdfs:label "Medication" ;
-    rdfs:comment "Specific medication (m ∈ D_M). id(m) is field element in ZKP circuit." .
+    rdfs:comment "Specific medication (m ∈ D_M). Encoded as field element id(m) in ZKP circuit." .
 
 rx:MedicationClass
     a owl:Class ;
     rdfs:subClassOf mfssia:Data ;
     ufo:kind "UFO Kind — MedicationClass provides sortal identity for pharmacological drug families." ;
     rdfs:label "MedicationClass" ;
-    rdfs:comment "Pharmacological class (s ∈ D_S). Subsumption ⊑ forms hierarchy in T. E.g., Penicillin ⊑ β-lactam." .
+    rdfs:comment "Pharmacological class or substance (s ∈ D_S). Subsumption ⊑ forms hierarchy in T. E.g., Penicillin ⊑ β-lactam." ;
+    owl:disjointWith rx:Medication .
 
 rx:Allergy
     a owl:Class ;
-    rdfs:subClassOf mfssia:Data ;
+    rdfs:subClassOf rx:LabeledRecord ;
     rdfs:subClassOf [
         a owl:Restriction ;
-        owl:onProperty rx:allergicToSubstance ;
-        owl:minCardinality "1"^^xsd:nonNegativeInteger
+        owl:onProperty rx:hasPatient ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass rx:Patient
     ] ;
-    ufo:mode "UFO Mode — Allergy is an intrinsic quality of the Patient, existentially dependent on the Patient." ;
+    rdfs:subClassOf [
+        a owl:Restriction ;
+        owl:onProperty rx:hasSubstance ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass rx:MedicationClass
+    ] ;
+    ufo:mode "UFO Mode — Allergy is a labeled clinical record documenting an intrinsic quality of the Patient." ;
     rdfs:label "Allergy" ;
-    rdfs:comment "Al(p,s): ⟨p,s⟩ ∈ I(Al). Off-chain ZKP witness. SNOMED ↔ local bridge: Sens(p,s) ↔ Al(p,s) (Eq.6)." .
+    rdfs:comment "Labeled allergy record. Allergy(p, s) holds iff ∃ a ∈ I(isAllergy) with hasPatient(a,p) ∧ hasSubstance(a,s) (paper Eq. eq:sat-allergy). Off-chain ZKP witness." .
 
 rx:LocalSensitivity
     a owl:Class ;
     rdfs:subClassOf rx:Allergy ;
     skos:closeMatch snomed:416098002 ;
     rdfs:label "LocalSensitivity" ;
-    rdfs:comment "β-lactam sensitivity in local lab terminology. Aligned to rx:Allergy via bridge Sens↔Al in T." .
+    rdfs:comment "β-lactam sensitivity in local lab terminology. Aligned to rx:Allergy via the terminology-bridge axiom in T (rx:alignsTo)." .
 
 rx:LabResult
     a owl:Class ;
-    rdfs:subClassOf mfssia:Data ;
-    ufo:mode "UFO Mode — LabResult is a quality (measurement) intrinsic to the Patient at a given time point." ;
+    rdfs:subClassOf rx:LabeledRecord ;
+    rdfs:subClassOf [
+        a owl:Restriction ;
+        owl:onProperty rx:hasPatient ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass rx:Patient
+    ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ;
+        owl:onProperty rx:hasMetric ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onDataRange xsd:string
+    ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ;
+        owl:onProperty rx:hasValue ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onDataRange xsd:decimal
+    ] ;
+    ufo:mode "UFO Mode — LabResult is a labeled clinical record documenting a measurement intrinsic to the Patient at a given time point." ;
     rdfs:label "LabResult" ;
-    rdfs:comment "ClinVal(p,t). E.g., eGFR=45. Private ZKP witness. Freshness: (tnow-ts) ≤ Δmax." .
+    rdfs:comment "Labeled laboratory observation. Carries hasMetric (attribute name) and hasValue (measured value) for AttrValue selection in PolicySatisfied. Private ZKP witness." .
+
+rx:PatientAttribute
+    a owl:Class ;
+    rdfs:subClassOf rx:LabeledRecord ;
+    rdfs:subClassOf [
+        a owl:Restriction ;
+        owl:onProperty rx:hasPatient ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass rx:Patient
+    ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ;
+        owl:onProperty rx:hasAttrName ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onDataRange xsd:string
+    ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ;
+        owl:onProperty rx:hasAttrValue ;
+        owl:minCardinality "1"^^xsd:nonNegativeInteger
+    ] ;
+    ufo:mode "UFO Mode — PatientAttribute is a labeled record of a demographic or physiological property of the Patient (age, weight, pregnancyStatus)." ;
+    rdfs:label "PatientAttribute" ;
+    rdfs:comment "W3C n-ary relation reification of I(hasPatientAttr)(p, t, v). Supports demographic/physiological policy constraints (age-conditional dosing, pregnancy contraindication, weight-adjusted limits). Selected by PolicySatisfied via the second disjunct of Eq. eq:attr-value." .
 
 # ── Prescription & Policy ─────────────────────────────────────────────────────
 
@@ -555,9 +694,15 @@ rx:Prescription
         owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
         owl:onClass rx:Patient
     ] ;
-    ufo:relator "UFO Relator — Prescription mediates between Physician, Patient, Medication." ;
+    rdfs:subClassOf [
+        a owl:Restriction ;
+        owl:onProperty rx:prescribedDose ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onDataRange xsd:decimal
+    ] ;
+    ufo:relator "UFO Relator — Prescription mediates between Physician, Patient, and Medication, parameterized by dose." ;
     rdfs:label "Prescription" ;
-    rdfs:comment "Rx(d,p,m). Valid iff Au(d,prescribe) ∧ ¬Ct(p,m) ∧ PolOk(p,m) (Eq.13). Bound to ZKP via stmtHash." .
+    rdfs:comment "Ground statement φ+ = RxValid(d, p, m, n). Semantically valid iff ¬Contraindication(p,m) ∧ PolicySatisfied(p,m,n) (paper Eq. eq:rx-valid). Accepted iff additionally ContextTrusted(Γ, M) (Def. 3). Bound to ZKP via stmt_hash." .
 
 rx:ClinicalPolicy
     a owl:Class ;
@@ -570,48 +715,51 @@ rx:ClinicalPolicy
     ] ;
     ufo:kind "UFO Kind — ClinicalPolicy is a NormativeDescription constraining medication dispensation." ;
     rdfs:label "ClinicalPolicy" ;
-    rdfs:comment "Pol(m,t,op,θ). Published on DKG. policyVersion in stmtHash invalidates proofs on update." .
+    rdfs:comment "Pol(m, t, op, θ). Published on the DKG as part of governance-approved theory T. Compiled into a range-check sub-circuit in PolicySatisfied." .
 
 rx:EvaluationContext
     a owl:Class ;
-    rdfs:subClassOf [
-        a owl:Restriction ;
-        owl:onProperty rx:hasDataSource ;
-        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-        owl:onClass rx:TrustedDataSource
-    ] ;
     rdfs:subClassOf [
         a owl:Restriction ;
         owl:onProperty rx:usesCredential ;
         owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
         owl:onClass mfssia:Authentication
     ] ;
-    ufo:relator "UFO Relator — EvaluationContext mediates between prescription event, data source, and credential." ;
+    rdfs:subClassOf [
+        a owl:Restriction ;
+        owl:onProperty rx:hasReference ;
+        owl:minCardinality "0"^^xsd:nonNegativeInteger
+    ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ;
+        owl:onProperty rx:requestTimestamp ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onDataRange xsd:dateTime
+    ] ;
+    ufo:relator "UFO Relator — EvaluationContext mediates between request initiator, referenced records, and request time." ;
     rdfs:label "EvaluationContext" ;
-    rdfs:comment "Γ = ⟨src, ts, cred⟩. Valid(Γ) ⟺ (tnow-ts)≤Δmax ∧ Auth(cred) ∧ src∈Strusted (Def.1)." .
+    rdfs:comment "Γ = ⟨cred, refs, t_req⟩ (paper Eq. eq:ctx). ContextTrusted(Γ, M) holds iff CredValid(cred) ∧ ∀r ∈ refs: Exists(r,M) ∧ SourceTrusted(r,M) ∧ Fresh(r,M,t_req) (Def. 1)." .
 
-# ── Authorization & Consent ───────────────────────────────────────────────────
-
-rx:PrescribingAuthority
-    a owl:Class ;
-    ufo:relator "UFO Relator — PrescribingAuthority mediates between Physician and institutional right to prescribe." ;
-    rdfs:label "PrescribingAuthority" ;
-    rdfs:comment "Au(d,prescribe). Exists iff Physician completed PhysicianChallengeSet → auth_ok=1 in ZKP." .
+# ── Consent ───────────────────────────────────────────────────────────────────
 
 rx:DataSharingConsent
     a owl:Class ;
     rdfs:subClassOf mfssia:Asset ;
     ufo:relator "UFO Relator — DataSharingConsent is a social commitment from Patient to specific organizations." ;
     rdfs:label "DataSharingConsent" ;
-    rdfs:comment "Patient consent to share data across Hospital, Laboratory, Pharmacy. Attested via C-PAT-2." .
+    rdfs:comment "Patient consent to share data across Hospital, Laboratory, Pharmacy. Out-of-protocol (organizational process)." .
 
 # ── Disjointness ──────────────────────────────────────────────────────────────
 
 [] a owl:AllDisjointClasses ;
-    owl:members ( rx:Physician rx:Patient rx:Laboratory rx:Pharmacy ) .
+    owl:members ( rx:Physician rx:Patient ) .
 
 [] a owl:AllDisjointClasses ;
-    owl:members ( rx:Medication rx:Allergy rx:LabResult rx:ClinicalPolicy rx:Prescription ) .
+    owl:members ( rx:HealthcareProvider rx:Laboratory rx:Pharmacy ) .
+
+[] a owl:AllDisjointClasses ;
+    owl:members ( rx:Medication rx:MedicationClass rx:Allergy rx:LabResult
+                  rx:PatientAttribute rx:ClinicalPolicy rx:Prescription ) .
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -622,23 +770,23 @@ rx:BetaLactam
     a rx:MedicationClass, owl:NamedIndividual ;
     rx:medicationName "β-lactam" ;
     rdfs:label "BetaLactam" ;
-    rdfs:comment "β-lactam antibiotics class. Penicillin ⊑ β-lactam (Eq.4)." ;
+    rdfs:comment "β-lactam antibiotics class. Penicillin ⊑ β-lactam." ;
     skos:exactMatch snomed:372687004 .
 
 rx:Penicillin
     a rx:MedicationClass, owl:NamedIndividual ;
     rx:medicationName "Penicillin" ;
-    rx:subsumes rx:BetaLactam ;
+    rx:isSubtypeOf rx:BetaLactam ;
     rdfs:label "Penicillin" ;
-    rdfs:comment "Penicillin ⊑ β-lactam. Inference rule: Al(p,Penicillin) → Ct(p,β-lactam) (Eq.5)." ;
+    rdfs:comment "Penicillin ⊑ β-lactam. Inference rule: ∀p. Allergy(p,Penicillin) → Contraindication(p, m) for any m ⊑ β-lactam." ;
     skos:exactMatch snomed:764146007 .
 
 rx:Amoxicillin
     a rx:MedicationClass, owl:NamedIndividual ;
     rx:medicationName "Amoxicillin" ;
-    rx:subsumes rx:Penicillin ;
+    rx:isSubtypeOf rx:Penicillin ;
     rdfs:label "Amoxicillin" ;
-    rdfs:comment "Amoxicillin ⊑ Penicillin ⊑ β-lactam. Contraindicated if Al(p,Penicillin)." .
+    rdfs:comment "Amoxicillin ⊑ Penicillin ⊑ β-lactam. Transitively contraindicated for patients with Penicillin allergy." .
 
 rx:Antidiabetic
     a rx:MedicationClass, owl:NamedIndividual ;
@@ -649,7 +797,7 @@ rx:Antidiabetic
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ABOX — SECTION 5: ORGANIZATIONS (Strusted members)
+# ABOX — SECTION 5: ORGANIZATIONS (members of S_trusted, committed in root_TS)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 rx:CityHospital
@@ -657,7 +805,7 @@ rx:CityHospital
     rx:sourceIdentifier "hospital-1" ;
     rx:organizationType "hospital" ;
     rdfs:label "City Hospital" ;
-    rdfs:comment "Public hospital. Trusted data source (src ∈ Strusted). Manages EHR for pat1." ;
+    rdfs:comment "Public hospital. Member of S_trusted. Source of pat1's Allergy record." ;
     prov:generatedAtTime "2026-04-08T00:00:00"^^xsd:dateTime .
 
 rx:DiagLab1
@@ -665,18 +813,18 @@ rx:DiagLab1
     rx:sourceIdentifier "lab-1" ;
     rx:organizationType "laboratory" ;
     rdfs:label "DiagLab-1" ;
-    rdfs:comment "Private diagnostics laboratory. Trusted source (src ∈ Strusted). Measured eGFR for pat1." ;
+    rdfs:comment "Private diagnostics laboratory. Member of S_trusted. Source of pat1's eGFR LabResult." ;
     prov:generatedAtTime "2026-04-08T00:00:00"^^xsd:dateTime .
 
 rx:CommunityPharmacy1
     a rx:Pharmacy, owl:NamedIndividual ;
     rdfs:label "Community Pharmacy 1" ;
-    rdfs:comment "Community pharmacy. Dispenses medications after prescription validation." ;
+    rdfs:comment "Community pharmacy. Performs dispensing-time checks (cryptographic verification, validity-window, anti-replay) on issued prescriptions." ;
     prov:generatedAtTime "2026-04-08T00:00:00"^^xsd:dateTime .
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ABOX — SECTION 6: MEDICATIONS
+# ABOX — SECTION 6: MEDICATIONS (with ValidityPeriod axioms)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 rx:Metformin
@@ -684,8 +832,9 @@ rx:Metformin
     rx:medicationName "Metformin" ;
     rx:medicationId 5 ;
     rx:belongsToClass rx:Antidiabetic ;
+    rx:validityPeriod 2592000 ;
     rdfs:label "Metformin" ;
-    rdfs:comment "Antidiabetic. Subject to Pol(Metformin, eGFR, >=, 30). ZKP: medicationClassId=5." ;
+    rdfs:comment "Antidiabetic. Subject to Pol(Metformin, eGFR, ≥, 30) and Pol(Metformin, pregnancyStatus, =, 0). ValidityPeriod τ_m = 30 days (2592000 s) for dispensing window." ;
     skos:exactMatch snomed:372725003 .
 
 rx:AmoxicillinMed
@@ -693,8 +842,9 @@ rx:AmoxicillinMed
     rx:medicationName "Amoxicillin 500mg" ;
     rx:medicationId 2 ;
     rx:belongsToClass rx:Amoxicillin ;
+    rx:validityPeriod 1209600 ;
     rdfs:label "Amoxicillin 500mg" ;
-    rdfs:comment "β-lactam antibiotic. Contraindicated if Al(pat1,Penicillin). ZKP: medicationClassId=2." .
+    rdfs:comment "β-lactam antibiotic. Contraindicated for patients allergic to Penicillin. ValidityPeriod τ_m = 14 days (1209600 s)." .
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -705,9 +855,10 @@ rx:doc1
     a rx:Physician, owl:NamedIndividual ;
     rx:did "did:mfssia:physician:doc1" ;
     rx:licenseNumber "MED-LIC-2024-001" ;
+    rx:holdsCredential rx:CredDoc1 ;
     mfssia:isRegisteredBy rx:CityHospital ;
     rdfs:label "Doctor 1" ;
-    rdfs:comment "Physician doc1. d ∈ D_D. Holds PhysicianChallengeSet attestation → Au(doc1,prescribe). ZKP: doctorId=123." ;
+    rdfs:comment "Physician doc1 (d ∈ D_D). Holds credential CredDoc1 issued after completing PhysicianChallengeSet. Validated in the circuit via CredValid(cred)." ;
     prov:generatedAtTime "2026-04-08T00:00:00"^^xsd:dateTime .
 
 rx:pat1
@@ -715,50 +866,84 @@ rx:pat1
     rx:did "did:mfssia:patient:pat1" ;
     rx:hasAllergy rx:AllergyPat1Penicillin ;
     rx:hasLabResult rx:LabEGFRpat1 ;
+    rx:hasPatientAttr rx:Attr_pat1_age ;
+    rx:hasPatientAttr rx:Attr_pat1_pregnancyStatus ;
     rx:hasConsent rx:ConsentPat1 ;
     rdfs:label "Patient 1" ;
-    rdfs:comment "Patient pat1. p ∈ D_P. Al(pat1,Penicillin). eGFR=45. Clinical data off-chain. ZKP: patientId=1." ;
+    rdfs:comment "Patient pat1 (p ∈ D_P). All clinical evidence — allergies, lab results, patient attributes — remains off-chain as private ZKP witness." ;
     prov:generatedAtTime "2026-04-08T00:00:00"^^xsd:dateTime .
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ABOX — SECTION 8: CLINICAL DATA (private ZKP witness material)
+# ABOX — SECTION 8: LABELED CLINICAL RECORDS (private ZKP witness material)
+#
+# Each record is a first-class entity in M with its own hasPatient,
+# hasSource, and hasTimestamp. Committed as a leaf in root_M.
 # ═══════════════════════════════════════════════════════════════════════════════
+
+# ── Allergy record a_2 (paper §IV-B running case) ─────────────────────────────
 
 rx:AllergyPat1Penicillin
     a rx:Allergy, owl:NamedIndividual ;
-    rx:allergicToSubstance rx:Penicillin ;
+    rx:hasPatient rx:pat1 ;
+    rx:hasSubstance rx:Penicillin ;
+    rx:hasSource rx:CityHospital ;
+    rx:hasTimestamp "2025-06-15T10:30:00"^^xsd:dateTime ;
     rx:snomedCode "416098002" ;
     rx:localCode "beta-lac-sens" ;
-    rx:recordedAt "2025-06-15T10:30:00"^^xsd:dateTime ;
-    rdfs:label "Penicillin Allergy (pat1)" ;
+    rdfs:label "Penicillin Allergy (pat1) — record a_2" ;
     rdfs:comment """
-        Al(pat1, Penicillin). SNOMED 416098002 (hospital) ↔ local 'beta-lac-sens' (lab).
-        Terminology conflict resolved by bridge Sens(p,s) ↔ Al(p,s) in T (Eq.6).
-        Does NOT contraindicate Metformin (allergyClassId=2 ≠ medicationClassId=5).
-        ZKP S1: noContra=1. ZKP S5a: allergyClassId=medicationClassId=2 → noContra=0.
+        Allergy(pat1, Penicillin): labeled record in M with provenance.
+        Heterogeneous coding: SNOMED 416098002 (hospital) vs. local 'beta-lac-sens' (lab),
+        reconciled by a terminology-bridge axiom in T (rx:alignsTo).
+        Does NOT contraindicate Metformin (Metformin ⊑ Antidiabetic ⊏̸ Penicillin).
+        Does contraindicate Amoxicillin (Amoxicillin ⊑ Penicillin).
     """ .
+
+# ── Lab result l_3 (paper §IV-B running case) ─────────────────────────────────
 
 rx:LabEGFRpat1
     a rx:LabResult, owl:NamedIndividual ;
-    rx:conditionType "eGFR" ;
-    rx:clinicalValue "45"^^xsd:decimal ;
-    rx:measuredAt "2026-03-10T08:00:00"^^xsd:dateTime ;
-    rx:measuredBy rx:DiagLab1 ;
-    rdfs:label "eGFR Lab Result (pat1)" ;
-    rdfs:comment "ClinVal(pat1,eGFR)=45. Satisfies Pol(Metformin,eGFR,>=,30): 45>=30 → polOk=1. ZKP: clinVal=45, θ=30." ;
+    rx:hasPatient rx:pat1 ;
+    rx:hasMetric "eGFR" ;
+    rx:hasValue "45"^^xsd:decimal ;
+    rx:hasSource rx:DiagLab1 ;
+    rx:hasTimestamp "2026-03-10T08:00:00"^^xsd:dateTime ;
+    rdfs:label "eGFR Lab Result (pat1) — record l_3" ;
+    rdfs:comment "LabResult with hasMetric='eGFR', hasValue=45. Satisfies Pol(Metformin, eGFR, ≥, 30) since 45 ≥ 30 → pol_ok=1 for the Metformin eGFR policy." ;
     skos:exactMatch loinc:33914-3 .
 
+# ── Patient attributes (W3C n-ary pattern) ────────────────────────────────────
+
+rx:Attr_pat1_age
+    a rx:PatientAttribute, owl:NamedIndividual ;
+    rx:hasPatient rx:pat1 ;
+    rx:hasAttrName "age" ;
+    rx:hasAttrValue "47"^^xsd:integer ;
+    rx:hasSource rx:CityHospital ;
+    rx:hasTimestamp "2025-01-15T09:00:00"^^xsd:dateTime ;
+    rdfs:label "Age attribute (pat1)" ;
+    rdfs:comment "hasPatientAttr(pat1, 'age', 47). Used by age-conditional policies (e.g., adult-vs-paediatric dose thresholds)." .
+
+rx:Attr_pat1_pregnancyStatus
+    a rx:PatientAttribute, owl:NamedIndividual ;
+    rx:hasPatient rx:pat1 ;
+    rx:hasAttrName "pregnancyStatus" ;
+    rx:hasAttrValue "false"^^xsd:boolean ;
+    rx:hasSource rx:CityHospital ;
+    rx:hasTimestamp "2026-02-01T11:00:00"^^xsd:dateTime ;
+    rdfs:label "Pregnancy status attribute (pat1)" ;
+    rdfs:comment "hasPatientAttr(pat1, 'pregnancyStatus', false). Satisfies Pol(Metformin, pregnancyStatus, =, 0)." .
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ABOX — SECTION 9: AUTHORIZATION & CONSENT
+# ABOX — SECTION 9: CREDENTIAL & CONSENT
 # ═══════════════════════════════════════════════════════════════════════════════
 
-rx:PhysicianAuth_doc1
-    a rx:PrescribingAuthority, owl:NamedIndividual ;
-    rx:grantsAuthorityTo rx:doc1 ;
-    rdfs:label "Prescribing Authority — doc1" ;
-    rdfs:comment "Au(doc1, prescribe)=true. Exists because doc1 completed PhysicianChallengeSet. auth_ok=1 in ZKP." .
+rx:CredDoc1
+    a mfssia:Authentication, owl:NamedIndividual ;
+    rdfs:label "Credential — doc1" ;
+    rdfs:comment "MFSSIA Authentication credential for doc1. Issued by a governance-approved authority after doc1 completed the PhysicianChallengeSet. The credential bundles identity and authorised scope of clinical actions (including prescribing); CredValid(cred) verifies its Merkle membership in the governance-approved credential registry committed in root_M." .
 
 rx:ConsentPat1
     a rx:DataSharingConsent, owl:NamedIndividual ;
@@ -766,22 +951,36 @@ rx:ConsentPat1
     rx:consentCovers rx:DiagLab1 ;
     rx:consentCovers rx:CommunityPharmacy1 ;
     rdfs:label "Data Sharing Consent — pat1" ;
-    rdfs:comment "pat1 consents to share data with Hospital, Lab, Pharmacy. Attested via C-PAT-2." .
+    rdfs:comment "pat1 consents to share data with Hospital, Lab, Pharmacy. Attested out-of-protocol via C-PAT-2." .
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ABOX — SECTION 10: EVALUATION CONTEXT Γ
+# ABOX — SECTION 10: EVALUATION CONTEXT Γ = ⟨cred, refs, t_req⟩
 # ═══════════════════════════════════════════════════════════════════════════════
 
 rx:EvalCtx_Prescription1
     a rx:EvaluationContext, owl:NamedIndividual ;
-    rx:hasDataSource rx:DiagLab1 ;
-    rx:contextTimestamp "2026-04-08T10:00:00"^^xsd:dateTime ;
+    rx:usesCredential rx:CredDoc1 ;
+    rx:hasReference rx:AllergyPat1Penicillin ;
+    rx:hasReference rx:LabEGFRpat1 ;
+    rx:hasReference rx:Attr_pat1_pregnancyStatus ;
+    rx:requestTimestamp "2026-04-08T10:00:00"^^xsd:dateTime ;
     rx:tsAnchor 90 ;
     rdfs:label "Evaluation Context — Prescription 1" ;
     rdfs:comment """
-        Γ = ⟨lab-1, 2026-04-08T10:00:00, cred_doc1⟩.
-        Valid(Γ): src=lab-1 ∈ Strusted ✓ | (tnow-ts)=29d ≤ Δmax=90d ✓ | Auth(cred_doc1) ✓.
+        Γ = ⟨CredDoc1, {AllergyPat1Penicillin, LabEGFRpat1, Attr_pat1_pregnancyStatus}, 2026-04-08T10:00:00⟩.
+
+        ContextTrusted(Γ, M) decomposes as:
+          CredValid(CredDoc1)                                                         ✓ (in credential registry)
+          ∀ r ∈ refs:
+            Exists(r, M)         (Merkle membership in root_M)                        ✓
+            SourceTrusted(r, M)  (hasSource ∈ S_trusted via root_TS)                  ✓
+            Fresh(r, M, t_req)   (t_req − hasTimestamp ≤ Δ_max)                       ✓
+
+        Per-record freshness (with Δ_max = 7776000 s ≈ 90 days):
+          AllergyPat1Penicillin:        296 days (allergy records exempted, or longer Δ for this type)
+          LabEGFRpat1:                  29 days  ✓
+          Attr_pat1_pregnancyStatus:    66 days  ✓
     """ .
 
 
@@ -789,45 +988,62 @@ rx:EvalCtx_Prescription1
 # ABOX — SECTION 11: PRESCRIPTIONS (running case scenarios)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# S1 — Valid prescription: Rx(doc1, pat1, Metformin) → outcome=1
+# S1 — Valid prescription: RxValid(doc1, pat1, Metformin, 500) → outcome = 1
 rx:Prescription1
     a rx:Prescription, owl:NamedIndividual ;
     rx:prescribedBy rx:doc1 ;
     rx:prescribedFor rx:pat1 ;
     rx:prescribes rx:Metformin ;
+    rx:prescribedDose "500"^^xsd:decimal ;
     rx:evaluatedUnder rx:EvalCtx_Prescription1 ;
     rx:governedBy rx:PolicyMetforminEGFR ;
+    rx:governedBy rx:PolicyMetforminPregnancy ;
     rx:stmtHash "20269...8730" ;
     rx:nonce "42" ;
-    rx:policyVersion "ual:dkg:prescription-policy:v1" ;
     rx:proofOutcome true ;
     rx:prescriptionStatus "VALIDATED" ;
     rx:issuedAt "2026-04-08T10:05:00"^^xsd:dateTime ;
     rdfs:label "Prescription 1 — Metformin (VALID)" ;
     rdfs:comment """
-        φ+ = Rx(doc1, pat1, Metformin). Eq.13:
-          Au(doc1,prescribe) → auth_ok=1 ✓
-          ¬Ct(pat1,Metformin) → no_contra=1 ✓  (allergyClassId=2 ≠ medicationClassId=5)
-          PolOk(pat1,Metformin) → pol_ok=1 ✓    (eGFR=45 >= θ=30)
-          outcome=1. ZKP S1 Valid Baseline. Verify_vk(π,pub)=true.
+        φ+ = RxValid(doc1, pat1, Metformin, 500). Acceptance decomposition:
+
+          ContextTrusted(Γ, M)                                                 ✓ (see EvalCtx_Prescription1)
+
+          ¬Contraindication(pat1, Metformin):                                  ✓
+            Allergy(pat1, Penicillin) holds, but Metformin ⋢ Penicillin
+            (Metformin ∈ Antidiabetic class). no_contra = 1.
+
+          PolicySatisfied(pat1, Metformin, 500):                               ✓
+            Pol(Metformin, eGFR, ≥, 30):              hasValue=45 ≥ 30      ✓
+            Pol(Metformin, pregnancyStatus, =, 0):    hasAttrValue=false   ✓
+            pol_ok = 1.
+
+          rx_ok = no_contra · pol_ok = 1
+          outcome = ctx_ok · rx_ok = 1
+
+        ZKP scenario S1: Valid baseline. Verify_vk(π, pub) = true.
     """ ;
     prov:wasAttributedTo rx:doc1 .
 
-# S5a — Rejected: Rx(doc1, pat1, Amoxicillin) → outcome=0 (contraindication)
+# S5a — Rejected: RxValid(doc1, pat1, Amoxicillin, 250) → outcome = 0 (contraindication)
 rx:Prescription2_Rejected
     a rx:Prescription, owl:NamedIndividual ;
     rx:prescribedBy rx:doc1 ;
     rx:prescribedFor rx:pat1 ;
     rx:prescribes rx:AmoxicillinMed ;
+    rx:prescribedDose "250"^^xsd:decimal ;
     rx:evaluatedUnder rx:EvalCtx_Prescription1 ;
     rx:proofOutcome false ;
     rx:prescriptionStatus "REJECTED" ;
     rx:issuedAt "2026-04-08T10:10:00"^^xsd:dateTime ;
     rdfs:label "Prescription 2 — Amoxicillin (REJECTED)" ;
     rdfs:comment """
-        Rejected. Al(pat1,Penicillin) ∧ (Amoxicillin ⊑ Penicillin) → Ct(pat1,Amoxicillin).
-        allergy_contra=1 → no_contra=0 → clinical_ok=0 → outcome=0.
-        ZKP S5a: honest reject proof generated. Auditable on-chain without revealing allergy class.
+        Rejected. Allergy(pat1, Penicillin) ∧ (Amoxicillin ⊑ Penicillin)
+          → Contraindication(pat1, Amoxicillin).
+        no_contra = 0 → rx_ok = 0 → outcome = 0.
+
+        ZKP scenario S5a: honest reject proof generated. Auditable on-chain
+        without revealing the underlying allergy substance.
     """ .
 
 
@@ -839,49 +1055,49 @@ rx:C-DOC-1
     a mfssia:Challenge, owl:NamedIndividual ;
     mfssia:challengeDetail "Submit medical license number and issuing authority" ;
     rdfs:label "C-DOC-1: Medical License" ;
-    rdfs:comment "Verifies Physician holds a valid medical license (d ∈ D_D)." .
+    rdfs:comment "Verifies the candidate holds a valid medical license (d ∈ D_D) prior to credential issuance." .
 
 rx:C-DOC-2
     a mfssia:Challenge, owl:NamedIndividual ;
     mfssia:challengeDetail "Confirm affiliation with a registered healthcare provider" ;
     rdfs:label "C-DOC-2: Hospital Affiliation" ;
-    rdfs:comment "Verifies Physician is employed by a HealthcareProvider ∈ Strusted." .
+    rdfs:comment "Verifies physician affiliation with a HealthcareProvider ∈ S_trusted." .
 
 rx:C-DOC-3
     a mfssia:Challenge, owl:NamedIndividual ;
     mfssia:challengeDetail "Provide prescribing authority certificate (DEA or national equivalent)" ;
     rdfs:label "C-DOC-3: Prescribing Authority" ;
-    rdfs:comment "Establishes Au(d,prescribe) → PrescribingAuthority relator. Key for auth_ok=1 in ZKP." .
+    rdfs:comment "Verifies that the credential issued to the physician will include prescriptive scope. The scope is bundled into the credential; the protocol's CredValid(cred) check then admits the credential as a whole — no separate authorisation predicate is required at the satisfaction level (paper §III-B)." .
 
 rx:C-PAT-1
     a mfssia:Challenge, owl:NamedIndividual ;
     mfssia:challengeDetail "Verify identity via national ID or passport" ;
     rdfs:label "C-PAT-1: Patient Identity" ;
-    rdfs:comment "Verifies Patient legal identity. Creates DID (p ∈ D_P)." .
+    rdfs:comment "Verifies Patient legal identity prior to DID assignment (p ∈ D_P)." .
 
 rx:C-PAT-2
     a mfssia:Challenge, owl:NamedIndividual ;
     mfssia:challengeDetail "Provide signed consent to share clinical data with named organizations" ;
     rdfs:label "C-PAT-2: Data Sharing Consent" ;
-    rdfs:comment "Creates DataSharingConsent. Required for cross-organizational evaluation." .
+    rdfs:comment "Creates DataSharingConsent. Out-of-protocol institutional process." .
 
 rx:C-LAB-1
     a mfssia:Challenge, owl:NamedIndividual ;
     mfssia:challengeDetail "Submit laboratory accreditation certificate (ISO 15189)" ;
     rdfs:label "C-LAB-1: Lab Accreditation" ;
-    rdfs:comment "Admits laboratory to Strusted. Critical for src ∈ Strusted in Valid(Γ)." .
+    rdfs:comment "Admits laboratory to S_trusted (committed in root_TS). Required so that SourceTrusted(r, M) holds for the lab's records." .
 
 rx:C-LAB-2
     a mfssia:Challenge, owl:NamedIndividual ;
     mfssia:challengeDetail "Register laboratory system endpoint for data provision" ;
     rdfs:label "C-LAB-2: Lab System Registration" ;
-    rdfs:comment "Assigns sourceIdentifier (src) used in EvaluationContext Γ." .
+    rdfs:comment "Assigns the sourceIdentifier used per-record in rx:hasSource." .
 
 rx:C-PHR-1
     a mfssia:Challenge, owl:NamedIndividual ;
     mfssia:challengeDetail "Submit pharmacy operating license and pharmacist-in-charge credentials" ;
     rdfs:label "C-PHR-1: Pharmacy License" ;
-    rdfs:comment "Grants Au(pharmacy, dispense). Required to receive validated prescriptions." .
+    rdfs:comment "Onboards the pharmacy as a verifier of issuance proofs at dispensing time." .
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -894,27 +1110,27 @@ rx:PhysicianChallengeSet
     mfssia:holds rx:C-DOC-2 ;
     mfssia:holds rx:C-DOC-3 ;
     rdfs:label "Physician Challenge Set" ;
-    rdfs:comment "ALL_MANDATORY. Attestation → Auth(cred) proves Au(d,prescribe). MFSSIA code: 'rx:PhysicianSet'." .
+    rdfs:comment "ALL_MANDATORY. Successful completion results in issuance of an mfssia:Authentication credential covering prescribing scope, subsequently checked by CredValid in the circuit." .
 
 rx:PatientChallengeSet
     a mfssia:ChallengeSet, owl:NamedIndividual ;
     mfssia:holds rx:C-PAT-1 ;
     mfssia:holds rx:C-PAT-2 ;
     rdfs:label "Patient Challenge Set" ;
-    rdfs:comment "ALL_MANDATORY. Attestation → patient identity + DataSharingConsent. Code: 'rx:PatientSet'." .
+    rdfs:comment "ALL_MANDATORY. Establishes patient identity + DataSharingConsent." .
 
 rx:LaboratoryChallengeSet
     a mfssia:ChallengeSet, owl:NamedIndividual ;
     mfssia:holds rx:C-LAB-1 ;
     mfssia:holds rx:C-LAB-2 ;
     rdfs:label "Laboratory Challenge Set" ;
-    rdfs:comment "ALL_MANDATORY. Attestation → lab admitted to Strusted. Code: 'rx:LaboratorySet'." .
+    rdfs:comment "ALL_MANDATORY. Admits lab to S_trusted (root_TS)." .
 
 rx:PharmacyChallengeSet
     a mfssia:ChallengeSet, owl:NamedIndividual ;
     mfssia:holds rx:C-PHR-1 ;
     rdfs:label "Pharmacy Challenge Set" ;
-    rdfs:comment "ALL_MANDATORY. Attestation → Au(pharmacy,dispense). Code: 'rx:PharmacySet'." .
+    rdfs:comment "ALL_MANDATORY. Onboards pharmacy for dispensing-time proof verification." .
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -926,11 +1142,10 @@ rx:PolicyMetforminEGFR
     rx:appliesToMedication rx:Metformin ;
     rx:clinicalCondition "eGFR" ;
     rx:comparisonOperator ">=" ;
-    rx:threshold 30 ;
+    rx:threshold "30"^^xsd:decimal ;
     rx:deltaMax 7776000 ;
-    rx:policyVersion "ual:dkg:prescription-policy:v1" ;
-    rdfs:label "Policy: Metformin requires eGFR >= 30" ;
-    rdfs:comment "Pol(Metformin, eGFR, >=, 30). ZKP range-check: polOk=1 iff ClinVal(p,eGFR)>=30. Δmax=90d." ;
+    rdfs:label "Policy: Metformin requires eGFR ≥ 30" ;
+    rdfs:comment "Pol(Metformin, eGFR, ≥, 30). Compiled into a range-check sub-circuit: pol_ok = 1 iff the LabResult with hasMetric='eGFR' has hasValue ≥ 30. Δ_max = 90 days." ;
     prov:generatedAtTime "2026-04-08T00:00:00"^^xsd:dateTime .
 
 rx:PolicyMetforminPregnancy
@@ -938,19 +1153,17 @@ rx:PolicyMetforminPregnancy
     rx:appliesToMedication rx:Metformin ;
     rx:clinicalCondition "pregnancyStatus" ;
     rx:comparisonOperator "=" ;
-    rx:threshold 0 ;
-    rx:deltaMax 2592000 ;
-    rx:policyVersion "ual:dkg:prescription-policy:v1" ;
+    rx:threshold "0"^^xsd:decimal ;
+    rx:deltaMax 7776000 ;
     rdfs:label "Policy: Metformin contraindicated in pregnancy" ;
-    rdfs:comment "Pol(Metformin, pregnancyStatus, =, 0). false=0 (not pregnant). Δmax=30d." .
+    rdfs:comment "Pol(Metformin, pregnancyStatus, =, 0). Value 0 ↔ false (not pregnant). Resolved against the PatientAttribute record (Eq. eq:attr-value, second disjunct)." .
 
 rx:PolicyAmoxicillinAge
     a rx:ClinicalPolicy, owl:NamedIndividual ;
     rx:appliesToMedication rx:AmoxicillinMed ;
     rx:clinicalCondition "age" ;
     rx:comparisonOperator ">=" ;
-    rx:threshold 2 ;
-    rx:deltaMax 31536000 ;
-    rx:policyVersion "ual:dkg:prescription-policy:v1" ;
-    rdfs:label "Policy: Amoxicillin requires age >= 2 years" ;
-    rdfs:comment "Pol(Amoxicillin, age, >=, 2). Δmax=1 year." .
+    rx:threshold "2"^^xsd:decimal ;
+    rx:deltaMax 7776000 ;
+    rdfs:label "Policy: Amoxicillin requires age ≥ 2 years" ;
+    rdfs:comment "Pol(Amoxicillin, age, ≥, 2). Resolved against the PatientAttribute record." .

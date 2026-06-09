@@ -20,7 +20,8 @@ export default registerAs<AppConfig>('app', () => {
       useSSL: false, // Can be made configurable if needed
       logLevel: 'trace',
       blockchain: {
-        name: 'otp:20430',
+        name: process.env.DKG_BLOCKCHAIN_NAME || 'hardhat1:31337',
+        rpc: process.env.DKG_BLOCKCHAIN_RPC || undefined,
         transactionPollingTimeout: 6000,
         publicKey: process.env.PUBLIC_KEY || '',
         privateKey: process.env.PRIVATE_KEY || '',
@@ -29,7 +30,7 @@ export default registerAs<AppConfig>('app', () => {
       maxNumberOfRetries: 1,
       frequency: 2,
       contentType: 'all',
-      environment: 'testnet',
+      environment: process.env.DKG_ENVIRONMENT || 'development',
     },
 
     isDkgMocked: process.env.IS_DKG_MOCKED === 'true',

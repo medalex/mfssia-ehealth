@@ -9,7 +9,8 @@ export function getConfig(): DatabaseConfig {
     url: process.env.DATABASE_URL, // Direct Supabase connection string
     logging: process.env.DATABASE_LOGGING === 'true',
     // synchronize: true, // true only in dev
-    synchronize: false, // Using migrations instead
+    synchronize: false,
+    migrationsRun: process.env.DATABASE_MIGRATIONS_RUN === 'true',
     ssl: {
       rejectUnauthorized:
         process.env.DATABASE_REJECT_UNAUTHORIZED === 'true' || false,

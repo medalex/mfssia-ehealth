@@ -1,18 +1,18 @@
 # ---- STAGE 1: deps ----
-FROM node:25.2.1-alpine AS deps
+FROM node:20-alpine AS deps
 WORKDIR /usr/src/app
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm install --legacy-peer-deps
 
 # ---- STAGE 2: builder ----
-FROM node:25.2.1-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /usr/src/app
 COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
 # ---- STAGE 3: prod ----
-FROM node:25.2.1-alpine AS prod
+FROM node:20-alpine AS prod
 WORKDIR /usr/src/app
 
 RUN addgroup -S app && adduser -S -G app app
@@ -29,4 +29,4 @@ RUN chown -R app:app /usr/src/app
 EXPOSE 4000
 USER app
 
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]

@@ -1,0 +1,14 @@
+services:
+  app:
+    build:
+      context: .
+      target: prod
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      APP_PORT: 4000
+      DATABASE_MIGRATIONS_RUN: "false"
+      DATABASE_REJECT_UNAUTHORIZED: "false"

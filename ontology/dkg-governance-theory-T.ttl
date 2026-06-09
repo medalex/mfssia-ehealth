@@ -1,0 +1,200 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# DKG Governance Asset — Theory T (Running Case)
+#
+# Source: "Resolving Semantic Conflicts in Decentralized E-Health Governance
+#          Using Zero-Knowledge Proofs" (Kormiltsyn, Udokwu, Norta, 2026)
+#
+# This file is the PUBLIC governance asset published to the DKG.
+# It encodes the governance theory T committed on-chain, comprising:
+#
+#   D_S  — Medication class hierarchy with subsumption (⊑)
+#   D_M  — Medications with validity periods τ_m
+#   S_trusted — Governance-approved data sources (committed in root_TS)
+#   Pol  — Clinical policy axioms Pol(m, t, op, θ) evaluated by ZKP circuit
+#
+# NOT included (private / off-chain):
+#   - Patient clinical records M (Allergy, LabResult, PatientAttribute)
+#   - Prescription instances and evaluation contexts
+#   - Physician / patient agent identifiers
+#
+# How to publish to DKG:
+#   POST /api/rdf
+#   Content-Type: text/turtle
+#   Body: <contents of this file>
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix owl:    <http://www.w3.org/2002/07/owl#> .
+@prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
+@prefix prov:   <http://www.w3.org/ns/prov#> .
+@prefix rx:     <https://mfssia.io/ontology/prescription#> .
+@prefix snomed: <http://snomed.info/id/> .
+@prefix loinc:  <http://loinc.org/rdf#> .
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ASSET DECLARATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+<https://mfssia.io/dkg/governance/theory-T/running-case>
+    a owl:Ontology ;
+    owl:versionInfo "1.0"^^xsd:decimal ;
+    rdfs:label "MFSSIA Governance Theory T — Running Case" ;
+    rdfs:comment "Public governance asset. Committed on DKG. Encodes T = D_S ∪ D_M ∪ S_trusted ∪ Pol for the Metformin/Amoxicillin running case." ;
+    prov:generatedAtTime "2026-04-08T00:00:00"^^xsd:dateTime .
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 1 — MEDICATION CLASS HIERARCHY  D_S
+#             Subsumption closure (⊑) committed on DKG.
+#             Used by NoContraindication sub-circuit: Allergy(p,s) ∧ m ⊑ s
+#             → Contraindication(p,m).
+# ═══════════════════════════════════════════════════════════════════════════════
+
+rx:BetaLactam
+    a                 rx:MedicationClass, owl:NamedIndividual ;
+    rx:medicationName "β-lactam" ;
+    rdfs:label        "BetaLactam" ;
+    skos:exactMatch   snomed:372687004 .
+
+rx:Penicillin
+    a                 rx:MedicationClass, owl:NamedIndividual ;
+    rx:medicationName "Penicillin" ;
+    rx:isSubtypeOf    rx:BetaLactam ;              # Penicillin ⊑ β-lactam
+    rdfs:label        "Penicillin" ;
+    skos:exactMatch   snomed:764146007 .
+
+rx:Amoxicillin
+    a                 rx:MedicationClass, owl:NamedIndividual ;
+    rx:medicationName "Amoxicillin" ;
+    rx:isSubtypeOf    rx:Penicillin ;              # Amoxicillin ⊑ Penicillin ⊑ β-lactam
+    rdfs:label        "Amoxicillin" .
+
+rx:Antidiabetic
+    a                 rx:MedicationClass, owl:NamedIndividual ;
+    rx:medicationName "Antidiabetic" ;
+    rdfs:label        "Antidiabetic" ;
+    skos:exactMatch   snomed:372689001 .
+
+# Terminology-bridge axiom:
+# Local code 'beta-lac-sens' (lab terminology) aligns to SNOMED Penicillin allergy.
+# Committed in T so that SourceTrusted records using either coding pass the
+# homogeneity check in the NoContraindication sub-circuit.
+rx:LocalSensitivity
+    a                 rx:MedicationClass, owl:NamedIndividual ;
+    rx:isSubtypeOf    rx:Penicillin ;
+    rx:alignsTo       snomed:416098002 ;           # SNOMED: Penicillin allergy finding
+    rdfs:label        "LocalSensitivity (beta-lac-sens)" .
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 2 — MEDICATIONS  D_M
+#             ValidityPeriod(m, τ_m) axioms used by dispensing-time check:
+#             t_req + τ_m ≥ Ct_disp  (paper §IV-B, step 8)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+rx:Metformin
+    a                 rx:Medication, owl:NamedIndividual ;
+    rx:medicationName "Metformin" ;
+    rx:medicationId   5 ;                          # id(m) field element in ZKP circuit
+    rx:belongsToClass rx:Antidiabetic ;            # Metformin ⊑ Antidiabetic
+    rx:validityPeriod 2592000 ;                    # τ_m = 30 days (dispensing window)
+    rdfs:label        "Metformin" ;
+    skos:exactMatch   snomed:372725003 .
+
+rx:AmoxicillinMed
+    a                 rx:Medication, owl:NamedIndividual ;
+    rx:medicationName "Amoxicillin 500mg" ;
+    rx:medicationId   2 ;
+    rx:belongsToClass rx:Amoxicillin ;             # AmoxicillinMed ⊑ Amoxicillin ⊑ Penicillin
+    rx:validityPeriod 1209600 ;                    # τ_m = 14 days
+    rdfs:label        "Amoxicillin 500mg" .
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 3 — TRUSTED DATA SOURCES  S_trusted
+#             Committed in root_TS on the DKG.
+#             SourceTrusted(r, M) holds iff r.hasSource ∈ S_trusted.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+rx:CityHospital
+    a                    rx:TrustedDataSource, owl:NamedIndividual ;
+    rx:sourceIdentifier  "hospital-1" ;
+    rx:organizationType  "hospital" ;
+    rdfs:label           "City Hospital" ;
+    prov:generatedAtTime "2026-04-08T00:00:00"^^xsd:dateTime .
+
+rx:DiagLab1
+    a                    rx:TrustedDataSource, owl:NamedIndividual ;
+    rx:sourceIdentifier  "lab-1" ;
+    rx:organizationType  "laboratory" ;
+    rdfs:label           "DiagLab-1" ;
+    prov:generatedAtTime "2026-04-08T00:00:00"^^xsd:dateTime .
+
+rx:CommunityPharmacy1
+    a                    rx:Pharmacy, owl:NamedIndividual ;
+    rx:organizationType  "pharmacy" ;
+    rdfs:label           "Community Pharmacy 1" ;
+    rdfs:comment         "Dispensing pharmacy. NOT in S_trusted — pharmacies are consumers of prescriptions, not sources of clinical records in M. Performs dispensing-time checks (validity window, anti-replay) per paper §IV-B step 8." ;
+    prov:generatedAtTime "2026-04-08T00:00:00"^^xsd:dateTime .
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 4 — CLINICAL POLICY AXIOMS  Pol(m, t, op, θ)
+#
+#   PolicySatisfied(p, m, n) ≡
+#     ∀ Pol(m, t, op, θ) ∈ T :
+#       AttrValue(p, t, v) ∧ (v op θ)          [paper Eq. eq:pol-sat]
+#
+#   Each policy is compiled into a range-check sub-circuit.
+#   Δmax bounds freshness of the supporting labeled record via
+#   Fresh(r, M, t_req): (t_req − r.hasTimestamp) ≤ Δmax.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── Pol-1: Pol(Metformin, eGFR, ≥, 30) ──────────────────────────────────────
+# Kidney function check. Metformin is contraindicated in severe renal impairment.
+# pol_ok = 1  iff  LabResult.hasValue(eGFR) ≥ 30.
+# Running case: pat1.eGFR = 45  →  45 ≥ 30  →  pol_ok = 1  ✓
+
+rx:PolicyMetforminEGFR
+    a                    rx:ClinicalPolicy, owl:NamedIndividual ;
+    rx:appliesToMedication rx:Metformin ;
+    rx:clinicalCondition "eGFR" ;
+    rx:comparisonOperator ">=" ;
+    rx:threshold         "30"^^xsd:decimal ;
+    rx:deltaMax          7776000 ;                 # Δmax = 90 days (lab result freshness)
+    rdfs:label           "Pol(Metformin, eGFR, ≥, 30)" ;
+    prov:generatedAtTime "2026-04-08T00:00:00"^^xsd:dateTime .
+
+# ── Pol-2: Pol(Metformin, pregnancyStatus, =, 0) ─────────────────────────────
+# Pregnancy contraindication. Metformin is not recommended during pregnancy.
+# pol_ok = 1  iff  PatientAttribute.hasAttrValue(pregnancyStatus) = 0 (false).
+# Running case: pat1.pregnancyStatus = false  →  0 = 0  →  pol_ok = 1  ✓
+
+rx:PolicyMetforminPregnancy
+    a                    rx:ClinicalPolicy, owl:NamedIndividual ;
+    rx:appliesToMedication rx:Metformin ;
+    rx:clinicalCondition "pregnancyStatus" ;
+    rx:comparisonOperator "=" ;
+    rx:threshold         "0"^^xsd:decimal ;
+    rx:deltaMax          7776000 ;                 # Δmax = 90 days
+    rdfs:label           "Pol(Metformin, pregnancyStatus, =, 0)" ;
+    prov:generatedAtTime "2026-04-08T00:00:00"^^xsd:dateTime .
+
+# ── Pol-3: Pol(Amoxicillin, age, ≥, 2) ───────────────────────────────────────
+# Paediatric age threshold for Amoxicillin.
+# pol_ok = 1  iff  PatientAttribute.hasAttrValue(age) ≥ 2.
+# Running case (S5a, rejected on contraindication — age check would pass):
+# pat1.age = 47  →  47 ≥ 2  →  pol_ok = 1, but no_contra = 0 → rx_ok = 0.
+
+rx:PolicyAmoxicillinAge
+    a                    rx:ClinicalPolicy, owl:NamedIndividual ;
+    rx:appliesToMedication rx:AmoxicillinMed ;
+    rx:clinicalCondition "age" ;
+    rx:comparisonOperator ">=" ;
+    rx:threshold         "2"^^xsd:decimal ;
+    rx:deltaMax          7776000 ;                 # Δmax = 90 days
+    rdfs:label           "Pol(Amoxicillin, age, ≥, 2)" ;
+    prov:generatedAtTime "2026-04-08T00:00:00"^^xsd:dateTime .

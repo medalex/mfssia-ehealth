@@ -16,4 +16,18 @@ export class RdfService {
 
     return dkgResponse.UAL;
   }
+
+  async query(sparql: string): Promise<unknown> {
+    if (!sparql || sparql.trim().length === 0) {
+      throw new BadRequestException('Empty SPARQL query');
+    }
+    return this.dkgService.findAssets(sparql);
+  }
+
+  async readAsset(ual: string): Promise<unknown> {
+    if (!ual || ual.trim().length === 0) {
+      throw new BadRequestException('UAL is required');
+    }
+    return this.dkgService.readAsset(ual);
+  }
 }
