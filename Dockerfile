@@ -1,6 +1,8 @@
 # ---- STAGE 1: deps ----
 FROM node:20-alpine AS deps
 WORKDIR /usr/src/app
+# toolchain for native modules (e.g. bufferutil) that have no musl/arm64 prebuilds
+RUN apk add --no-cache python3 make g++
 COPY package.json package-lock.json ./
 RUN npm install --legacy-peer-deps
 
