@@ -25,10 +25,10 @@ export function getConfig(): BlockchainConfig {
     );
     return {
       enabled: false,
-      rpcUrl: undefined,
-      wsUrl: undefined,
-      privateKey: undefined,
-      consumerAddress: undefined,
+      rpcUrl: '',
+      wsUrl: '',
+      privateKey: '',
+      consumerAddress: '',
       chainlink: { subscriptionId: 0, gasLimit: 0, donId: undefined },
     };
   }
