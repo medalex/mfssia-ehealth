@@ -49,6 +49,7 @@ export class OracleListenerService implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleInit() {
+    if (!this.provider) return;
     void this.bootstrap();
     this.startWatchdog();
   }
