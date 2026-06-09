@@ -1,0 +1,289 @@
+@prefix owl:    <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov:   <http://www.w3.org/ns/prov#> .
+
+@prefix mfssia: <http://www.semanticweb.org/mubashar/ontologies/2024/4/MFSSIA-ontology#> .
+@prefix rx:     <https://mfssia.io/ontology/prescription#> .
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MFSSIA CHALLENGE SETS FOR HEALTHCARE ROLES (Running Case)
+#
+# These instances map directly to the existing MFSSIA project challenge
+# definitions and challenge sets. They define WHAT each stakeholder must
+# prove via the challenge-response mechanism to receive credentials (cred in Γ).
+#
+# After completing a challenge set:
+#   → MFSSIA issues an Attestation (mfssia:Authentication result)
+#   → This attestation becomes cred in Γ = ⟨src, ts, cred⟩
+#   → Auth(cred) is checked via rx:holdsAttestation on the Physician/Patient
+#
+# These instances are published to DKG via POST /api/challenge-sets
+# and POST /api/challenge-definitions in the MFSSIA project.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION A — CHALLENGE DEFINITIONS (individual verification questions)
+# Corresponds to ChallengeDefinition entities in the MFSSIA project
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── A.1 Physician Challenges ──────────────────────────────────────────────────
+
+rx:C-DOC-1
+    a mfssia:Challenge, owl:NamedIndividual ;
+    mfssia:challengeDetail "Submit medical license number and issuing authority" ;
+    rdfs:comment """
+        Verifies that the agent holds a valid medical license.
+        Evidence: { licenseNumber: string, issuingAuthority: string, issueDate: date }
+        Grants: right to be recognized as Physician (d ∈ D_D).
+        Auth(cred) check: cred must include licenseNumber claim.
+    """ ;
+    rdfs:label "C-DOC-1: Medical License Verification" .
+
+rx:C-DOC-2
+    a mfssia:Challenge, owl:NamedIndividual ;
+    mfssia:challengeDetail "Confirm affiliation with a registered healthcare provider" ;
+    rdfs:comment """
+        Verifies that the Physician is employed by a HealthcareProvider member of Strusted.
+        Evidence: { hospitalId: string, employeeId: string, affiliationCert: base64 }
+        Ensures mfssia:isRegisteredBy rx:HealthcareProvider.
+    """ ;
+    rdfs:label "C-DOC-2: Hospital Affiliation Verification" .
+
+rx:C-DOC-3
+    a mfssia:Challenge, owl:NamedIndividual ;
+    mfssia:challengeDetail "Provide prescribing authority certificate (DEA or national equivalent)" ;
+    rdfs:comment """
+        Verifies the Physician's legal right to prescribe controlled medications.
+        Evidence: { prescribingCertNumber: string, scope: string[] }
+        Establishes Au(d, prescribe) → PrescribingAuthority relator.
+        This is the key challenge that creates the authorization checked in ZKP auth_ok gate.
+    """ ;
+    rdfs:label "C-DOC-3: Prescribing Authority Verification" .
+
+# ── A.2 Patient Challenges ────────────────────────────────────────────────────
+
+rx:C-PAT-1
+    a mfssia:Challenge, owl:NamedIndividual ;
+    mfssia:challengeDetail "Verify identity via national ID or passport" ;
+    rdfs:comment """
+        Verifies the Patient's legal identity (LegalIdentity in MFSSIA).
+        Evidence: { nationalId: string, dateOfBirth: date, fullName: string }
+        Creates the DID for the patient (did:mfssia:patient:pat1).
+        Required for p ∈ D_P to be a valid domain element.
+    """ ;
+    rdfs:label "C-PAT-1: Patient Identity Verification" .
+
+rx:C-PAT-2
+    a mfssia:Challenge, owl:NamedIndividual ;
+    mfssia:challengeDetail "Provide signed consent to share clinical data with named organizations" ;
+    rdfs:comment """
+        Verifies that the Patient has granted DataSharingConsent.
+        Evidence: { consentedOrganizations: string[], consentDate: date, signature: string }
+        Creates rx:DataSharingConsent instance covering hospital, lab, pharmacy.
+        Required precondition for cross-organizational semantic evaluation in the workflow.
+    """ ;
+    rdfs:label "C-PAT-2: Data Sharing Consent" .
+
+# ── A.3 Laboratory Challenges ─────────────────────────────────────────────────
+
+rx:C-LAB-1
+    a mfssia:Challenge, owl:NamedIndividual ;
+    mfssia:challengeDetail "Submit laboratory accreditation certificate (ISO 15189 or national equivalent)" ;
+    rdfs:comment """
+        Verifies laboratory accreditation — required to be admitted to Strusted.
+        Evidence: { accreditationNumber: string, issuingBody: string, expiryDate: date }
+        Establishes Laboratory as rx:TrustedDataSource (src ∈ Strusted).
+        Critical for Valid(Γ): src ∈ Strusted check in Definition 1.
+    """ ;
+    rdfs:label "C-LAB-1: Laboratory Accreditation" .
+
+rx:C-LAB-2
+    a mfssia:Challenge, owl:NamedIndividual ;
+    mfssia:challengeDetail "Register laboratory system endpoint for data provision" ;
+    rdfs:comment """
+        Registers the laboratory information system as an approved data source.
+        Evidence: { systemEndpoint: string, systemId: string, certFingerprint: string }
+        Assigns sourceIdentifier (src) used in EvaluationContext Γ.
+        The sourceIdentifier must match a known entry in Strusted.
+    """ ;
+    rdfs:label "C-LAB-2: Lab System Registration" .
+
+# ── A.4 Pharmacy Challenges ───────────────────────────────────────────────────
+
+rx:C-PHR-1
+    a mfssia:Challenge, owl:NamedIndividual ;
+    mfssia:challengeDetail "Submit pharmacy operating license and pharmacist-in-charge credentials" ;
+    rdfs:comment """
+        Verifies that the pharmacy is licensed to dispense medications.
+        Evidence: { pharmacyLicenseNumber: string, pharmacistId: string, jurisdiction: string }
+        Grants dispensing authority: Au(pharmacy, dispense).
+        Required to receive and fulfill validated prescriptions.
+    """ ;
+    rdfs:label "C-PHR-1: Pharmacy License Verification" .
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION B — CHALLENGE SETS (grouped by stakeholder role)
+# Corresponds to ChallengeSet entities in the MFSSIA project
+# ═══════════════════════════════════════════════════════════════════════════════
+
+rx:PhysicianChallengeSet
+    a mfssia:ChallengeSet, owl:NamedIndividual ;
+    mfssia:holds rx:C-DOC-1 ;
+    mfssia:holds rx:C-DOC-2 ;
+    mfssia:holds rx:C-DOC-3 ;
+    rdfs:comment """
+        Challenge set for Physician authentication and authorization.
+        Code: 'rx:PhysicianSet'
+        Policy: ALL_MANDATORY (all 3 challenges must pass)
+        Resulting attestation:
+          - Confirms agent is a licensed, affiliated, authorized prescriber
+          - cred = this attestation; Auth(cred) checks for C-DOC-3 evidence
+          - Used to establish Au(d, prescribe) → auth_ok = 1 in ZKP
+        Maps to MFSSIA project: challenge set code 'rx:PhysicianSet'
+    """ ;
+    rdfs:label "Physician Challenge Set" .
+
+rx:PatientChallengeSet
+    a mfssia:ChallengeSet, owl:NamedIndividual ;
+    mfssia:holds rx:C-PAT-1 ;
+    mfssia:holds rx:C-PAT-2 ;
+    rdfs:comment """
+        Challenge set for Patient identity verification and consent.
+        Code: 'rx:PatientSet'
+        Policy: ALL_MANDATORY (both challenges must pass)
+        Resulting attestation:
+          - Confirms patient identity and consent to data sharing
+          - Creates DataSharingConsent covering participating organizations
+          - Patient can then act as p ∈ D_P in prescription statements
+    """ ;
+    rdfs:label "Patient Challenge Set" .
+
+rx:LaboratoryChallengeSet
+    a mfssia:ChallengeSet, owl:NamedIndividual ;
+    mfssia:holds rx:C-LAB-1 ;
+    mfssia:holds rx:C-LAB-2 ;
+    rdfs:comment """
+        Challenge set for Laboratory admission to Strusted.
+        Code: 'rx:LaboratorySet'
+        Policy: ALL_MANDATORY
+        Resulting attestation:
+          - Admits laboratory to governance-approved Strusted set
+          - Assigns sourceIdentifier used as src in Γ = ⟨src, ts, cred⟩
+          - src ∈ Strusted → Valid(Γ) third conjunct satisfied
+    """ ;
+    rdfs:label "Laboratory Challenge Set" .
+
+rx:PharmacyChallengeSet
+    a mfssia:ChallengeSet, owl:NamedIndividual ;
+    mfssia:holds rx:C-PHR-1 ;
+    rdfs:comment """
+        Challenge set for Pharmacy dispensing authorization.
+        Code: 'rx:PharmacySet'
+        Policy: ALL_MANDATORY
+        Resulting attestation:
+          - Confirms pharmacy's license to dispense
+          - Grants Au(pharmacy, dispense) action scope
+          - Required to receive validated prescriptions from the governance layer
+    """ ;
+    rdfs:label "Pharmacy Challenge Set" .
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION C — CLINICAL POLICY AXIOMS (Pol(m, t, op, θ))
+# Published to DKG as governance-approved theory T artifacts
+# policyVersion UAL is embedded in stmtHash (Eq. 14)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+rx:PolicyMetforminEGFR
+    a rx:ClinicalPolicy, owl:NamedIndividual ;
+    rx:appliesToMedication rx:Metformin ;
+    rx:clinicalCondition "eGFR" ;
+    rx:comparisonOperator ">=" ;
+    rx:threshold 30 ;
+    rx:deltaMax 7776000 ;
+    rx:policyVersion "ual:dkg:prescription-policy:v1" ;
+    rdfs:comment """
+        Clinical policy axiom: Pol(Metformin, eGFR, ≥, 30).
+        A prescription for Metformin is only valid if the patient's eGFR ≥ 30 ml/min/1.73m².
+        Δmax = 7776000 seconds (90 days) — maximum age of lab result.
+        In ZKP circuit: range-check sub-circuit (Eq. 19):
+          pol_ok = 1 ⟺ ClinVal(p, eGFR) ≥ 30
+        Encoded as: threshold=30, comparisonOperator='>='
+        policyVersion anchored in DKG; invalidates proofs on update.
+    """ ;
+    rdfs:label "Policy: Metformin requires eGFR ≥ 30" ;
+    prov:generatedAtTime "2026-04-08T00:00:00"^^xsd:dateTime .
+
+rx:PolicyMetforminPregnancy
+    a rx:ClinicalPolicy, owl:NamedIndividual ;
+    rx:appliesToMedication rx:Metformin ;
+    rx:clinicalCondition "pregnancyStatus" ;
+    rx:comparisonOperator "=" ;
+    rx:threshold 0 ;
+    rx:deltaMax 2592000 ;
+    rx:policyVersion "ual:dkg:prescription-policy:v1" ;
+    rdfs:comment """
+        Clinical policy axiom: Pol(Metformin, pregnancyStatus, =, 0).
+        Metformin is contraindicated during pregnancy (pregnancyStatus = 1 means pregnant).
+        This policy encodes false=0 (not pregnant) as required condition.
+        Δmax = 2592000 seconds (30 days) for pregnancy status freshness.
+    """ ;
+    rdfs:label "Policy: Metformin contraindicated in pregnancy" .
+
+rx:PolicyAmoxicillinAge
+    a rx:ClinicalPolicy, owl:NamedIndividual ;
+    rx:appliesToMedication rx:AmoxicillinMed ;
+    rx:clinicalCondition "age" ;
+    rx:comparisonOperator ">=" ;
+    rx:threshold 2 ;
+    rx:deltaMax 31536000 ;
+    rx:policyVersion "ual:dkg:prescription-policy:v1" ;
+    rdfs:comment """
+        Clinical policy axiom: Pol(Amoxicillin, age, ≥, 2).
+        Amoxicillin standard dosing requires patient age ≥ 2 years.
+        Δmax = 31536000 seconds (1 year) for age verification.
+    """ ;
+    rdfs:label "Policy: Amoxicillin requires age ≥ 2 years" .
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION D — INFERENCE RULES (theory T — structural axioms)
+# These are stored as annotations; machine-readable form is in the OWL extension.
+# They are encoded in ZKP circuit as membership proofs against commitment root_T.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+rx:InferenceRule_AllergyToContraindication
+    a owl:NamedIndividual ;
+    rdfs:comment """
+        Inference rule (Eq. 5): ∀x ∈ D_P. Al(x, Penicillin) → Ct(x, β-lactam)
+        If a patient is allergic to Penicillin, all β-lactam medications are contraindicated.
+        Encoded in ZKP as: allergy_contra = 1 ⟺ ∃s ∈ D_S: Al(p,s) ∧ (m ⊑ s) (Eq. 17)
+        Uses subsumption witness m ⊑ s against commitment to T (not direct root_Ct proof).
+    """ ;
+    rdfs:label "Inference Rule: Allergy → Contraindication" .
+
+rx:TerminologyBridge_SensitivityAllergy
+    a owl:NamedIndividual ;
+    rdfs:comment """
+        Terminology bridge (Eq. 6): ∀p ∈ D_P ∀s ∈ D_S: Sens(p, s) ↔ Al(p, s)
+        'β-lactam sensitivity' (local laboratory code) ≡ 'Penicillin allergy' (SNOMED CT).
+        Resolves the semantic conflict from Fig. 2:
+          Hospital says: Al(pat1, Penicillin) via SNOMED 416098002
+          Lab says: Sens(pat1, β-lactam) via local code 'beta-lac-sens'
+        Both satisfy the same allergy gate in the ZKP circuit
+        (predicate alias constraint from Definition 3).
+    """ ;
+    rdfs:label "Terminology Bridge: Sens ↔ Al" .
+
+rx:OntologyHierarchy_PenicillinBetaLactam
+    a owl:NamedIndividual ;
+    rdfs:comment """
+        Ontological hierarchy (Eq. 4): Penicillin ⊑ β-lactam
+        Encoded as Merkle membership proof against committed subsumption closure of T.
+        Used to prove m ⊑ s without materializing root_Ct (per Definition 3).
+    """ ;
+    rdfs:label "Hierarchy: Penicillin ⊑ β-lactam" .

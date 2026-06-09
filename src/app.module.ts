@@ -17,6 +17,10 @@ import blockchainConfig from './config/blockchain/blockchain.config';
 import challengesConfig from './config/challenges/challenges.config';
 import { OracleBaseModule } from './shared/realtime/base.module';
 import { RdfModule } from './modules/rdf/rdf.module';
+import { RxGovernanceModule } from './modules/rx-governance/rx-governance.module';
+
+// Oracle modules require all BLOCKCHAIN_* env vars — skip them when not configured
+const blockchainEnabled = !!process.env.BLOCKCHAIN_RPC_URL;
 
 @Module({
   imports: [
@@ -38,9 +42,9 @@ import { RdfModule } from './modules/rdf/rdf.module';
     ChallengeInstanceModule,
     ChallengeEvidenceModule,
     AttestationModule,
-    OracleVerificationModule,
-    OracleBaseModule,
-    RdfModule
+    ...(blockchainEnabled ? [OracleVerificationModule, OracleBaseModule] : []),
+    RdfModule,
+    RxGovernanceModule,
   ],
   controllers: [AppController],
   providers: [AppService],

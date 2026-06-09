@@ -1,9 +1,10 @@
 import { ChainlinkFunctionsOptions } from './chainlink-functions-options.type';
 
 export type BlockchainConfig = {
-  rpcUrl: string;
-  wsUrl: string;
-  privateKey: string;
-  consumerAddress: string;
+  enabled: boolean;
+  rpcUrl: string | undefined;
+  wsUrl: string | undefined;
+  privateKey: string | undefined;
+  consumerAddress: string | undefined;
   chainlink: ChainlinkFunctionsOptions;
 };

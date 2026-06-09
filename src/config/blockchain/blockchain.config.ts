@@ -9,14 +9,28 @@ export function getConfig(): BlockchainConfig {
   const consumerAddress = process.env.ORACLE_CONSUMER_ADDRESS;
   const subscriptionIdStr = process.env.CHAINLINK_SUBSCRIPTION_ID;
   const gasLimitStr = process.env.CHAINLINK_GAS_LIMIT || '300000';
-  const wsUrl = process.env.BLOCKCHAIN_WS_URL; // <-- new environment variable
+  const wsUrl = process.env.BLOCKCHAIN_WS_URL;
 
-  if (!rpcUrl) throw new Error('BLOCKCHAIN_RPC_URL is required');
-  if (!wsUrl) throw new Error('BLOCKCHAIN_WS_URL is required'); // ensure WS URL exists
-  if (!privateKey) throw new Error('BLOCKCHAIN_PRIVATE_KEY is required');
-  if (!consumerAddress) throw new Error('ORACLE_CONSUMER_ADDRESS is required');
-  if (!subscriptionIdStr || !isNumberString(subscriptionIdStr)) {
-    throw new Error('CHAINLINK_SUBSCRIPTION_ID must be a valid number');
+  const missing = [
+    !rpcUrl && 'BLOCKCHAIN_RPC_URL',
+    !wsUrl && 'BLOCKCHAIN_WS_URL',
+    !privateKey && 'BLOCKCHAIN_PRIVATE_KEY',
+    !consumerAddress && 'ORACLE_CONSUMER_ADDRESS',
+    (!subscriptionIdStr || !isNumberString(subscriptionIdStr)) && 'CHAINLINK_SUBSCRIPTION_ID',
+  ].filter(Boolean);
+
+  if (missing.length > 0) {
+    Logger.warn(
+      `BlockchainConfig: missing vars [${missing.join(', ')}] — oracle features disabled.`,
+    );
+    return {
+      enabled: false,
+      rpcUrl: undefined,
+      wsUrl: undefined,
+      privateKey: undefined,
+      consumerAddress: undefined,
+      chainlink: { subscriptionId: 0, gasLimit: 0, donId: undefined },
+    };
   }
 
   const subscriptionId = Number(subscriptionIdStr);
@@ -29,6 +43,7 @@ export function getConfig(): BlockchainConfig {
   }
 
   return {
+    enabled: true,
     rpcUrl,
     wsUrl,
     privateKey,
@@ -36,7 +51,7 @@ export function getConfig(): BlockchainConfig {
     chainlink: {
       subscriptionId,
       gasLimit,
-      donId: process.env.CHAINLINK_DON_ID, // optional
+      donId: process.env.CHAINLINK_DON_ID,
     },
   };
 }
