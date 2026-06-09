@@ -36,16 +36,15 @@ export class OracleListenerService implements OnModuleInit, OnModuleDestroy {
     private readonly dkgService: DkgService,
     private readonly eventEmitter: EventEmitter2,
   ) {
-    const { rpcUrl, consumerAddress } = this.config.get('blockchain', {
-      infer: true,
-    });
+    const blockchain = this.config.get('blockchain', { infer: true });
 
-    this.rpcUrl = rpcUrl;
-    this.consumerAddress = consumerAddress;
+    this.rpcUrl = blockchain.rpcUrl;
+    this.consumerAddress = blockchain.consumerAddress;
     this.challengeIndex = this.config.get('challenges.challengeIndex', {
       infer: true,
     });
 
+    if (!blockchain.enabled) return;
     this.createProvider();
   }
 
