@@ -58,7 +58,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.3",
     "compression": "^1.8.1",
-    "dkg.js": "8.2.2",
+    "dkg.js": "8.2.4",
     "es6-shim": "^0.35.8",
     "ethers": "^6.16.0",
     "fastify": "^5.4.0",

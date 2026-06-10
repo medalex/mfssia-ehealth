@@ -1,6 +1,10 @@
 # ---- STAGE 1: deps ----
 FROM node:20-alpine AS deps
 WORKDIR /usr/src/app
+# toolchain for native modules (e.g. bufferutil) that have no musl/arm64 prebuilds;
+# global rollup so dkg.js postinstall's `npx rollup` doesn't re-install it (breaks on arm64)
+RUN apk add --no-cache python3 make g++ \
+ && npm install -g rollup@4
 COPY package.json package-lock.json ./
 RUN npm install --legacy-peer-deps
 
