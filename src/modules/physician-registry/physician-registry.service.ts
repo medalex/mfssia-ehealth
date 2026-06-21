@@ -3,10 +3,10 @@ import { createHash } from 'crypto';
 import { buildPoseidon } from 'circomlibjs';
 import { DkgService } from '@/providers/dkg/dkg.service';
 
-const MERKLE_DEPTH = 3; // 8 листьев, совпадает с circuit
+const MERKLE_DEPTH = 3; // 8 leaves, matches the circuit
 
-// Детерминированный хеш: SHA256(licenseNumber), первые 31 байт → BN254 field element.
-// Та же формула что stringToField в ehealth-zkp-prover.
+// Deterministic hash: SHA256(licenseNumber), first 31 bytes → BN254 field element.
+// Same formula as stringToField in ehealth-zkp-prover.
 function computeCredentialHash(licenseNumber: string): bigint {
   const h = createHash('sha256').update(licenseNumber, 'utf8').digest('hex');
   return BigInt('0x' + h.slice(0, 62));
@@ -27,8 +27,8 @@ export interface MerkleProof {
   pathBits: number[];
 }
 
-// Реестр лицензированных врачей — источник истины для ZKP-верификации credential.
-// ID совпадают с теми что сеятся в ehealth-hospital-api (Seeder.cs).
+// Licensed physician registry — source of truth for ZKP credential verification.
+// IDs match those seeded in ehealth-hospital-api (Seeder.cs).
 const PHYSICIAN_REGISTRY_SEED = [
   { id: '00000000-0000-0000-0002-000000000001', firstName: 'James',   lastName: 'Wilson',  specialty: 'General Practitioner', licenseNumber: 'MED-LIC-2024-001' },
   { id: '00000000-0000-0000-0002-000000000002', firstName: 'Sarah',   lastName: 'Chen',    specialty: 'Endocrinologist',      licenseNumber: 'MED-LIC-2024-002' },
@@ -50,13 +50,13 @@ export class PhysicianRegistryService implements OnModuleInit {
   async onModuleInit() {
     this.poseidon = await buildPoseidon();
 
-    // Строим список врачей с credential hash
+    // Build physician list with credential hashes
     this.physicians = PHYSICIAN_REGISTRY_SEED.map((p) => ({
       ...p,
       credentialHash: computeCredentialHash(p.licenseNumber).toString(),
     }));
 
-    // Строим Poseidon Merkle tree глубины 3 (8 листьев)
+    // Build Poseidon Merkle tree of depth 3 (8 leaves)
     const size = 1 << MERKLE_DEPTH;
     const leaves: bigint[] = Array.from({ length: size }, (_, i) =>
       i < this.physicians.length ? BigInt(this.physicians[i].credentialHash) : 0n,
@@ -75,7 +75,7 @@ export class PhysicianRegistryService implements OnModuleInit {
 
     this.logger.log(`Physician registry built: ${this.physicians.length} doctors, root=${this.merkleRoot}`);
 
-    // Публикуем корень в DKG (идемпотентно: проверяем перед записью)
+    // Publish root to DKG (idempotent: check before writing)
     await this.publishRootToDkg();
   }
 
@@ -83,11 +83,11 @@ export class PhysicianRegistryService implements OnModuleInit {
     return this.poseidon.F.toObject(this.poseidon(inputs));
   }
 
-  // Публикует корень Меркле в DKG; при рестарте контейнера пропускает если уже есть
+  // Publishes the Merkle root to DKG; skips on container restart if already present
   private async publishRootToDkg(): Promise<void> {
     const rootStr = this.merkleRoot.toString();
 
-    // Проверяем — есть ли уже такой корень в DKG
+    // Check whether this root is already in DKG
     try {
       const sparql = `
         PREFIX mfssia: <https://mfssia.io/ontology/prescription#>
@@ -106,7 +106,7 @@ export class PhysicianRegistryService implements OnModuleInit {
       this.logger.warn(`DKG check failed, will attempt publish: ${e.message}`);
     }
 
-    // Публикуем корень реестра врачей как JSON-LD ассет
+    // Publish physician registry root as a JSON-LD asset
     try {
       const asset = {
         '@context': {

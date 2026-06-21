@@ -69,7 +69,7 @@ export const MFSSIA_CONTEXT = {
 
   mandatoryChallenges: {
     '@id': 'mfssia:mandatoryChallenge',
-    '@type': '@id', // ссылки на ChallengeDefinition assets
+    '@type': '@id', // references to ChallengeDefinition assets
   },
 
   optionalChallenges: {

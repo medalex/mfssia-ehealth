@@ -8,31 +8,31 @@ export class PhysicianRegistryController {
   constructor(private readonly service: PhysicianRegistryService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Список лицензированных врачей в реестре МФССИА' })
+  @ApiOperation({ summary: 'List all licensed physicians in the MFSSIA registry' })
   findAll() {
     return this.service.findAll();
   }
 
   @Get('merkle-root')
-  @ApiOperation({ summary: 'Корень Меркле дерева реестра врачей (публикуется в DKG)' })
+  @ApiOperation({ summary: 'Physician registry Merkle root (published to DKG)' })
   @ApiResponse({ status: 200, schema: { example: { root: '123456789...', dkgUal: 'urn:dkg:...' } } })
   getMerkleRoot() {
     return { root: this.service.getMerkleRoot(), dkgUal: this.service.getDkgUal() };
   }
 
   @Get(':id/merkle-proof')
-  @ApiOperation({ summary: 'Доказательство принадлежности врача к реестру (для ZKP прувера)' })
-  @ApiParam({ name: 'id', description: 'UUID врача' })
-  @ApiResponse({ status: 200, description: 'credentialHash + siblings + pathBits для circuit' })
-  @ApiResponse({ status: 404, description: 'Врач не найден в реестре' })
+  @ApiOperation({ summary: 'Physician registry membership proof (for ZKP prover)' })
+  @ApiParam({ name: 'id', description: 'Physician UUID' })
+  @ApiResponse({ status: 200, description: 'credentialHash + siblings + pathBits for the circuit' })
+  @ApiResponse({ status: 404, description: 'Physician not found in registry' })
   getMerkleProof(@Param('id') id: string) {
     return this.service.getMerkleProof(id);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Данные врача по ID' })
-  @ApiParam({ name: 'id', description: 'UUID врача' })
-  @ApiResponse({ status: 404, description: 'Врач не найден в реестре' })
+  @ApiOperation({ summary: 'Get physician data by ID' })
+  @ApiParam({ name: 'id', description: 'Physician UUID' })
+  @ApiResponse({ status: 404, description: 'Physician not found in registry' })
   findById(@Param('id') id: string) {
     return this.service.findById(id);
   }
