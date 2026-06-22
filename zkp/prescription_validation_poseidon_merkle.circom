@@ -157,7 +157,7 @@ template PrescriptionValidation(N_DRUGS, N_ALLERGIES, N_PRESC, BITLEN, MERKLE_DE
     signal input credentialSiblings[MERKLE_DEPTH];
     signal input credentialPathBits[MERKLE_DEPTH];
 
-    signal input approvedDrugIds[N_DRUGS];
+    signal input policyDrugIds[N_DRUGS];
     signal input childMaxDosages[N_DRUGS];
     signal input adultMaxDosages[N_DRUGS];
     signal input allergyMatrix[N_ALLERGIES][N_DRUGS];
@@ -233,10 +233,10 @@ template PrescriptionValidation(N_DRUGS, N_ALLERGIES, N_PRESC, BITLEN, MERKLE_DE
         adultSel[p].key <== prescribedDrugIds[p];
 
         for (var i1 = 0; i1 < N_DRUGS; i1++) {
-            childSel[p].keys[i1] <== approvedDrugIds[i1];
+            childSel[p].keys[i1] <== policyDrugIds[i1];
             childSel[p].values[i1] <== childMaxDosages[i1];
 
-            adultSel[p].keys[i1] <== approvedDrugIds[i1];
+            adultSel[p].keys[i1] <== policyDrugIds[i1];
             adultSel[p].values[i1] <== adultMaxDosages[i1];
         }
 
@@ -245,7 +245,7 @@ template PrescriptionValidation(N_DRUGS, N_ALLERGIES, N_PRESC, BITLEN, MERKLE_DE
             rowSel[p][a2].key <== prescribedDrugIds[p];
 
             for (var i2 = 0; i2 < N_DRUGS; i2++) {
-                rowSel[p][a2].keys[i2] <== approvedDrugIds[i2];
+                rowSel[p][a2].keys[i2] <== policyDrugIds[i2];
                 rowSel[p][a2].values[i2] <== allergyMatrix[a2][i2];
             }
             noConflictRow[p][a2] <== 1 - rowSel[p][a2].selected;
@@ -311,14 +311,14 @@ template PrescriptionValidation(N_DRUGS, N_ALLERGIES, N_PRESC, BITLEN, MERKLE_DE
 
 // Public inputs allow the on-chain verifier to bind the proof to:
 // - the governance-approved credential registry (validCredentialRoot)
-// - the governance-approved theory T parameters (approvedDrugIds, allergyMatrix, adultMaxDosages)
+// - the governance-approved theory T parameters (policyDrugIds, allergyMatrix, adultMaxDosages)
 // - the specific prescription instance (stmtHash, nonce)
 // stmtHash and prescriptionValid are signal outputs and are always public.
 component main {public [
     doctorCredentialHash,
     validCredentialRoot,
     nonce,
-    approvedDrugIds,
+    policyDrugIds,
     allergyMatrix,
     adultMaxDosages
 ]} = PrescriptionValidation(4, 3, 2, 16, 3);
@@ -343,7 +343,7 @@ INPUT =
     "1"
   ],
 
-  "approvedDrugIds": ["101", "102", "103", "104"],
+  "policyDrugIds": ["101", "102", "103", "104"],
   "childMaxDosages": ["10", "5", "8", "2"],
   "adultMaxDosages": ["20", "10", "16", "4"],
 

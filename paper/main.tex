@@ -1150,7 +1150,7 @@ The remainder of this subsection details each block formally.
   {\textit{validCredentialRoot}};
 \node[pub] (pu2) at (4.5, 2.5)
   {\textit{allergyMatrix}\\[-2pt]
-   \textit{adultMaxDosages}\\[-2pt]\textit{approvedDrugIds}};
+   \textit{adultMaxDosages}\\[-2pt]\textit{policyDrugIds}};
 \node[pub] (pu3) at (4.5, -0.5)
   {\textit{nonce}};
 
@@ -1363,7 +1363,7 @@ metadata:
 \mathit{doctorCredentialHash},\; \\
 \mathit{validCredentialRoot},\;
 \mathit{nonce},\;
-\mathit{approvedDrugIds},\; \\
+\mathit{policyDrugIds},\; \\
 \mathit{allergyMatrix},\;
 \mathit{adultMaxDosages}
 \,\rangle.
@@ -1387,7 +1387,7 @@ doctor's credential leaf;
 $\mathit{validCredentialRoot}$ pins the proof to the DKG-anchored
 credential registry~($\mathit{root}_M$);
 $\mathit{nonce}$ enforces per-workflow uniqueness; and
-$\mathit{approvedDrugIds}$, $\mathit{allergyMatrix}$,
+$\mathit{policyDrugIds}$, $\mathit{allergyMatrix}$,
 $\mathit{adultMaxDosages}$ pin the proof to the
 governance-approved policy parameters~$T$.
 
@@ -1752,7 +1752,7 @@ The public input vector submitted to the verifier is:
              \underbrace{555}_{\mathit{dCH}},\\
            &\underbrace{12637\ldots}_{\mathit{validCredentialRoot}},\;
             \underbrace{\mathit{XXX}}_{\mathit{nonce}},\\
-           &\underbrace{[101,102,103,104]}_{\mathit{approvedDrugIds}},\;
+           &\underbrace{[101,102,103,104]}_{\mathit{policyDrugIds}},\;
             \underbrace{[20,10,16,4]}_{\mathit{adultMaxDosages}},\\
            &\underbrace{[[0,0,1,0],\ldots]}_{\mathit{allergyMatrix}}\,].
 \end{align*}
@@ -2132,7 +2132,7 @@ $\sqsubseteq$ & Eq.~\ref{eq:subsumption} & Subsumption relation in the ontology 
 $\pi$;\; $\mathit{vk}, \mathit{pk}$ & \S~V-B & Zero-knowledge proof; verification and proving keys \\
 $w = \langle w_{\mathrm{cred}}, w_{\mathrm{refs}}, w_{\mathrm{stmt}}, w_{\mathrm{ont}}, w_{\mathrm{aux}} \rangle$ & Eq.~\ref{eq:witness-struct} & Private witness: credential, references, statement, ontology, auxiliary \\
 
-$\mathit{pub} = \langle \mathit{outcome}, \mathit{stmtHash}, \mathit{doctorCredentialHash},$\newline $\mathit{validCredentialRoot}, \mathit{nonce}, \mathit{approvedDrugIds}, \mathit{allergyMatrix}, \mathit{adultMaxDosages} \rangle$ & Eq.~\ref{eq:public-inputs} & Public input vector for on-chain verification \\
+$\mathit{pub} = \langle \mathit{outcome}, \mathit{stmtHash}, \mathit{doctorCredentialHash},$\newline $\mathit{validCredentialRoot}, \mathit{nonce}, \mathit{policyDrugIds}, \mathit{allergyMatrix}, \mathit{adultMaxDosages} \rangle$ & Eq.~\ref{eq:public-inputs} & Public input vector for on-chain verification \\
 
 $\mathit{stmtHash} = \mathrm{Poseidon}(\mathit{dCH},\,\mathit{nonce},\,\mathit{prescribedDrugIds},\,\mathit{prescribedDosages})$ & Eq.~\ref{eq:stmthash-instance} & In-circuit commitment binding prescription content and nonce \\
 
