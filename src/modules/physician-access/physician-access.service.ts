@@ -73,6 +73,7 @@ export class PhysicianAccessService {
     organizationId: string,
   ): Promise<boolean> {
     const nowIso = new Date().toISOString();
+    // Exclude consents that have a ConsentRevocation tombstone (append-only revocation).
     const sparql = `
       PREFIX rx: <https://mfssia.io/ontology/prescription#>
       PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
@@ -82,6 +83,7 @@ export class PhysicianAccessService {
            rx:consentCovers "${organizationId}" ;
            rx:validUntil ?validUntil .
         FILTER(?validUntil > "${nowIso}"^^xsd:dateTime)
+        FILTER NOT EXISTS { ?rev rx:revokes ?c }
       }
     `;
 
