@@ -21,6 +21,7 @@ import { RxGovernanceModule } from './modules/rx-governance/rx-governance.module
 import { PhysicianRegistryModule } from './modules/physician-registry/physician-registry.module';
 import { ConsentAccessModule } from './modules/consent-access/consent-access.module';
 import { PhysicianAccessModule } from './modules/physician-access/physician-access.module';
+import { ConsentModule } from './modules/consent/consent.module';
 
 // Oracle modules require all BLOCKCHAIN_* env vars — skip them when not configured
 const blockchainEnabled = !!process.env.BLOCKCHAIN_RPC_URL;
@@ -51,6 +52,7 @@ const blockchainEnabled = !!process.env.BLOCKCHAIN_RPC_URL;
     PhysicianRegistryModule,
     ConsentAccessModule,
     PhysicianAccessModule,
+    ConsentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
