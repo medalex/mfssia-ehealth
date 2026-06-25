@@ -19,6 +19,7 @@ import { OracleBaseModule } from './shared/realtime/base.module';
 import { RdfModule } from './modules/rdf/rdf.module';
 import { RxGovernanceModule } from './modules/rx-governance/rx-governance.module';
 import { PhysicianRegistryModule } from './modules/physician-registry/physician-registry.module';
+import { ConsentAccessModule } from './modules/consent-access/consent-access.module';
 
 // Oracle modules require all BLOCKCHAIN_* env vars — skip them when not configured
 const blockchainEnabled = !!process.env.BLOCKCHAIN_RPC_URL;
@@ -47,6 +48,7 @@ const blockchainEnabled = !!process.env.BLOCKCHAIN_RPC_URL;
     RdfModule,
     RxGovernanceModule,
     PhysicianRegistryModule,
+    ConsentAccessModule,
   ],
   controllers: [AppController],
   providers: [AppService],
