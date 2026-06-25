@@ -14,13 +14,25 @@ export class PublishJsonLdDto {
   @IsNotEmpty()
   type: string;
 
-  @ApiProperty({ example: { patientId: '...', substance: 'Penicillin' }, required: false })
+  @ApiProperty({ example: { snomedCode: '372687004', hasMetric: 'eGFR' }, required: false })
   @IsObject()
   @IsOptional()
   literals?: Record<string, string>;
 
-  @ApiProperty({ example: { recordedAt: '2026-06-25T19:35:00.000Z' }, required: false })
+  @ApiProperty({ example: { hasTimestamp: '2026-06-25T19:35:00.000Z' }, required: false })
   @IsObject()
   @IsOptional()
   dateTimes?: Record<string, string>;
+
+  // Object properties — values are IRIs (e.g. "rx:Penicillin", "urn:patient:..").
+  @ApiProperty({ example: { hasPatient: 'urn:patient:..', hasSubstance: 'rx:Penicillin' }, required: false })
+  @IsObject()
+  @IsOptional()
+  iris?: Record<string, string>;
+
+  // xsd:decimal typed literals (e.g. lab values).
+  @ApiProperty({ example: { hasValue: '45' }, required: false })
+  @IsObject()
+  @IsOptional()
+  decimals?: Record<string, string>;
 }

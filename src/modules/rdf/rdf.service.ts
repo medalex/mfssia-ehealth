@@ -38,6 +38,13 @@ export class RdfService {
     for (const [k, v] of Object.entries(dto.dateTimes ?? {})) {
       asset[`rx:${k}`] = { '@value': String(v), '@type': 'xsd:dateTime' };
     }
+    // Object properties → IRI references (rx:Penicillin, urn:patient:..)
+    for (const [k, v] of Object.entries(dto.iris ?? {})) {
+      asset[`rx:${k}`] = { '@id': String(v) };
+    }
+    for (const [k, v] of Object.entries(dto.decimals ?? {})) {
+      asset[`rx:${k}`] = { '@value': String(v), '@type': 'xsd:decimal' };
+    }
     const res = await this.dkgService.createAsset(asset as any);
     return res.UAL;
   }
