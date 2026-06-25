@@ -18,6 +18,7 @@ export interface Physician {
   lastName: string;
   specialty: string;
   licenseNumber: string;
+  organizationId: string; // employing organization — checked against consentCovers in C-DOC-AUTHZ
   credentialHash: string;
 }
 
@@ -30,9 +31,9 @@ export interface MerkleProof {
 // Licensed physician registry — source of truth for ZKP credential verification.
 // IDs match those seeded in ehealth-hospital-api (Seeder.cs).
 const PHYSICIAN_REGISTRY_SEED = [
-  { id: '00000000-0000-0000-0002-000000000001', firstName: 'James',   lastName: 'Wilson',  specialty: 'General Practitioner', licenseNumber: 'MED-LIC-2024-001' },
-  { id: '00000000-0000-0000-0002-000000000002', firstName: 'Sarah',   lastName: 'Chen',    specialty: 'Endocrinologist',      licenseNumber: 'MED-LIC-2024-002' },
-  { id: '00000000-0000-0000-0002-000000000003', firstName: 'Michael', lastName: 'Roberts', specialty: 'Pulmonologist',        licenseNumber: 'MED-LIC-2024-003' },
+  { id: '00000000-0000-0000-0002-000000000001', firstName: 'James',   lastName: 'Wilson',  specialty: 'General Practitioner', licenseNumber: 'MED-LIC-2024-001', organizationId: 'hospital-1' },
+  { id: '00000000-0000-0000-0002-000000000002', firstName: 'Sarah',   lastName: 'Chen',    specialty: 'Endocrinologist',      licenseNumber: 'MED-LIC-2024-002', organizationId: 'hospital-1' },
+  { id: '00000000-0000-0000-0002-000000000003', firstName: 'Michael', lastName: 'Roberts', specialty: 'Pulmonologist',        licenseNumber: 'MED-LIC-2024-003', organizationId: 'hospital-1' },
 ];
 
 @Injectable()
