@@ -1,5 +1,6 @@
 import { Controller, Post, Get, Body, Headers, Query, HttpCode } from '@nestjs/common';
 import { RdfService } from './rdf.service';
+import { PublishJsonLdDto } from './dto/publish-jsonld.dto';
 import { ApiBody, ApiConsumes, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('rdf')
@@ -18,6 +19,13 @@ export class RdfController {
     @Headers('content-type') contentType: string,
   ) {
     return { UAL: await this.rdfService.ingest(rdf, contentType) };
+  }
+
+  @Post('jsonld')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Publish an rx:<type> asset as queryable JSON-LD' })
+  async ingestJsonLd(@Body() dto: PublishJsonLdDto) {
+    return { UAL: await this.rdfService.publishJsonLd(dto) };
   }
 
   @Post('query')
