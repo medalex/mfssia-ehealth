@@ -3,10 +3,14 @@ import { buildPoseidon } from 'circomlibjs';
 import { DkgService } from '@/providers/dkg/dkg.service';
 
 const CONTRA_DEPTH = 4; // 16 leaves; holds the N_SUBST × N_DRUGS pairs
-const N_DRUGS = 3;      // Metformin=0, Penicillin=1, Amoxicillin=2
+const N_DRUGS = 3;      // substance/drug index space: Metformin=0, Penicillin=1, Amoxicillin=2
+
+// Real drug ids per drug index — the circuit's contra leaf uses prescribedDrugIds (real ids),
+// so the committed leaf must use the same: leaf = Poseidon(substanceId, DRUG_IDS[d], value).
+const DRUG_IDS = [105, 103, 107]; // 0=Metformin, 1=Penicillin, 2=Amoxicillin
 
 // Materialized contraindication closure (governance-approved subsumption, paper §III).
-// CONTRA[substanceId][drugId] = 1 if an allergy to the substance contraindicates the drug.
+// CONTRA[substanceId][drugIndex] = 1 if an allergy to the substance contraindicates the drug.
 // β-lactam cross-reactivity: Penicillin allergy ⟹ Penicillin + Amoxicillin contraindicated.
 const CONTRA: number[][] = [
   /* Metformin(0)   */ [1, 0, 0],
@@ -39,12 +43,12 @@ export class ContraindicationService implements OnModuleInit {
   async onModuleInit() {
     this.poseidon = await buildPoseidon();
 
-    // Leaf index = substanceId * N_DRUGS + drugId.
+    // Leaf index = substanceId * N_DRUGS + drugIndex; leaf uses the REAL drug id.
     const size = 1 << CONTRA_DEPTH;
     const leaves: bigint[] = Array.from({ length: size }, () => 0n);
     for (let s = 0; s < N_DRUGS; s++) {
       for (let d = 0; d < N_DRUGS; d++) {
-        leaves[s * N_DRUGS + d] = this.leafFor(s, d, CONTRA[s][d]);
+        leaves[s * N_DRUGS + d] = this.leafFor(s, DRUG_IDS[d], CONTRA[s][d]);
       }
     }
 
@@ -65,23 +69,25 @@ export class ContraindicationService implements OnModuleInit {
     return this.poseidon.F.toObject(this.poseidon(inputs));
   }
 
-  // leaf = Poseidon(substanceId, drugId, value)
-  private leafFor(substanceId: number, drugId: number, value: number): bigint {
-    return this.poseidonHash([BigInt(substanceId), BigInt(drugId), BigInt(value)]);
+  // leaf = Poseidon(substanceId, realDrugId, value)
+  private leafFor(substanceId: number, realDrugId: number, value: number): bigint {
+    return this.poseidonHash([BigInt(substanceId), BigInt(realDrugId), BigInt(value)]);
   }
 
   getRoot(): string {
     return this.root.toString();
   }
 
+  // drugId is the REAL prescribed drug id (105/103/107), matching the circuit.
   getProof(substanceId: number, drugId: number): ContraindicationProof {
-    if (substanceId < 0 || substanceId >= N_DRUGS || drugId < 0 || drugId >= N_DRUGS) {
-      throw new NotFoundException(`No contraindication leaf for (${substanceId}, ${drugId})`);
+    const drugIndex = DRUG_IDS.indexOf(drugId);
+    if (substanceId < 0 || substanceId >= N_DRUGS || drugIndex < 0) {
+      throw new NotFoundException(`No contraindication leaf for (substance ${substanceId}, drug ${drugId})`);
     }
-    const value = CONTRA[substanceId][drugId];
+    const value = CONTRA[substanceId][drugIndex];
     const siblings: string[] = [];
     const pathBits: number[] = [];
-    let idx = substanceId * N_DRUGS + drugId;
+    let idx = substanceId * N_DRUGS + drugIndex;
     for (let d = 0; d < CONTRA_DEPTH; d++) {
       const sibIdx = idx % 2 === 0 ? idx + 1 : idx - 1;
       siblings.push(this.tree[d][sibIdx].toString());

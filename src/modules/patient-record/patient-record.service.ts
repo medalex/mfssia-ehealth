@@ -16,6 +16,7 @@ const SUBSTANCE_IDX: Record<string, number> = {
 
 export interface PatientRecordProof {
   substances: string[];          // active allergy substance names (for the prover's contraindication step)
+  substanceIds: number[];        // active substance ids (for fetching contraindication proofs)
   patientRecordRoot: string;
   refLeaf: string[];             // N_MAX leaves (active + zero padding)
   refSiblings: string[][];       // N_MAX × MERKLE_DEPTH
@@ -129,6 +130,7 @@ export class PatientRecordService implements OnModuleInit {
 
     return {
       substances: allergies,
+      substanceIds: allergies.map((s) => SUBSTANCE_IDX[s.toLowerCase()] ?? -1),
       patientRecordRoot: root.toString(),
       refLeaf: leafValues.map((v) => v.toString()),
       refSiblings,
