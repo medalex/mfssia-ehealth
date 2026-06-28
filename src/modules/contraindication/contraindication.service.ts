@@ -78,6 +78,11 @@ export class ContraindicationService implements OnModuleInit {
     return this.root.toString();
   }
 
+  // Governance drug formulary (real drug ids) — the verifier pins policyDrugIds to this.
+  getDrugIds(): number[] {
+    return [...DRUG_IDS];
+  }
+
   // drugId is the REAL prescribed drug id (105/103/107), matching the circuit.
   getProof(substanceId: number, drugId: number): ContraindicationProof {
     const drugIndex = DRUG_IDS.indexOf(drugId);

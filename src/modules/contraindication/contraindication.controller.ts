@@ -13,6 +13,12 @@ export class ContraindicationController {
     return { contraindicationRoot: this.service.getRoot() };
   }
 
+  @Get('drugs')
+  @ApiOperation({ summary: 'Governance drug formulary (real drug ids) for verifier pinning' })
+  getDrugs() {
+    return { drugIds: this.service.getDrugIds() };
+  }
+
   @Get('proof')
   @ApiOperation({
     summary: 'Membership proof that (substanceId, drugId) → value is in the committed closure',
