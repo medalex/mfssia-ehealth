@@ -8,9 +8,11 @@ export class LabRecordController {
   constructor(private readonly service: LabRecordService) {}
 
   @Get(':patientId')
-  @ApiOperation({ summary: "Patient lab measurements read from the DKG graph (rx:LabResult)" })
+  @ApiOperation({
+    summary: 'Patient lab record from DKG: Merkle root + per-measurement membership proofs',
+  })
   @ApiParam({ name: 'patientId', description: 'Patient UUID' })
-  getResults(@Param('patientId') patientId: string) {
-    return this.service.getResults(patientId);
+  getProof(@Param('patientId') patientId: string) {
+    return this.service.getProof(patientId);
   }
 }
