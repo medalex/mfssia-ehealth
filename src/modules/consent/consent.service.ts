@@ -24,8 +24,11 @@ export class ConsentService {
       '@type': 'rx:DataSharingConsent',
       'rx:patient': dto.patientId,
       'rx:consentCovers': dto.organizationId,
-      'rx:grantedAt': { '@value': dto.grantedAt, '@type': 'xsd:dateTime' },
-      'rx:validUntil': { '@value': dto.validUntil, '@type': 'xsd:dateTime' },
+      // Normalise to canonical ISO 8601 (millisecond precision, 'Z'). Non-canonical
+      // forms (e.g. .NET "O": 7 fractional digits + "+00:00") are not matched by the
+      // gate's FILTER(?validUntil > ...^^xsd:dateTime), so always re-emit canonically.
+      'rx:grantedAt': { '@value': new Date(dto.grantedAt).toISOString(), '@type': 'xsd:dateTime' },
+      'rx:validUntil': { '@value': new Date(dto.validUntil).toISOString(), '@type': 'xsd:dateTime' },
     };
     const res = await this.dkgService.createAsset(asset as any);
     this.logger.log(
