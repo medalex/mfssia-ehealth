@@ -22,12 +22,28 @@ export class PhysicianAccessService {
   private readonly logger = new Logger(PhysicianAccessService.name);
   private static readonly CHALLENGE_SET = 'ConsentAccessSet';
 
+  // Recent gate decisions (in-memory ring buffer) so the monitor can show the latest
+  // real physician↔patient check instead of a synthetic sample.
+  private readonly recent: Array<AccessDecision & { doctorId: string; patientId: string; at: string }> = [];
+
   constructor(
     private readonly dkgService: DkgService,
     private readonly registry: PhysicianRegistryService,
   ) {}
 
   async checkAccess(doctorId: string, patientId: string): Promise<AccessDecision> {
+    const decision = await this.evaluate(doctorId, patientId);
+    this.recent.unshift({ ...decision, doctorId, patientId, at: new Date().toISOString() });
+    if (this.recent.length > 20) this.recent.pop();
+    return decision;
+  }
+
+  // Latest gate decisions, most recent first.
+  getRecent(limit = 10): unknown[] {
+    return this.recent.slice(0, limit);
+  }
+
+  private async evaluate(doctorId: string, patientId: string): Promise<AccessDecision> {
     // Fresh per-request nonce (challenge instance) — liveness / replay protection
     const nonce = `0x${crypto.randomBytes(16).toString('hex')}`;
 
