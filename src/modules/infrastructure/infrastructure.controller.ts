@@ -10,7 +10,7 @@ import { HealthResponseDto, HealthService } from './healthcheck/health.service';
 import { NodeInfoResponseDto } from './node.-info.dto';
 
 @ApiTags('Infrastructure')
-@Controller('/api/infrastructure')
+@Controller('infrastructure')
 export class InfrastructureController {
   constructor(
     private readonly infrastructureService: InfrastructureService,

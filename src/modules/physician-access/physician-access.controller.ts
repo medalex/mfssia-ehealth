@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Param } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { PhysicianAccessService } from './physician-access.service';
 import { CheckAccessDto } from './dto/check-access.dto';
@@ -12,6 +12,18 @@ export class PhysicianAccessController {
   @ApiOperation({ summary: 'Recent ConsentAccessSet challenge/response decisions (latest first)' })
   recent(@Query('limit') limit?: string) {
     return this.service.getRecent(limit ? Number(limit) : 10);
+  }
+
+  @Get('consents/:patientId')
+  @ApiOperation({ summary: 'DataSharingConsent documents (reconstructed from DKG) for a patient' })
+  async getConsents(@Param('patientId') patientId: string) {
+    return await this.service.getConsentDocuments(patientId);
+  }
+
+  @Get('challenge-docs')
+  @ApiOperation({ summary: 'Challenge documents for ConsentAccessSet (governance side)' })
+  getChallengeDocs() {
+    return this.service.getChallengeDocuments();
   }
 
   @Post('check')
