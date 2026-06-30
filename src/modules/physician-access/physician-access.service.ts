@@ -2,6 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { DkgService } from '@/providers/dkg/dkg.service';
 import { PhysicianRegistryService } from '../physician-registry/physician-registry.service';
+import {
+  CHALLENGE_AUTH,
+  CHALLENGE_AUTHZ,
+  CONSENT_ACCESS_SET,
+} from '../consent-access/consent-access.challenges';
 
 export interface AccessDecision {
   access: boolean; // ALL_MANDATORY: authN AND authZ
@@ -41,6 +46,45 @@ export class PhysicianAccessService {
   // Latest gate decisions, most recent first.
   getRecent(limit = 10): unknown[] {
     return this.recent.slice(0, limit);
+  }
+
+  // The governance challenge documents as anchored in the DKG (challenge side).
+  getChallengeDocuments() {
+    return { set: CONSENT_ACCESS_SET, factors: [CHALLENGE_AUTH, CHALLENGE_AUTHZ] };
+  }
+
+  // The patient's DataSharingConsent documents reconstructed from the DKG (response side).
+  async getConsentDocuments(patientId: string): Promise<unknown[]> {
+    const sparql = `
+      PREFIX rx: <https://mfssia.io/ontology/prescription#>
+      SELECT ?c ?org ?grantedAt ?validUntil WHERE {
+        ?c a rx:DataSharingConsent ;
+           rx:patient "${patientId}" ;
+           rx:consentCovers ?org ;
+           rx:validUntil ?validUntil .
+        OPTIONAL { ?c rx:grantedAt ?grantedAt }
+        FILTER NOT EXISTS { ?rev rx:revokes ?c }
+      }
+    `;
+    const clean = (v: any): string => {
+      const s = typeof v === 'string' ? v : (v?.value ?? '');
+      return s.replace(/\^\^.*$/, '').replace(/^"|"$/g, '');
+    };
+    try {
+      const result = (await this.dkgService.findAssets(sparql)) as any;
+      const rows = result?.data ?? result ?? [];
+      return (Array.isArray(rows) ? rows : []).map((r: any) => ({
+        '@type': 'rx:DataSharingConsent',
+        '@id': clean(r.c),
+        'rx:patient': patientId,
+        'rx:consentCovers': clean(r.org),
+        'rx:grantedAt': clean(r.grantedAt),
+        'rx:validUntil': clean(r.validUntil),
+      }));
+    } catch (e: any) {
+      this.logger.warn(`Consent document lookup failed: ${e.message}`);
+      return [];
+    }
   }
 
   private async evaluate(doctorId: string, patientId: string): Promise<AccessDecision> {
