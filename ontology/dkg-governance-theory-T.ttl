@@ -198,3 +198,33 @@ rx:PolicyAmoxicillinAge
     rx:deltaMax          7776000 ;                 # Δmax = 90 days
     rdfs:label           "Pol(Amoxicillin, age, ≥, 2)" ;
     prov:generatedAtTime "2026-04-08T00:00:00"^^xsd:dateTime .
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 5 — NUMERIC ALIGNMENT BRIDGES  (governance-approved; resolve unit conflicts)
+#     value(toUnit) = value(fromUnit) × conversionFactor.
+#     A LabResult whose (metric, unit) has NO bridge here → AttrValue undefined →
+#     semantic conflict → escalated to the DAO, which votes to add the bridge to T.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── Bridge-1: creatinine  µmol/L → mg/dL  (× 0.0113122, i.e. ÷ 88.42) ─────────
+# Two labs report the same creatinine test in different standards; this bridge
+# normalises µmol/L onto the governed mg/dL scale so the eGFR-derived checks align.
+rx:BridgeCreatinineUmolToMgdl
+    a                    rx:NumericBridge, owl:NamedIndividual ;
+    rx:bridgeMetric      "creatinine" ;
+    rx:fromUnit          "umol/L" ;
+    rx:toUnit            "mg/dL" ;
+    rx:conversionFactor  "0.0113122"^^xsd:decimal ;   # 1 mg/dL = 88.42 µmol/L
+    rdfs:label           "Bridge(creatinine, µmol/L → mg/dL, ×0.0113122)" ;
+    prov:generatedAtTime "2026-04-08T00:00:00"^^xsd:dateTime .
+
+# ── Bridge-2: glucose  mmol/L → mg/dL  (× 18.016) ────────────────────────────
+rx:BridgeGlucoseMmolToMgdl
+    a                    rx:NumericBridge, owl:NamedIndividual ;
+    rx:bridgeMetric      "glucose" ;
+    rx:fromUnit          "mmol/L" ;
+    rx:toUnit            "mg/dL" ;
+    rx:conversionFactor  "18.016"^^xsd:decimal ;
+    rdfs:label           "Bridge(glucose, mmol/L → mg/dL, ×18.016)" ;
+    prov:generatedAtTime "2026-04-08T00:00:00"^^xsd:dateTime .

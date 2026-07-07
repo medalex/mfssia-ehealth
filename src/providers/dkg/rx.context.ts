@@ -21,6 +21,15 @@ export const RX_CONTEXT = {
     '@type': 'xsd:integer',
   },
 
+  // ── Numeric alignment bridge ──────────────────────────────────────────────
+  bridgeMetric: 'rx:bridgeMetric',
+  fromUnit: 'rx:fromUnit',
+  toUnit: 'rx:toUnit',
+  conversionFactor: {
+    '@id': 'rx:conversionFactor',
+    '@type': 'xsd:decimal',
+  },
+
   // ── Shared metadata ───────────────────────────────────────────────────────
   name: 'rx:name',
   publishedAt: {

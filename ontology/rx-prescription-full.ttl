@@ -717,6 +717,41 @@ rx:ClinicalPolicy
     rdfs:label "ClinicalPolicy" ;
     rdfs:comment "Pol(m, t, op, θ). Published on the DKG as part of governance-approved theory T. Compiled into a range-check sub-circuit in PolicySatisfied." .
 
+# ── Numeric alignment bridge (numerical conflict resolution, paper §III) ──────
+rx:NumericBridge
+    a owl:Class ;
+    rdfs:subClassOf mfssia:SecurityPolicy ;
+    rdfs:label "NumericBridge" ;
+    rdfs:comment "Numeric alignment axiom. Maps a clinical metric reported in a non-governed unit/standard onto the single governance-approved scale via rx:conversionFactor, so PolicySatisfied can range-check LabResults from heterogeneous sources. Published on the DKG as part of theory T. A LabResult whose (metric, unit) has NO matching bridge makes AttrValue undefined -> semantic conflict escalated to the DAO." .
+
+rx:bridgeMetric
+    a owl:DatatypeProperty ;
+    rdfs:domain rx:NumericBridge ;
+    rdfs:range  xsd:string ;
+    rdfs:label  "bridgeMetric" ;
+    rdfs:comment "NumericBridge -> metric name t (matches rx:hasMetric / rx:clinicalCondition), e.g. 'creatinine'." .
+
+rx:fromUnit
+    a owl:DatatypeProperty ;
+    rdfs:domain rx:NumericBridge ;
+    rdfs:range  xsd:string ;
+    rdfs:label  "fromUnit" ;
+    rdfs:comment "Source (non-governed) unit/standard of the incoming LabResult, e.g. 'umol/L'." .
+
+rx:toUnit
+    a owl:DatatypeProperty ;
+    rdfs:domain rx:NumericBridge ;
+    rdfs:range  xsd:string ;
+    rdfs:label  "toUnit" ;
+    rdfs:comment "Governance-approved target scale the value is normalised to, e.g. 'mg/dL'." .
+
+rx:conversionFactor
+    a owl:DatatypeProperty ;
+    rdfs:domain rx:NumericBridge ;
+    rdfs:range  xsd:decimal ;
+    rdfs:label  "conversionFactor" ;
+    rdfs:comment "Multiplicative factor: value(toUnit) = value(fromUnit) * conversionFactor." .
+
 rx:EvaluationContext
     a owl:Class ;
     rdfs:subClassOf [
