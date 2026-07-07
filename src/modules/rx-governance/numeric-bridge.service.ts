@@ -1,14 +1,24 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { createHash } from 'crypto';
 import { DkgService } from '@/providers/dkg/dkg.service';
 import { IAssetResponse } from '@/interfaces/IAssetResponse';
 import { SemanticConflict } from './semantic-conflict.exception';
 import { RxBridgeDkgMapper } from './rx-bridge.dkg.mapper';
+import { lookupFactor } from './reference-conversions';
 
 export interface NumericBridge {
   metric: string;
   fromUnit: string;
   toUnit: string;
   factor: number;
+}
+
+export interface EscalationResult {
+  escalated: boolean;
+  proposalId?: number;
+  bridge: NumericBridge | { metric: string; fromUnit: string; toUnit: string; factor: null };
+  hash: string;
+  reason?: string;
 }
 
 @Injectable()
@@ -25,6 +35,9 @@ export class NumericBridgeService implements OnModuleInit {
     { metric: 'glucose', fromUnit: 'mmol/L', toUnit: 'mg/dL', factor: 18.016 },
   ];
 
+  // DAO governance HTTP API (on the dedicated EVM). Reads/writes bridge approvals.
+  private readonly evmUrl = process.env.EVM_URL ?? 'http://evm:3010';
+
   constructor(private readonly dkg: DkgService) {}
 
   async onModuleInit(): Promise<void> {
@@ -33,6 +46,81 @@ export class NumericBridgeService implements OnModuleInit {
     } catch (e: any) {
       this.logger.warn(`NumericBridge seed skipped: ${e.message}`);
     }
+  }
+
+  // Deterministic bytes32 commitment for a bridge (metric|from|to|factor).
+  // The DAO stores/checks this hash; the same value is used for propose + approval.
+  bridgeHash(b: { metric: string; fromUnit: string; toUnit: string; factor: number | null }): string {
+    const canon = `bridge|${b.metric}|${b.fromUnit}|${b.toUnit}|${b.factor ?? ''}`;
+    return '0x' + createHash('sha256').update(canon).digest('hex');
+  }
+
+  /**
+   * Auto-escalation: on a semantic conflict, look up a candidate conversion factor
+   * from the reference table and propose the bridge to the DAO. Approval still
+   * requires member votes — this only creates the proposal. If no candidate factor
+   * is known, a proposal is still opened but flagged for a human expert to supply it.
+   */
+  async escalate(metric: string, fromUnit: string, toUnit: string): Promise<EscalationResult> {
+    const factor = lookupFactor(metric, fromUnit, toUnit);
+    const bridge = { metric, fromUnit, toUnit, factor };
+    const hash = this.bridgeHash(bridge);
+
+    try {
+      const label = `bridge ${metric} ${fromUnit}→${toUnit}${factor !== null ? ` ×${factor}` : ' (needs expert)'}`;
+      const resp = await fetch(`${this.evmUrl}/governance/propose`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hash, member: 0, label, kind: 'bridge' }),
+      });
+      const body: any = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        return { escalated: false, bridge, hash, reason: body?.error ?? `HTTP ${resp.status}` };
+      }
+      this.logger.warn(
+        `escalated to DAO: bridge ${metric} ${fromUnit}->${toUnit} (factor ${factor ?? 'PENDING EXPERT'}) proposalId=${body.proposalId}`,
+      );
+      return {
+        escalated: true,
+        proposalId: body.proposalId,
+        bridge,
+        hash,
+        reason: factor === null ? 'candidate factor unknown — needs a human expert' : undefined,
+      };
+    } catch (e: any) {
+      this.logger.error(`DAO escalation failed: ${e.message}`);
+      return { escalated: false, bridge, hash, reason: e.message };
+    }
+  }
+
+  // Checks whether a bridge has been approved by the DAO (view call on the EVM).
+  async isDaoApproved(bridge: NumericBridge): Promise<boolean> {
+    try {
+      const resp = await fetch(`${this.evmUrl}/governance/approved`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hash: this.bridgeHash(bridge) }),
+      });
+      const body: any = await resp.json().catch(() => ({}));
+      return resp.ok && body?.approved === true;
+    } catch (e: any) {
+      this.logger.error(`DAO approval check failed: ${e.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Publishes a bridge to the DKG only if the DAO has approved it. Used for
+   * governance-added bridges (post-vote). Genesis bridges bypass this via the
+   * ungated publishBridge() during seeding.
+   */
+  async publishApprovedBridge(bridge: NumericBridge): Promise<IAssetResponse> {
+    if (!(await this.isDaoApproved(bridge))) {
+      throw new ForbiddenException(
+        `Bridge ${bridge.metric} ${bridge.fromUnit}->${bridge.toUnit} is not DAO-approved`,
+      );
+    }
+    return this.publishBridge(bridge);
   }
 
   // Publishes a numeric bridge to the DKG as a public governance asset, then
