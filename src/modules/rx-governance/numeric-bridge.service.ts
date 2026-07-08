@@ -188,18 +188,30 @@ export class NumericBridgeService implements OnModuleInit {
 
     const res: any = await this.dkg.findAssets(sparql);
     const rows = res?.data ?? res ?? [];
-    const val = (v: any) => (typeof v === 'string' ? v : v?.value);
+
+    // SPARQL returns RDF literals like "glucose" and "18.016"^^xsd:decimal —
+    // strip the surrounding quotes and any ^^datatype suffix.
+    const clean = (v: any): string => {
+      let s = typeof v === 'string' ? v : (v?.value ?? '');
+      const i = s.indexOf('^^');
+      if (i >= 0) s = s.slice(0, i);
+      return s.replace(/^"|"$/g, '');
+    };
 
     const bridges: NumericBridge[] = (Array.isArray(rows) ? rows : [])
       .map((r: any) => ({
-        metric: val(r.metric ?? r['?metric']),
-        fromUnit: val(r.fromUnit ?? r['?fromUnit']),
-        toUnit: val(r.toUnit ?? r['?toUnit']),
-        factor: Number(val(r.factor ?? r['?factor'])),
+        metric: clean(r.metric ?? r['?metric']),
+        fromUnit: clean(r.fromUnit ?? r['?fromUnit']),
+        toUnit: clean(r.toUnit ?? r['?toUnit']),
+        factor: Number(clean(r.factor ?? r['?factor'])),
       }))
       .filter((b) => b.metric && b.fromUnit && b.toUnit && Number.isFinite(b.factor));
 
-    this.cache = { at: Date.now(), bridges };
+    // Only cache non-empty results: the local DKG ot-node indexes asynchronously
+    // and can transiently return no rows for already-anchored assets. Caching an
+    // empty result would hide bridges for 30s; re-querying keeps DKG the source
+    // of truth without masking transient emptiness.
+    if (bridges.length > 0) this.cache = { at: Date.now(), bridges };
     return bridges;
   }
 
