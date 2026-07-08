@@ -128,10 +128,23 @@ export class NumericBridgeService implements OnModuleInit {
   async publishBridge(bridge: NumericBridge): Promise<IAssetResponse> {
     this.logger.log(`Publishing NumericBridge ${bridge.metric} ${bridge.fromUnit} -> ${bridge.toUnit} to DKG`);
     const dto = RxBridgeDkgMapper.toDkgDto(bridge);
-    const response = await this.dkg.createAsset(dto);
-    this.invalidate();
-    this.logger.log(`Bridge anchored: UAL=${response.UAL}`);
-    return response;
+
+    // Retry: the ot-node transiently refuses connections mid-publish.
+    const attempts = 3;
+    let lastErr: any;
+    for (let i = 0; i < attempts; i++) {
+      try {
+        const response = await this.dkg.createAsset(dto);
+        this.invalidate();
+        this.logger.log(`Bridge anchored: UAL=${response.UAL}`);
+        return response;
+      } catch (e: any) {
+        lastErr = e;
+        this.logger.warn(`bridge publish attempt ${i + 1}/${attempts} failed: ${e.message}`);
+        if (i < attempts - 1) await new Promise((r) => setTimeout(r, 2000));
+      }
+    }
+    throw lastErr;
   }
 
   // Publishes the default bridges, skipping any already present in the DKG (idempotent).
@@ -173,9 +186,31 @@ export class NumericBridgeService implements OnModuleInit {
   }
 
   // Reads the rx:NumericBridge alignment axioms from theory T on the DKG.
+  // The local DKG ot-node flaps (transient ECONNREFUSED and empty results for
+  // already-anchored assets), so retry a few times before giving up. Data stays
+  // DKG-sourced — this is resilience against ot-node flakiness, not a fallback.
   async queryBridges(): Promise<NumericBridge[]> {
     if (this.cache && Date.now() - this.cache.at < this.ttlMs) return this.cache.bridges;
 
+    const attempts = 4;
+    let bridges: NumericBridge[] = [];
+    for (let i = 0; i < attempts; i++) {
+      try {
+        bridges = await this.queryBridgesOnce();
+        if (bridges.length > 0) break;
+      } catch (e: any) {
+        this.logger.warn(`bridge query attempt ${i + 1}/${attempts} failed: ${e.message}`);
+      }
+      if (i < attempts - 1) await new Promise((r) => setTimeout(r, 1500));
+    }
+
+    // Cache only non-empty results — an empty response is likely a transient
+    // ot-node hiccup, not a genuinely empty registry.
+    if (bridges.length > 0) this.cache = { at: Date.now(), bridges };
+    return bridges;
+  }
+
+  private async queryBridgesOnce(): Promise<NumericBridge[]> {
     const sparql = `
       PREFIX rx: <https://mfssia.io/ontology/prescription#>
       SELECT ?metric ?fromUnit ?toUnit ?factor WHERE {
@@ -198,7 +233,7 @@ export class NumericBridgeService implements OnModuleInit {
       return s.replace(/^"|"$/g, '');
     };
 
-    const bridges: NumericBridge[] = (Array.isArray(rows) ? rows : [])
+    return (Array.isArray(rows) ? rows : [])
       .map((r: any) => ({
         metric: clean(r.metric ?? r['?metric']),
         fromUnit: clean(r.fromUnit ?? r['?fromUnit']),
@@ -206,13 +241,6 @@ export class NumericBridgeService implements OnModuleInit {
         factor: Number(clean(r.factor ?? r['?factor'])),
       }))
       .filter((b) => b.metric && b.fromUnit && b.toUnit && Number.isFinite(b.factor));
-
-    // Only cache non-empty results: the local DKG ot-node indexes asynchronously
-    // and can transiently return no rows for already-anchored assets. Caching an
-    // empty result would hide bridges for 30s; re-querying keeps DKG the source
-    // of truth without masking transient emptiness.
-    if (bridges.length > 0) this.cache = { at: Date.now(), bridges };
-    return bridges;
   }
 
   invalidate(): void {
