@@ -15,21 +15,31 @@ export class NumericBridgeController {
     return this.service.queryBridges();
   }
 
+  @Post('propose')
+  @ApiOperation({
+    summary: 'Propose a numeric alignment bridge to the DAO for approval',
+    description: 'Opens a governance proposal for a bridge (same lifecycle as policies). Members vote; on quorum the bridge can be published.',
+  })
+  @ApiResponse({ status: 201, description: '{ proposalId, ... }' })
+  async propose(@Body() body: { metric: string; fromUnit: string; toUnit: string; factor: number }) {
+    return this.service.proposeBridge(body);
+  }
+
   @Post()
   @ApiOperation({
-    summary: 'Publish a numeric alignment bridge to DKG',
+    summary: 'Publish a DAO-approved numeric alignment bridge to DKG',
     description:
-      'Anchors an rx:NumericBridge governance asset directly (same as publishing a ClinicalPolicy). Use this to add bridges manually. Set ?requireApproval=true to enforce the DAO gate (used after a conflict proposal reaches quorum).',
+      'Anchors an rx:NumericBridge governance asset — only if the DAO has approved it (403 otherwise). Set ?direct=true to bypass the gate (setup/genesis).',
   })
   @ApiResponse({ status: 201, description: 'UAL of the published bridge asset' })
-  @ApiResponse({ status: 403, description: 'requireApproval=true and the bridge is not DAO-approved' })
+  @ApiResponse({ status: 403, description: 'Bridge is not DAO-approved' })
   async publish(
     @Body() body: { metric: string; fromUnit: string; toUnit: string; factor: number },
-    @Query('requireApproval') requireApproval?: string,
+    @Query('direct') direct?: string,
   ) {
-    return requireApproval === 'true'
-      ? this.service.publishApprovedBridge(body)
-      : this.service.publishBridge(body);
+    return direct === 'true'
+      ? this.service.publishBridge(body)
+      : this.service.publishApprovedBridge(body);
   }
 
   @Post('normalize')

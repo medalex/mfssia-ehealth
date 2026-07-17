@@ -105,6 +105,22 @@ export class NumericBridgeService implements OnModuleInit {
     }
   }
 
+  // A DAO member proposes a fully-specified bridge (with factor) for approval —
+  // the manual counterpart to escalate() (which is auto-triggered by a conflict).
+  async proposeBridge(bridge: NumericBridge, member = 0): Promise<any> {
+    const hash = this.bridgeHash(bridge);
+    const label = `bridge ${bridge.metric} ${bridge.fromUnit}→${bridge.toUnit} ×${bridge.factor}`;
+    const resp = await fetch(`${this.evmUrl}/governance/propose`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hash, member, label, kind: 'bridge' }),
+    });
+    const body: any = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new ForbiddenException(body?.error ?? `propose failed (HTTP ${resp.status})`);
+    this.logger.warn(`bridge ${bridge.metric} ${bridge.fromUnit}->${bridge.toUnit} proposed to DAO: proposalId=${body.proposalId}`);
+    return body;
+  }
+
   /**
    * Publishes a bridge to the DKG only if the DAO has approved it. Used for
    * governance-added bridges (post-vote). Genesis bridges bypass this via the
