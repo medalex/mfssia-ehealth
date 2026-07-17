@@ -27,13 +27,9 @@ export class NumericBridgeService implements OnModuleInit {
   private cache: { at: number; bridges: NumericBridge[] } | null = null;
   private readonly ttlMs = 30_000;
 
-  // Governance-approved genesis bridges, seeded into the DKG on startup so
-  // normalize() works out of the box and survives a DKG reset. Mirrors the
-  // rx:NumericBridge individuals in ontology/dkg-governance-theory-T.ttl.
-  private readonly defaultBridges: NumericBridge[] = [
-    { metric: 'creatinine', fromUnit: 'umol/L', toUnit: 'mg/dL', factor: 0.0113122 },
-    { metric: 'glucose', fromUnit: 'mmol/L', toUnit: 'mg/dL', factor: 18.016 },
-  ];
+  // No bridges are seeded — they are added manually via POST /rx-governance/bridges
+  // (or through the DAO conflict-resolution flow) during the demo.
+  private readonly defaultBridges: NumericBridge[] = [];
 
   // DAO governance HTTP API (on the dedicated EVM). Reads/writes bridge approvals.
   private readonly evmUrl = process.env.EVM_URL ?? 'http://evm:3010';

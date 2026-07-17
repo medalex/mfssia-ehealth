@@ -1,4 +1,4 @@
-import { Body, ConflictException, Controller, Get, Post } from '@nestjs/common';
+import { Body, ConflictException, Controller, Get, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { NumericBridgeService } from './numeric-bridge.service';
 import { SemanticConflict } from './semantic-conflict.exception';
@@ -17,14 +17,19 @@ export class NumericBridgeController {
 
   @Post()
   @ApiOperation({
-    summary: 'Publish a DAO-approved numeric alignment bridge to DKG',
+    summary: 'Publish a numeric alignment bridge to DKG',
     description:
-      'Anchors an rx:NumericBridge governance asset — only if the DAO has approved it (403 otherwise). Called after a proposal reaches quorum.',
+      'Anchors an rx:NumericBridge governance asset directly (same as publishing a ClinicalPolicy). Use this to add bridges manually. Set ?requireApproval=true to enforce the DAO gate (used after a conflict proposal reaches quorum).',
   })
   @ApiResponse({ status: 201, description: 'UAL of the published bridge asset' })
-  @ApiResponse({ status: 403, description: 'Bridge is not DAO-approved' })
-  async publish(@Body() body: { metric: string; fromUnit: string; toUnit: string; factor: number }) {
-    return this.service.publishApprovedBridge(body);
+  @ApiResponse({ status: 403, description: 'requireApproval=true and the bridge is not DAO-approved' })
+  async publish(
+    @Body() body: { metric: string; fromUnit: string; toUnit: string; factor: number },
+    @Query('requireApproval') requireApproval?: string,
+  ) {
+    return requireApproval === 'true'
+      ? this.service.publishApprovedBridge(body)
+      : this.service.publishBridge(body);
   }
 
   @Post('normalize')

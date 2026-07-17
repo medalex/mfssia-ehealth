@@ -3,53 +3,15 @@ import { CreateClinicalPolicyDto } from './dto/create-clinical-policy.dto';
 import { RxPolicyDkgMapper } from './rx-policy.dkg.mapper';
 import { DkgService } from '@/providers/dkg/dkg.service';
 import { IAssetResponse } from '@/interfaces/IAssetResponse';
-import { ComparisonOperator } from '@/common/enums/comparison-operator.enum';
 
 @Injectable()
 export class RxGovernanceService implements OnModuleInit {
   private readonly logger = new Logger(RxGovernanceService.name);
 
-  // Governance-approved clinical policies seeded into the DKG on startup, so the circuit's
-  // dosage (P3) and lab (P6) policies actually enforce out of the box and survive a DKG
-  // reset. Dosage maxima keep the standard demo (Metformin dose 8) passing.
-  private readonly defaultPolicies: CreateClinicalPolicyDto[] = [
-    {
-      code: 'metformin-egfr',
-      name: 'Metformin requires eGFR >= 30',
-      medicationCode: 'metformin',
-      clinicalCondition: 'eGFR',
-      comparisonOperator: ComparisonOperator.GTE,
-      threshold: 30,
-      deltaMax: 7776000, // 90 days
-    },
-    {
-      code: 'metformin-maxdose',
-      name: 'Metformin max dose 20',
-      medicationCode: 'metformin',
-      clinicalCondition: 'maxDose',
-      comparisonOperator: ComparisonOperator.LTE,
-      threshold: 20,
-      deltaMax: 7776000,
-    },
-    {
-      code: 'penicillin-maxdose',
-      name: 'Penicillin max dose 10',
-      medicationCode: 'penicillin',
-      clinicalCondition: 'maxDose',
-      comparisonOperator: ComparisonOperator.LTE,
-      threshold: 10,
-      deltaMax: 7776000,
-    },
-    {
-      code: 'amoxicillin-maxdose',
-      name: 'Amoxicillin max dose 16',
-      medicationCode: 'amoxicillin',
-      clinicalCondition: 'maxDose',
-      comparisonOperator: ComparisonOperator.LTE,
-      threshold: 16,
-      deltaMax: 7776000,
-    },
-  ];
+  // No clinical policies are seeded — they are published live during the demo via
+  // POST /rx-governance/policies (governance UI), so "add a policy → it starts
+  // enforcing in the ZKP" can be shown end-to-end.
+  private readonly defaultPolicies: CreateClinicalPolicyDto[] = [];
 
   constructor(private readonly dkgService: DkgService) {}
 
