@@ -3,12 +3,14 @@ import { RxGovernanceService } from './rx-governance.service';
 import { RxGovernanceController } from './rx-governance.controller';
 import { NumericBridgeService } from './numeric-bridge.service';
 import { NumericBridgeController } from './numeric-bridge.controller';
+import { TerminologyBridgeService } from './terminology-bridge.service';
+import { TerminologyBridgeController } from './terminology-bridge.controller';
 import { DkgModule } from '@/providers/dkg/dkg.module';
 
 @Module({
   imports: [DkgModule],
-  providers: [RxGovernanceService, NumericBridgeService],
-  controllers: [RxGovernanceController, NumericBridgeController],
-  exports: [RxGovernanceService, NumericBridgeService],
+  providers: [RxGovernanceService, NumericBridgeService, TerminologyBridgeService],
+  controllers: [RxGovernanceController, NumericBridgeController, TerminologyBridgeController],
+  exports: [RxGovernanceService, NumericBridgeService, TerminologyBridgeService],
 })
 export class RxGovernanceModule {}

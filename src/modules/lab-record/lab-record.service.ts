@@ -9,6 +9,8 @@ export interface LabMeasurement {
   metric: string;
   metricId: string;        // stringToField(metric) — used in the leaf
   value: number;
+  unit: string;            // reporting unit (from the lab) — used for numeric-conflict detection
+  measuredBy?: string;     // reporting lab — so a conflict can name the two sources
   measuredAt: string | null;
   siblings: string[];      // LAB_DEPTH membership siblings
   pathBits: number[];      // LAB_DEPTH membership path bits
@@ -48,14 +50,18 @@ export class LabRecordService implements OnModuleInit {
     return String(v ?? '').replace(/\^\^.*$/, '').replace(/^"|"$/g, '');
   }
 
-  private async fetchRaw(patientId: string): Promise<{ metric: string; value: number; measuredAt: string | null }[]> {
+  private async fetchRaw(
+    patientId: string,
+  ): Promise<{ metric: string; value: number; unit: string; measuredBy: string; measuredAt: string | null }[]> {
     const sparql = `
       PREFIX rx: <https://mfssia.io/ontology/prescription#>
-      SELECT ?metric ?value ?ts WHERE {
+      SELECT ?metric ?value ?unit ?src ?ts WHERE {
         ?l a rx:LabResult ;
            rx:hasPatient <urn:patient:${patientId}> ;
            rx:hasMetric ?metric ;
            rx:hasValue ?value .
+        OPTIONAL { ?l rx:hasUnit ?unit }
+        OPTIONAL { ?l rx:hasSource ?src }
         OPTIONAL { ?l rx:hasTimestamp ?ts }
       }
     `;
@@ -66,6 +72,9 @@ export class LabRecordService implements OnModuleInit {
         .map((r: any) => ({
           metric: this.clean(r.metric),
           value: Number(this.clean(r.value)),
+          unit: this.clean(r.unit),
+          // hasSource is an IRI like urn:org:lab-a — take the slug after the last ':'.
+          measuredBy: this.clean(r.src).split(':').pop() ?? '',
           measuredAt: r.ts ? this.clean(r.ts) : null,
         }))
         .filter((m) => m.metric.length > 0 && Number.isFinite(m.value));
@@ -109,6 +118,8 @@ export class LabRecordService implements OnModuleInit {
         metric: m.metric,
         metricId: metricIds[i].toString(),
         value: Math.floor(m.value),
+        unit: m.unit,
+        measuredBy: m.measuredBy,
         measuredAt: m.measuredAt,
         siblings,
         pathBits,

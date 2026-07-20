@@ -266,14 +266,22 @@ export class NumericBridgeService implements OnModuleInit {
    *  - a bridge with fromUnit === unit exists      → value * factor
    *  - present but unmapped unit                   → SemanticConflict (escalates to the DAO)
    */
+  // Canonicalises a unit token so labs entering "μmol/L" (U+03BC), "µmol/L" (U+00B5)
+  // or "umol/L" all match one bridge. Case-insensitive.
+  private canonUnit(u: string): string {
+    return String(u ?? '').replace(/µ|μ/g, 'u').trim().toLowerCase();
+  }
+
   async normalize(metric: string, value: number, unit: string): Promise<number> {
-    const forMetric = (await this.queryBridges()).filter((b) => b.metric === metric);
+    const mkey = metric.trim().toLowerCase();
+    const forMetric = (await this.queryBridges()).filter((b) => b.metric.trim().toLowerCase() === mkey);
     if (forMetric.length === 0) return value; // metric not under numeric governance
 
     const governedUnit = forMetric[0].toUnit;
-    if (unit === governedUnit) return value; // already on the governed scale
+    const ukey = this.canonUnit(unit);
+    if (this.canonUnit(governedUnit) === ukey) return value; // already on the governed scale
 
-    const bridge = forMetric.find((b) => b.fromUnit === unit);
+    const bridge = forMetric.find((b) => this.canonUnit(b.fromUnit) === ukey);
     if (bridge) {
       const normalized = value * bridge.factor;
       this.logger.log(`normalize ${metric}: ${value} ${unit} -> ${normalized} ${governedUnit}`);

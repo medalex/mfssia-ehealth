@@ -30,6 +30,15 @@ export const RX_CONTEXT = {
     '@type': 'xsd:decimal',
   },
 
+  // ── Terminology alignment bridge (SNOMED-CT / local vocab → governed concept) ─
+  alignsSystem: 'rx:alignsSystem',
+  alignsCode: 'rx:alignsCode',
+  alignsTerm: 'rx:alignsTerm',
+  alignsTo: {
+    '@id': 'rx:alignsTo',
+    '@type': '@id',
+  },
+
   // ── Shared metadata ───────────────────────────────────────────────────────
   name: 'rx:name',
   publishedAt: {

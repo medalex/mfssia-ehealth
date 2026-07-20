@@ -53,7 +53,8 @@ export class NumericBridgeController {
   async normalize(@Body() body: { metric: string; value: number; unit: string }) {
     try {
       const bridges = await this.service.queryBridges();
-      const governedUnit = bridges.find((b) => b.metric === body.metric)?.toUnit ?? null;
+      const mkey = body.metric.trim().toLowerCase();
+      const governedUnit = bridges.find((b) => b.metric.trim().toLowerCase() === mkey)?.toUnit ?? null;
       const normalized = await this.service.normalize(body.metric, body.value, body.unit);
       return { ...body, normalized, governedUnit };
     } catch (e) {

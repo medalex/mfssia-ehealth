@@ -752,6 +752,34 @@ rx:conversionFactor
     rdfs:label  "conversionFactor" ;
     rdfs:comment "Multiplicative factor: value(toUnit) = value(fromUnit) * conversionFactor." .
 
+# ── Terminology alignment bridge (terminological conflict resolution, paper §III) ─
+rx:TerminologyBridge
+    a owl:Class ;
+    rdfs:subClassOf mfssia:SecurityPolicy ;
+    rdfs:label "TerminologyBridge" ;
+    rdfs:comment "Terminology alignment axiom. Aligns a clinical concept expressed in a heterogeneous coding system (e.g. a laboratory's local allergen vocabulary, or a SNOMED-CT code) onto a governance-approved rx concept via rx:alignsTo, so records coded differently are recognised as the same clinical fact. Published on the DKG as part of theory T. A coded concept with NO matching alignment makes its dependent statement undefined -> terminological conflict escalated to the DAO." .
+
+rx:alignsSystem
+    a owl:DatatypeProperty ;
+    rdfs:domain rx:TerminologyBridge ;
+    rdfs:range  xsd:string ;
+    rdfs:label  "alignsSystem" ;
+    rdfs:comment "Source coding system of the concept being aligned, e.g. 'AllergyDB-Local' or 'SNOMED-CT'." .
+
+rx:alignsCode
+    a owl:DatatypeProperty ;
+    rdfs:domain rx:TerminologyBridge ;
+    rdfs:range  xsd:string ;
+    rdfs:label  "alignsCode" ;
+    rdfs:comment "Source code within rx:alignsSystem, e.g. 'PCN-001'." .
+
+rx:alignsTerm
+    a owl:DatatypeProperty ;
+    rdfs:domain rx:TerminologyBridge ;
+    rdfs:range  xsd:string ;
+    rdfs:label  "alignsTerm" ;
+    rdfs:comment "Human-readable label of the source concept, e.g. 'penicillin allergy (local)'." .
+
 rx:EvaluationContext
     a owl:Class ;
     rdfs:subClassOf [
