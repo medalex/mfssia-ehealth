@@ -28,7 +28,7 @@ export class RxGovernanceService implements OnModuleInit {
     const resp = await fetch(`${this.evmUrl}/governance/propose`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...this.policyFields(dto), member, kind: 'policy', label: `policy ${dto.code}` }),
+      body: JSON.stringify({ ...this.policyFields(dto), fields: dto, member, kind: 'policy', label: `policy ${dto.code}` }),
     });
     const body: any = await resp.json().catch(() => ({}));
     if (!resp.ok) throw new ForbiddenException(body?.error ?? `propose failed (HTTP ${resp.status})`);

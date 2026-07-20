@@ -67,7 +67,7 @@ export class NumericBridgeService implements OnModuleInit {
       const resp = await fetch(`${this.evmUrl}/governance/propose`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hash, member: 0, label, kind: 'bridge' }),
+        body: JSON.stringify({ hash, fields: bridge, member: 0, label, kind: 'bridge' }),
       });
       const body: any = await resp.json().catch(() => ({}));
       if (!resp.ok) {
@@ -113,7 +113,7 @@ export class NumericBridgeService implements OnModuleInit {
     const resp = await fetch(`${this.evmUrl}/governance/propose`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ hash, member, label, kind: 'bridge' }),
+      body: JSON.stringify({ hash, fields: bridge, member, label, kind: 'bridge' }),
     });
     const body: any = await resp.json().catch(() => ({}));
     if (!resp.ok) throw new ForbiddenException(body?.error ?? `propose failed (HTTP ${resp.status})`);
