@@ -57,7 +57,7 @@ export class TerminologyBridgeService {
       const resp = await fetch(`${this.evmUrl}/governance/propose`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hash, member: 0, label, kind: 'terminology' }),
+        body: JSON.stringify({ hash, fields: bridge, member: 0, label, kind: 'terminology' }),
       });
       const body: any = await resp.json().catch(() => ({}));
       if (!resp.ok) {
@@ -103,7 +103,7 @@ export class TerminologyBridgeService {
     const resp = await fetch(`${this.evmUrl}/governance/propose`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ hash, member, label, kind: 'terminology' }),
+      body: JSON.stringify({ hash, fields: bridge, member, label, kind: 'terminology' }),
     });
     const body: any = await resp.json().catch(() => ({}));
     if (!resp.ok) throw new ForbiddenException(body?.error ?? `propose failed (HTTP ${resp.status})`);
