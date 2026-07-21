@@ -4,7 +4,7 @@ import { buildPoseidon } from 'circomlibjs';
 import { DkgService } from '@/providers/dkg/dkg.service';
 
 const MERKLE_DEPTH = 3; // 8 leaves, matches the circuit
-const N_MAX = 3;        // active reference slots, matches the circuit
+const N_MAX = 5;        // active reference slots, matches the circuit
 
 // Substance → 0-based id. MUST match SUBSTANCE_IDX in ehealth-zkp-prover so the
 // leaf formula is identical on both sides (shared contract).
