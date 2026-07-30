@@ -47,10 +47,11 @@ export class CreateClinicalPolicyDto {
   @IsOptional()
   conditionalThreshold?: string;
 
-  // Δmax in seconds for Fresh(r, M, t_req)
-  @ApiProperty({ example: 7776000, description: 'Freshness bound in seconds (e.g. 7776000 = 90 days)' })
+  // Δmax in seconds for Fresh(r, M, t_req). Floor kept low (30s) so a short validity
+  // window can be published to demonstrate the pharmacy proof-expiry check.
+  @ApiProperty({ example: 7776000, description: 'Freshness bound in seconds (e.g. 7776000 = 90 days; min 30)' })
   @IsInt()
   @IsPositive()
-  @Min(3600)
+  @Min(30)
   deltaMax: number;
 }
