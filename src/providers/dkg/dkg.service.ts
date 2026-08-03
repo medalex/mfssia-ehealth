@@ -50,7 +50,8 @@ export class DkgService {
   }
 
   // Runs a DKG write, and on a nonce-drift error resets the client's nonce tracker and retries.
-  private async withNonceRetry<T>(op: string, fn: () => Promise<T>): Promise<T> {
+  // Returns `any` (dkg.js is untyped) so callers keep their existing response typing.
+  private async withNonceRetry(op: string, fn: () => Promise<any>): Promise<any> {
     const attempts = 3;
     for (let i = 1; i <= attempts; i++) {
       try {
