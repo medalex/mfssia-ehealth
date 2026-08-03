@@ -9,21 +9,22 @@ import { BaseDkgAssetDto } from './base-dkg-asset.dto';
 @Injectable()
 export class DkgService {
   private readonly logger = new Logger(DkgService.name);
-  private readonly dkg: any; // DKG client instance
+  private dkg: any; // DKG client instance
+  private dkgConfig: any;
 
   constructor(private config: ConfigService) {
     this.logger.log('🔧 Initializing DKG client...');
 
-    const dkgConfig = this.config.get<any>('app.dkg'); // Should be object: { endpoint, blockchain, etc. }
+    this.dkgConfig = this.config.get<any>('app.dkg'); // Should be object: { endpoint, blockchain, etc. }
 
-    if (!dkgConfig) {
+    if (!this.dkgConfig) {
       this.logger.error('❌ DKG configuration not found in app config');
       throw new Error('DKG configuration missing');
     }
 
     try {
       // Correct instantiation
-      this.dkg = new DKGClient(dkgConfig);
+      this.dkg = new DKGClient(this.dkgConfig);
 
       this.logger.log('✅ DKG client successfully initialized');
     } catch (error: any) {
@@ -33,6 +34,40 @@ export class DkgService {
       );
       throw error;
     }
+  }
+
+  // dkg.js seeds a LOCAL nonce tracker (nextNonces Map) once from the chain and then only
+  // increments it locally. If the local DKG chain is reset/redeployed underneath us (dkg-node
+  // does this during its long boot), the tracker stays ahead of the chain and every write
+  // fails with "Nonce too high". Recreating the client gives a fresh tracker that re-seeds
+  // from the chain's current nonce — self-healing the drift without an operator restart.
+  private reinitDkgClient(): void {
+    this.dkg = new DKGClient(this.dkgConfig);
+  }
+
+  private isNonceError(msg: string): boolean {
+    return /nonce too high|nonce too low|invalid nonce|incorrect nonce|nonce/i.test(msg ?? '');
+  }
+
+  // Runs a DKG write, and on a nonce-drift error resets the client's nonce tracker and retries.
+  private async withNonceRetry<T>(op: string, fn: () => Promise<T>): Promise<T> {
+    const attempts = 3;
+    for (let i = 1; i <= attempts; i++) {
+      try {
+        return await fn();
+      } catch (error: any) {
+        if (i < attempts && this.isNonceError(error?.message)) {
+          this.logger.warn(
+            `${op}: nonce drift ("${error.message}") — resetting DKG nonce tracker and retrying (${i}/${attempts})`,
+          );
+          this.reinitDkgClient();
+          await new Promise((r) => setTimeout(r, 1500));
+          continue;
+        }
+        throw error;
+      }
+    }
+    throw new Error(`${op}: unreachable`);
   }
 
   // === Rest of your methods remain exactly the same ===
@@ -57,9 +92,8 @@ export class DkgService {
     );
 
     try {
-      const response = await this.dkg.asset.create(
-        { public: asset },
-        { epochsNum: 2 },
+      const response = await this.withNonceRetry('createAsset', () =>
+        this.dkg.asset.create({ public: asset }, { epochsNum: 2 }),
       );
 
       this.logger.log(`✅ General asset created: UAL=${response.UAL}`);
@@ -149,13 +183,17 @@ export class DkgService {
           `⏳ Attempting DKG publish (attempt ${3 - retries + 1}/3)`,
         );
 
-        const response: IAssetResponse = await this.dkg.asset.create(
-          { public: enrichedAsset },
-          {
-            epochsNum: 3,
-            maxNumberOfRetries: 5,
-            frequency: 2,
-          },
+        const response: IAssetResponse = await this.withNonceRetry(
+          'publishAttestation',
+          () =>
+            this.dkg.asset.create(
+              { public: enrichedAsset },
+              {
+                epochsNum: 3,
+                maxNumberOfRetries: 5,
+                frequency: 2,
+              },
+            ),
         );
 
         ual = response.UAL;
@@ -234,14 +272,18 @@ export class DkgService {
     }
 
     try {
-      const response: IAssetResponse = await this.dkg.asset.create(
-        {
-          public: rdf,
-        },
-        {
-          epochsNum: 2,
-          maxNumberOfRetries: 5,
-        },
+      const response: IAssetResponse = await this.withNonceRetry(
+        'publishRawGraph',
+        () =>
+          this.dkg.asset.create(
+            {
+              public: rdf,
+            },
+            {
+              epochsNum: 2,
+              maxNumberOfRetries: 5,
+            },
+          ),
       );
 
       this.logger.log(`🎉 RDF graph published: UAL=${response.UAL}`);
