@@ -25,6 +25,7 @@ import { ConsentModule } from './modules/consent/consent.module';
 import { PatientRecordModule } from './modules/patient-record/patient-record.module';
 import { LabRecordModule } from './modules/lab-record/lab-record.module';
 import { ContraindicationModule } from './modules/contraindication/contraindication.module';
+import { GovernanceSyncModule } from '@/modules/governance-sync/governance-sync.module';
 
 // Oracle modules require all BLOCKCHAIN_* env vars — skip them when not configured
 const blockchainEnabled = !!process.env.BLOCKCHAIN_RPC_URL;
@@ -59,6 +60,7 @@ const blockchainEnabled = !!process.env.BLOCKCHAIN_RPC_URL;
     PatientRecordModule,
     LabRecordModule,
     ContraindicationModule,
+    GovernanceSyncModule,
   ],
   controllers: [AppController],
   providers: [AppService],
