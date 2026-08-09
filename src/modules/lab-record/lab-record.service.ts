@@ -1,7 +1,8 @@
-import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { createHash } from 'crypto';
 import { buildPoseidon } from 'circomlibjs';
 import { DkgService } from '@/providers/dkg/dkg.service';
+import { EvmPublisherService } from '@/modules/evm-publisher/evm-publisher.service';
 
 const LAB_DEPTH = 3; // 8 leaves; matches the circuit
 
@@ -30,7 +31,10 @@ export class LabRecordService implements OnModuleInit {
   private readonly logger = new Logger(LabRecordService.name);
   private poseidon: Awaited<ReturnType<typeof buildPoseidon>>;
 
-  constructor(private readonly dkgService: DkgService) {}
+  constructor(
+    private readonly dkgService: DkgService,
+    private readonly evm: EvmPublisherService,
+  ) {}
 
   async onModuleInit() {
     this.poseidon = await buildPoseidon();
@@ -84,11 +88,74 @@ export class LabRecordService implements OnModuleInit {
     }
   }
 
-  async getProof(patientId: string): Promise<LabRecordProof> {
+  // Every patient that currently has at least one lab result in the DKG graph.
+  private async fetchPatientsWithLabResults(): Promise<string[]> {
+    const sparql = `
+      PREFIX rx: <https://mfssia.io/ontology/prescription#>
+      SELECT DISTINCT ?patient WHERE {
+        ?l a rx:LabResult ;
+           rx:hasPatient ?patient .
+      }
+    `;
+    try {
+      const result = (await this.dkgService.findAssets(sparql)) as any;
+      const rows = result?.data ?? result ?? [];
+      return (Array.isArray(rows) ? rows : [])
+        .map((r: any) => this.clean(String(r.patient ?? '')).replace(/^urn:patient:/, '').trim())
+        .filter((id) => id.length > 0);
+    } catch (e: any) {
+      this.logger.warn(`Lab patient enumeration failed: ${e.message}`);
+      return [];
+    }
+  }
+
+  // Root of an all-zero tree — the lab record of every patient with no measurements.
+  emptyRoot(): string {
+    let level: bigint[] = new Array(1 << LAB_DEPTH).fill(0n);
+    for (let d = 0; d < LAB_DEPTH; d++) {
+      const next: bigint[] = [];
+      for (let i = 0; i < level.length; i += 2) next.push(this.poseidonHash([level[i], level[i + 1]]));
+      level = next;
+    }
+    return level[0].toString();
+  }
+
+  // The set of labRecordRoots currently committed in the DKG (CLASS B membership set).
+  async listRoots(): Promise<string[]> {
+    const patients = await this.fetchPatientsWithLabResults();
+    const roots = new Set<string>([this.emptyRoot()]);
+    for (const id of patients) {
+      try {
+        roots.add((await this.getProof(id, false)).labRecordRoot);
+      } catch (e: any) {
+        this.logger.error(`Excluding patient ${id} from the published lab-root set: ${e.message}`);
+      }
+    }
+    return [...roots];
+  }
+
+  // See PatientRecordService.getProof — lab results are written by lab-api into the DKG, so
+  // serving the proof is where the new root gets published to the verifier.
+  async getProof(patientId: string, publish = true): Promise<LabRecordProof> {
     const patientField = this.stringToField(patientId.toLowerCase());
     const raw = await this.fetchRaw(patientId);
 
     const size = 1 << LAB_DEPTH;
+
+    // Same truncation, implicit here: the leaf array is built to tree capacity, so anything
+    // past 2^LAB_DEPTH never reaches the root, and the membership walk below then runs off
+    // the end of the tree with a TypeError. The consequence is milder than for allergies —
+    // a dropped measurement is one that cannot be proved, so it is fail-closed rather than a
+    // soundness hole — but it should say so instead of committing a partial root.
+    if (raw.length > size) {
+      throw new ServiceUnavailableException(
+        `patient ${patientId} has ${raw.length} lab measurements but the lab-record tree holds ` +
+        `only ${size} leaves (LAB_DEPTH=${LAB_DEPTH}). Committing a root over the first ${size} ` +
+        `would drop the remaining ${raw.length - size}, so no lab-record root is produced. ` +
+        `Recompile the circuit with a larger LAB_DEPTH and redo the trusted setup.`,
+      );
+    }
+
     const metricIds = raw.map((m) => this.stringToField(m.metric.toLowerCase().trim()));
     const values = raw.map((m) => BigInt(Math.floor(m.value)));
     const leaves: bigint[] = Array.from({ length: size }, (_, i) =>
@@ -127,6 +194,7 @@ export class LabRecordService implements OnModuleInit {
     });
 
     this.logger.log(`Lab record root for ${patientId}: ${raw.length} measurements → ${root}`);
+    if (publish) await this.evm.addRootBestEffort('lab', root.toString());
     return { labRecordRoot: root.toString(), measurements };
   }
 }

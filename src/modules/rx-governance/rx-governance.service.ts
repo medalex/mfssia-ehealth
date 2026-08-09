@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable, Logger, OnModuleInit } from '@nestjs/co
 import { CreateClinicalPolicyDto } from './dto/create-clinical-policy.dto';
 import { RxPolicyDkgMapper } from './rx-policy.dkg.mapper';
 import { DkgService } from '@/providers/dkg/dkg.service';
+import { GovernanceSyncService } from '@/modules/governance-sync/governance-sync.service';
 import { IAssetResponse } from '@/interfaces/IAssetResponse';
 
 @Injectable()
@@ -65,7 +66,10 @@ export class RxGovernanceService implements OnModuleInit {
   // enforcing in the ZKP" can be shown end-to-end.
   private readonly defaultPolicies: CreateClinicalPolicyDto[] = [];
 
-  constructor(private readonly dkgService: DkgService) {}
+  constructor(
+    private readonly dkgService: DkgService,
+    private readonly governanceSync: GovernanceSyncService,
+  ) {}
 
   async onModuleInit(): Promise<void> {
     try {
@@ -75,12 +79,21 @@ export class RxGovernanceService implements OnModuleInit {
     }
   }
 
-  async publishPolicy(dto: CreateClinicalPolicyDto): Promise<IAssetResponse> {
+  // Anchoring a policy in the DKG is only half the operation: the on-chain verifier holds a
+  // commitment to the governed parameters, and a smart contract cannot read the DKG. The push
+  // is therefore part of THIS call, not a background job — if it fails the caller is told, so
+  // a divergence between DKG and chain is never silent. (Divergence is fail-closed anyway:
+  // proofs stop verifying with a governance mismatch.)
+  async publishPolicy(dto: CreateClinicalPolicyDto): Promise<IAssetResponse & { governanceVectorHash?: string }> {
     this.logger.log(`Publishing ClinicalPolicy "${dto.code}" to DKG`);
     const dkgDto = RxPolicyDkgMapper.toDkgDto(dto);
     const response = await this.dkgService.createAsset(dkgDto);
     this.logger.log(`Policy "${dto.code}" anchored: UAL=${response.UAL}`);
-    return response;
+
+    // The freshly published policy is passed explicitly: DKG indexing lags the write, so
+    // re-querying here would recompute the commitment from a state that omits it.
+    const { hash } = await this.governanceSync.syncAfterPolicyPublish(dto);
+    return { ...response, governanceVectorHash: hash };
   }
 
   async queryPolicies(): Promise<unknown> {

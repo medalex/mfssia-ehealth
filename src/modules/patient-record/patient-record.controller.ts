@@ -7,6 +7,15 @@ import { PatientRecordService } from './patient-record.service';
 export class PatientRecordController {
   constructor(private readonly service: PatientRecordService) {}
 
+  @Get('roots')
+  @ApiOperation({
+    summary: 'All patientRecordRoots currently committed in the DKG',
+    description: 'The CLASS B membership set pushed to the on-chain verifier. Always includes the empty-tree root (patients with no allergies).',
+  })
+  listRoots() {
+    return this.service.listRoots();
+  }
+
   @Get(':patientId/proof')
   @ApiOperation({
     summary:
