@@ -11,7 +11,11 @@ import {
 export interface AccessDecision {
   access: boolean; // ALL_MANDATORY: authN AND authZ
   authn: boolean; // C-DOC-AUTH  — physician in registry
-  authz: boolean; // C-DOC-AUTHZ — consent covers physician's organization
+  // C-DOC-AUTHZ — consent covers physician's organization. null when the challenge could
+  // not be evaluated at all: it reads the organization off the registry entry, so a
+  // physician who fails C-DOC-AUTH leaves nothing to check consent against. Distinct from
+  // false, which means the consent was looked up in DKG and did not cover the org.
+  authz: boolean | null;
   challengeSet: string;
   nonce: string;
   organizationId: string | null;
@@ -102,7 +106,7 @@ export class PhysicianAccessService {
       return {
         access: false,
         authn: false,
-        authz: false,
+        authz: null, // not evaluated — no registry entry means no organization to check
         challengeSet: PhysicianAccessService.CHALLENGE_SET,
         nonce,
         organizationId: null,
