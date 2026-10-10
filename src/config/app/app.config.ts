@@ -15,6 +15,7 @@ export default registerAs<AppConfig>('app', () => {
     port,
     apiPrefix: process.env.API_PREFIX?.replace(/^\//, '') || 'api', // strip leading slash if present
     labStaleAfterDays: Number.isFinite(labStaleAfterDays) && labStaleAfterDays > 0 ? labStaleAfterDays : 90,
+    evidenceReferenceTime: process.env.EVIDENCE_REFERENCE_TIME || undefined,
 
     dkg: {
       endpoint: process.env.DKG_HOSTNAME || 'localhost',

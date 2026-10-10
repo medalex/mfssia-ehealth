@@ -3,6 +3,7 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 
 @Entity('audit_events')
 @Index('IDX_audit_events_created_at', ['createdAt'])
 @Index('IDX_audit_events_patient_id', ['patientId'])
+@Index('IDX_audit_events_run_id', ['runId'])
 export class AuditEvent {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -33,6 +34,9 @@ export class AuditEvent {
 
   @Column({ type: 'jsonb', nullable: true })
   details: Record<string, unknown> | null;
+
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  runId: string | null;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;

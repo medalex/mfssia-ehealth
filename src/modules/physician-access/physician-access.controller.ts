@@ -2,7 +2,7 @@ import { BadRequestException, Body, Controller, ForbiddenException, Get, Post, Q
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { PhysicianAccessService } from './physician-access.service';
 import { CheckAccessDto } from './dto/check-access.dto';
-import { AuditLogService } from '@/modules/audit-log/audit-log.service';
+import { AuditLogService, validateRunId } from '@/modules/audit-log/audit-log.service';
 
 @ApiTags('physician-access')
 @Controller('physician-access')
@@ -24,20 +24,23 @@ export class PhysicianAccessController {
     @Param('patientId') patientId: string,
     @Query('doctorId') doctorId: string,
     @Query('custodianId') custodianId: string,
+    @Query('runId') runId?: string,
   ) {
+    const resolvedRunId = validateRunId(runId);
     if (!doctorId || !custodianId) throw new BadRequestException('doctorId and custodianId are required');
-    const decision = await this.service.checkAccess(doctorId, patientId, custodianId);
+    const decision = await this.service.checkAccess(doctorId, patientId, custodianId, resolvedRunId);
     if (!decision.access) {
       const event = await this.auditLog.record({
         eventType: 'data.read', outcome: 'access_denied', patientId, doctorId,
         organizationId: decision.organizationId, custodianId, resource: 'consent.documents',
         reason: 'access_denied', details: { accessReason: decision.reason },
+        runId: resolvedRunId ?? null,
       });
       throw new ForbiddenException({ error: 'access_denied', reason: decision.reason, auditEventId: event.id });
     }
     const { value } = await this.auditLog.trackRead({
       patientId, doctorId, organizationId: decision.organizationId, custodianId,
-      resource: 'consent.documents',
+      resource: 'consent.documents', runId: resolvedRunId ?? null,
     }, () => this.service.getConsentDocuments(patientId));
     return value;
   }
@@ -70,6 +73,7 @@ export class PhysicianAccessController {
     },
   })
   check(@Body() dto: CheckAccessDto) {
-    return this.service.checkAccess(dto.doctorId, dto.patientId, dto.custodianId);
+    const resolvedRunId = validateRunId(dto.runId);
+    return this.service.checkAccess(dto.doctorId, dto.patientId, dto.custodianId, resolvedRunId);
   }
 }

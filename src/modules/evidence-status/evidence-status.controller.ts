@@ -1,5 +1,6 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { validateRunId } from '@/modules/audit-log/audit-log.service';
 import { EvidenceStatusService } from './evidence-status.service';
 
 @ApiTags('evidence-status')
@@ -14,7 +15,8 @@ export class EvidenceStatusController {
     @Query('doctorId') doctorId: string,
     @Query('custodianId') custodianId: string,
     @Query('attribute') attribute: string,
+    @Query('runId') runId?: string,
   ) {
-    return this.service.getStatus(patientId, doctorId, custodianId, attribute);
+    return this.service.getStatus(patientId, doctorId, custodianId, attribute, validateRunId(runId));
   }
 }

@@ -26,6 +26,10 @@ export class AppConfigValidator {
   API_PREFIX?: string;
 
   @IsString()
+  @IsOptional()
+  EVIDENCE_REFERENCE_TIME?: string;
+
+  @IsString()
   @IsNotEmpty()
   DKG_HOSTNAME: string;
 

@@ -1,13 +1,27 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuditLogService } from '@/modules/audit-log/audit-log.service';
 import { LabRecordService } from '@/modules/lab-record/lab-record.service';
 import { PatientRecordService } from '@/modules/patient-record/patient-record.service';
 import { PhysicianAccessService } from '@/modules/physician-access/physician-access.service';
+import { ClockService } from '@/shared/clock/clock.service';
 import { DkgUnavailableException } from '@/shared/exceptions/dkg-unavailable.exception';
 
 export type EvidenceState = 'present' | 'confirmed_absent' | 'unknown';
 export type EvidenceReason = 'access_denied' | 'unavailable' | 'not_custodian' | 'not_queried' | null;
+
+const CUSTODIAN_ATTRIBUTE_MAP: Record<string, string[]> = {
+  'hospital-1': ['allergies'],
+  'lab-a': ['lab:*'],
+  'lab-b': ['lab:*'],
+};
+
+const supportsAttribute = (custodianId: string, attribute: string): boolean => {
+  const capabilities = CUSTODIAN_ATTRIBUTE_MAP[custodianId] ?? [];
+  if (attribute === 'allergies') return capabilities.includes('allergies');
+  if (attribute.startsWith('lab:')) return capabilities.includes('lab:*');
+  return false;
+};
 
 export interface EvidenceStatusResponse {
   attribute: string;
@@ -28,6 +42,7 @@ export class EvidenceStatusService {
     private readonly labRecord: LabRecordService,
     private readonly auditLog: AuditLogService,
     private readonly config: ConfigService,
+    @Optional() private readonly clock?: ClockService,
   ) {}
 
   async getStatus(
@@ -35,6 +50,7 @@ export class EvidenceStatusService {
     doctorId: string,
     custodianId: string,
     attribute: string,
+    runId?: string,
   ): Promise<EvidenceStatusResponse> {
     if (!doctorId || !custodianId) {
       throw new BadRequestException('doctorId and custodianId are required');
@@ -45,10 +61,13 @@ export class EvidenceStatusService {
       throw new BadRequestException('attribute must be allergies or lab:<metric>');
     }
 
-    if (attribute === 'allergies' && custodianId !== 'hospital-1') {
+    const expectedCustodianId = attribute === 'allergies' ? 'hospital-1' : 'lab-a';
+    if (!supportsAttribute(custodianId, attribute)) {
       return this.recordStatus({
         attribute, patientId, doctorId, organizationId: null, custodianId,
-        state: 'unknown', reason: 'not_custodian', details: { expectedCustodianId: 'hospital-1' },
+        state: 'unknown', reason: 'not_custodian',
+        details: { expectedCustodianId, actualCustodianId: custodianId },
+        runId,
       });
     }
 
@@ -57,12 +76,13 @@ export class EvidenceStatusService {
 
     let decision;
     try {
-      decision = await this.access.checkAccess(doctorId, patientId, custodianId);
+      decision = await this.access.checkAccess(doctorId, patientId, custodianId, runId);
     } catch (error) {
       if (error instanceof DkgUnavailableException) {
         return this.recordStatus({
           attribute, patientId, doctorId, organizationId: null, custodianId,
           state: 'unknown', reason: 'unavailable', details: { error: error.message },
+          runId,
         });
       }
       throw error;
@@ -72,6 +92,7 @@ export class EvidenceStatusService {
       return this.recordStatus({
         attribute, patientId, doctorId, organizationId: decision.organizationId, custodianId,
         state: 'unknown', reason: 'access_denied', details: { accessReason: decision.reason },
+        runId,
       });
     }
 
@@ -83,6 +104,7 @@ export class EvidenceStatusService {
           state: allergies.length ? 'present' : 'confirmed_absent', reason: null,
           value: allergies.length ? allergies : undefined,
           details: { resultCount: allergies.length },
+          runId,
         });
       }
 
@@ -91,19 +113,22 @@ export class EvidenceStatusService {
       if (matching.length === 0) {
         return this.recordStatus({
           attribute, patientId, doctorId, organizationId: decision.organizationId, custodianId,
-          state: 'unknown', reason: 'not_custodian',
+          state: 'confirmed_absent', reason: null,
           details: { resultCount: 0 },
+          runId,
         });
       }
 
       const latest = matching.sort((a, b) => Date.parse(b.measuredAt ?? '') - Date.parse(a.measuredAt ?? ''))[0];
       const staleAfterDays = this.config.get<number>('app.labStaleAfterDays') ?? 90;
       const measuredAtTime = latest.measuredAt ? Date.parse(latest.measuredAt) : Number.NaN;
-      const stale = !Number.isFinite(measuredAtTime) || Date.now() - measuredAtTime > staleAfterDays * 86400000;
+      const now = (this.clock?.now() ?? new Date()).getTime();
+      const stale = !Number.isFinite(measuredAtTime) || now - measuredAtTime > staleAfterDays * 86400000;
       return this.recordStatus({
         attribute, patientId, doctorId, organizationId: decision.organizationId, custodianId,
         state: 'present', reason: null, value: latest.value, measuredAt: latest.measuredAt, stale,
         details: { resultCount: matching.length, staleAfterDays },
+        runId,
       });
     } catch (error) {
       if (!(error instanceof DkgUnavailableException)) throw error;
@@ -111,6 +136,7 @@ export class EvidenceStatusService {
         attribute, patientId, doctorId, organizationId: decision.organizationId, custodianId,
         state: 'unknown', reason: 'unavailable',
         details: { error: error instanceof Error ? error.message : String(error) },
+        runId,
       });
     }
   }
@@ -127,6 +153,7 @@ export class EvidenceStatusService {
     measuredAt?: string | null;
     stale?: boolean;
     details: Record<string, unknown>;
+    runId?: string;
   }): Promise<EvidenceStatusResponse> {
     const event = await this.auditLog.record({
       eventType: 'evidence.status',
@@ -138,6 +165,7 @@ export class EvidenceStatusService {
       resource: input.attribute,
       reason: input.reason,
       details: input.details,
+      runId: input.runId ?? null,
     });
     return {
       attribute: input.attribute,

@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { DkgService } from '@/providers/dkg/dkg.service';
 
 const RX = 'https://mfssia.io/ontology/prescription#';
@@ -10,16 +11,25 @@ const PATIENT_IRI = `urn:patient:${PATIENT_ID}`;
 export class PilotDemoSeedService implements OnModuleInit {
   private readonly logger = new Logger(PilotDemoSeedService.name);
 
-  constructor(private readonly dkg: DkgService) {}
+  constructor(
+    private readonly dkg: DkgService,
+    private readonly config: ConfigService,
+  ) {}
 
   async onModuleInit(): Promise<void> {
     if (process.env.PILOT_DEMO_SEED !== 'true') return;
 
+    const referenceTime = this.config.get<string>('app.evidenceReferenceTime');
+    const rootTime = referenceTime ? new Date(referenceTime) : new Date();
+    if (!referenceTime) {
+      this.logger.warn('PILOT_DEMO_SEED=true but EVIDENCE_REFERENCE_TIME is unset; seeded dates will depend on the current system clock.');
+    }
+
     try {
       await this.ensureConsent('hospital-1');
       await this.ensureConsent('lab-a');
-      await this.ensureLabResult('lab-a', '45', '2025-10-10T08:00:00.000Z');
-      await this.ensureLabResult('lab-b', '20', '2026-10-03T08:00:00.000Z');
+      await this.ensureLabResult('lab-a', '45', new Date(rootTime.getTime() - 365 * 24 * 60 * 60 * 1000).toISOString());
+      await this.ensureLabResult('lab-b', '20', new Date(rootTime.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString());
       this.logger.log('Pilot demo evidence is present in DKG');
     } catch (error: any) {
       this.logger.error(`Pilot demo seed failed: ${error.message}`);
@@ -58,6 +68,8 @@ export class PilotDemoSeedService implements OnModuleInit {
   }
 
   private async ensureLabResult(custodianId: string, value: string, measuredAt: string): Promise<void> {
+    // Idempotent seed: if a record already exists for the current patient + custodian, we do not overwrite it.
+    // To reseed, change the suffix below (for example: urn:lab-result:pilot-...-egfr-v2) or remove the old asset from DKG first.
     const assetId = `urn:lab-result:pilot-${PATIENT_ID}-${custodianId}-egfr`;
     const query = `
       PREFIX rx: <${RX}>

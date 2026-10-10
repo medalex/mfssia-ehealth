@@ -1,7 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditEvent } from './entities/audit-event.entity';
+
+export const validateRunId = (runId?: string): string | undefined => {
+  if (runId === undefined || runId === null || runId === '') return undefined;
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(runId)) {
+    throw new BadRequestException({ error: 'invalid_run_id', reason: 'runId must match ^[A-Za-z0-9_-]{1,64}$' });
+  }
+  return runId;
+};
 
 export type AuditEventInput = Pick<
   AuditEvent,
@@ -14,6 +22,7 @@ export type AuditEventInput = Pick<
   | 'resource'
   | 'reason'
   | 'details'
+  | 'runId'
 >;
 
 export interface ReadAuditContext {
@@ -25,6 +34,7 @@ export interface ReadAuditContext {
   outcome?: string;
   reason?: string | null;
   details?: Record<string, unknown> | null;
+  runId?: string | null;
 }
 
 @Injectable()
@@ -49,6 +59,7 @@ export class AuditLogService {
         resource: context.resource,
         reason: context.reason ?? null,
         details: context.details ?? (evidenceState ? { evidenceState } : null),
+        runId: context.runId ?? null,
       });
       return { value: result, auditEventId: event.id };
     } catch (e: any) {
@@ -62,6 +73,7 @@ export class AuditLogService {
         resource: context.resource,
         reason: 'unavailable',
         details: { error: e?.message ?? 'Data read failed' },
+        runId: context.runId ?? null,
       });
       throw e;
     }
@@ -72,6 +84,13 @@ export class AuditLogService {
       where: { eventType: 'access.decision' },
       order: { createdAt: 'DESC' },
       take: Math.max(1, Math.min(limit, 100)),
+    });
+  }
+
+  async listByRunId(runId: string): Promise<AuditEvent[]> {
+    return this.events.find({
+      where: { runId },
+      order: { createdAt: 'ASC' },
     });
   }
 }

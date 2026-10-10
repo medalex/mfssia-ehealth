@@ -7,9 +7,10 @@ import { EvidenceStatusController } from './evidence-status.controller';
 import { EvidenceStatusService } from './evidence-status.service';
 import { DkgModule } from '@/providers/dkg/dkg.module';
 import { PilotDemoSeedService } from './pilot-demo-seed.service';
+import { ClockModule } from '@/shared/clock/clock.module';
 
 @Module({
-  imports: [AuditLogModule, DkgModule, LabRecordModule, PatientRecordModule, PhysicianAccessModule],
+  imports: [AuditLogModule, ClockModule, DkgModule, LabRecordModule, PatientRecordModule, PhysicianAccessModule],
   controllers: [EvidenceStatusController],
   providers: [EvidenceStatusService, PilotDemoSeedService],
 })

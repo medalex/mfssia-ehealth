@@ -4,6 +4,7 @@ export type AppConfig = {
   port: number;
   apiPrefix: string;
   labStaleAfterDays: number;
+  evidenceReferenceTime?: string;
 
   dkg: {
     endpoint: string;

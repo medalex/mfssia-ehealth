@@ -16,15 +16,18 @@ export class AddAuditEvents1791590400000 implements MigrationInterface {
         "resource" character varying(120) NOT NULL,
         "reason" text,
         "details" jsonb,
+        "runId" character varying(64),
         "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
         CONSTRAINT "PK_audit_events" PRIMARY KEY ("id")
       )
     `);
     await queryRunner.query('CREATE INDEX "IDX_audit_events_created_at" ON "audit_events" ("createdAt")');
     await queryRunner.query('CREATE INDEX "IDX_audit_events_patient_id" ON "audit_events" ("patientId")');
+    await queryRunner.query('CREATE INDEX "IDX_audit_events_run_id" ON "audit_events" ("runId")');
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query('DROP INDEX "public"."IDX_audit_events_run_id"');
     await queryRunner.query('DROP INDEX "public"."IDX_audit_events_patient_id"');
     await queryRunner.query('DROP INDEX "public"."IDX_audit_events_created_at"');
     await queryRunner.query('DROP TABLE "audit_events"');

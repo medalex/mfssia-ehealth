@@ -40,7 +40,12 @@ export class PhysicianAccessService {
     private readonly auditLog: AuditLogService,
   ) {}
 
-  async checkAccess(doctorId: string, patientId: string, custodianId: string): Promise<AccessDecision> {
+  async checkAccess(
+    doctorId: string,
+    patientId: string,
+    custodianId: string,
+    runId?: string,
+  ): Promise<AccessDecision> {
     try {
       const decision = await this.evaluate(doctorId, patientId, custodianId);
       await this.auditLog.record({
@@ -59,6 +64,7 @@ export class PhysicianAccessService {
           nonce: decision.nonce,
           explanation: decision.reason,
         },
+        runId: runId ?? null,
       });
       return decision;
     } catch (e: any) {
@@ -72,6 +78,7 @@ export class PhysicianAccessService {
         resource: 'ConsentAccessSet',
         reason: 'unavailable',
         details: { authz: null, error: e?.message ?? 'Access decision could not be evaluated' },
+        runId: runId ?? null,
       });
       throw e;
     }
