@@ -58,6 +58,42 @@ describe('PatientRecordService — root invariance', () => {
     await expect(service.getProof(PATIENT, false)).rejects.toThrow(/6 allergies.*N_max=5/s);
   });
 
+  it('does not treat a DKG lookup failure as an empty allergy record', async () => {
+    const dkg = { findAssets: async () => { throw new Error('connection refused'); } } as any;
+    const evm = { addRootBestEffort: async () => undefined } as any;
+    const service = new PatientRecordService(dkg, evm);
+    await service.onModuleInit();
+
+    await expect(service.getProof(PATIENT, false)).rejects.toThrow(/DKG unavailable.*allergies/);
+  });
+
+  it('does not publish the empty root when patient enumeration is unavailable', async () => {
+    const dkg = { findAssets: async () => { throw new Error('connection refused'); } } as any;
+    const service = new PatientRecordService(dkg, { addRootBestEffort: async () => undefined } as any);
+    await service.onModuleInit();
+
+    await expect(service.listRoots()).rejects.toThrow(/DKG unavailable.*enumerating patients/);
+  });
+
+  it('distinguishes confirmed absence from unknown evidence', async () => {
+    const emptyService = makeService([]);
+    await emptyService.onModuleInit();
+    await expect(emptyService.getEvidenceStatus(PATIENT)).resolves.toMatchObject({
+      status: 'confirmed_absent',
+      allergyCount: 0,
+    });
+
+    const unavailableDkg = { findAssets: async () => { throw new Error('connection refused'); } } as any;
+    const unavailableService = new PatientRecordService(
+      unavailableDkg,
+      { addRootBestEffort: async () => undefined } as any,
+    );
+    await unavailableService.onModuleInit();
+    await expect(unavailableService.getEvidenceStatus(PATIENT)).resolves.toMatchObject({
+      status: 'unknown',
+    });
+  });
+
   it('exactly N_MAX allergies is still accepted', async () => {
     const service = makeService(['Penicillin', 'Amoxicillin', 'Metformin', 'Sulfa', 'Aspirin']);
     await service.onModuleInit();

@@ -27,6 +27,14 @@ describe('LabRecordService — capacity', () => {
     await expect(service.getProof(PATIENT, false)).rejects.toThrow(/9 lab measurements.*only 8 leaves/s);
   });
 
+  it('does not treat a DKG lookup failure as an empty lab record', async () => {
+    const dkg = { findAssets: async () => { throw new Error('connection refused'); } } as any;
+    const service = new LabRecordService(dkg, { addRootBestEffort: async () => undefined } as any);
+    await service.onModuleInit();
+
+    await expect(service.getProof(PATIENT, false)).rejects.toThrow(/DKG unavailable.*lab results/);
+  });
+
   it('exactly the tree capacity is still accepted', async () => {
     const service = makeService(8);
     await service.onModuleInit();

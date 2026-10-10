@@ -11,4 +11,9 @@ export class CheckAccessDto {
   @IsString()
   @IsNotEmpty()
   patientId: string;
+
+  @ApiProperty({ example: 'lab-a' })
+  @IsString()
+  @IsNotEmpty()
+  custodianId: string;
 }

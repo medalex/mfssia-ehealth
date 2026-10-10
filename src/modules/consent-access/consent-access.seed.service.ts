@@ -38,7 +38,8 @@ export class ConsentAccessSeedService implements OnModuleInit {
         PREFIX mfssia: <https://mfssia.org/ontology#>
         SELECT ?s WHERE {
           ?s a mfssia:ChallengeSet ;
-             mfssia:code "ConsentAccessSet" .
+             mfssia:code "ConsentAccessSet" ;
+             mfssia:version "1.1" .
         }
       `;
       const result = (await this.dkgService.findAssets(sparql)) as any;

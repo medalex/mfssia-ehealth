@@ -24,6 +24,7 @@ export class ConsentService {
       '@type': 'rx:DataSharingConsent',
       'rx:patient': dto.patientId,
       'rx:consentCovers': dto.organizationId,
+      'rx:consentCoversCustodian': dto.custodianId,
       // Normalise to canonical ISO 8601 (millisecond precision, 'Z'). Non-canonical
       // forms (e.g. .NET "O": 7 fractional digits + "+00:00") are not matched by the
       // gate's FILTER(?validUntil > ...^^xsd:dateTime), so always re-emit canonically.

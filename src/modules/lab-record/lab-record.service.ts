@@ -3,6 +3,7 @@ import { createHash } from 'crypto';
 import { buildPoseidon } from 'circomlibjs';
 import { DkgService } from '@/providers/dkg/dkg.service';
 import { EvmPublisherService } from '@/modules/evm-publisher/evm-publisher.service';
+import { DkgUnavailableException } from '@/shared/exceptions/dkg-unavailable.exception';
 
 const LAB_DEPTH = 3; // 8 leaves; matches the circuit
 
@@ -71,7 +72,8 @@ export class LabRecordService implements OnModuleInit {
     `;
     try {
       const result = (await this.dkgService.findAssets(sparql)) as any;
-      const rows = result?.data ?? result ?? [];
+      const rows = result?.data ?? result;
+      if (!Array.isArray(rows)) throw new Error('Unexpected DKG SPARQL response');
       return (Array.isArray(rows) ? rows : [])
         .map((r: any) => ({
           metric: this.clean(r.metric),
@@ -84,7 +86,7 @@ export class LabRecordService implements OnModuleInit {
         .filter((m) => m.metric.length > 0 && Number.isFinite(m.value));
     } catch (e: any) {
       this.logger.warn(`Lab SPARQL lookup failed for ${patientId}: ${e.message}`);
-      return [];
+      throw new DkgUnavailableException(`DKG unavailable while reading lab results for patient ${patientId}`, e);
     }
   }
 
@@ -99,13 +101,14 @@ export class LabRecordService implements OnModuleInit {
     `;
     try {
       const result = (await this.dkgService.findAssets(sparql)) as any;
-      const rows = result?.data ?? result ?? [];
+      const rows = result?.data ?? result;
+      if (!Array.isArray(rows)) throw new Error('Unexpected DKG SPARQL response');
       return (Array.isArray(rows) ? rows : [])
         .map((r: any) => this.clean(String(r.patient ?? '')).replace(/^urn:patient:/, '').trim())
         .filter((id) => id.length > 0);
     } catch (e: any) {
       this.logger.warn(`Lab patient enumeration failed: ${e.message}`);
-      return [];
+      throw new DkgUnavailableException('DKG unavailable while enumerating patients with lab results', e);
     }
   }
 
@@ -128,6 +131,7 @@ export class LabRecordService implements OnModuleInit {
       try {
         roots.add((await this.getProof(id, false)).labRecordRoot);
       } catch (e: any) {
+        if (e instanceof DkgUnavailableException) throw e;
         this.logger.error(`Excluding patient ${id} from the published lab-root set: ${e.message}`);
       }
     }

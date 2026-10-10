@@ -2,7 +2,7 @@ import { MFSSIA_CONTEXT } from '@/providers/dkg/mfssia.context';
 
 // Static governance documents anchored in the DKG for the physician-access gate:
 //   C-DOC-AUTH  — authentication (DID signature + registry membership)
-//   C-DOC-AUTHZ — authorization (consent covers the physician's organization)
+//   C-DOC-AUTHZ — authorization (consent covers the physician's organization and custodian)
 //   ConsentAccessSet — the two-factor set (ALL_MANDATORY) binding them together.
 // Exported so both the DKG seed and the API (challenge/response evidence) use the
 // exact same documents that are published to the DKG.
@@ -42,51 +42,52 @@ export const CHALLENGE_AUTH = {
 export const CHALLENGE_AUTHZ = {
   '@context': MFSSIA_CONTEXT,
   '@type': 'mfssia:ChallengeDefinition',
-  '@id': 'urn:challenge-definition:C-DOC-AUTHZ',
+  '@id': 'urn:challenge-definition:C-DOC-AUTHZ-v1.1',
   code: 'C-DOC-AUTHZ',
   name: 'Patient Data Access Authorization',
   description:
-    "Verify the physician's organization is covered by the patient's DataSharingConsent anchored in DKG.",
+    "Verify the patient's DataSharingConsent covers both the physician's organization and the requested custodian.",
   factorClass: 'Governance',
   question:
-    'Prove that the patient has granted data-sharing consent covering your organization.',
+    'Prove that the patient has granted data-sharing consent covering your organization and this custodian.',
   expectedEvidence: [
     { type: 'reference', name: 'patientId', dataType: 'string' },
     { type: 'reference', name: 'organizationId', dataType: 'string' },
+    { type: 'reference', name: 'custodianId', dataType: 'string' },
   ],
   oracle: {
     type: 'verifier',
     name: 'ConsentLookup',
     oracleType: 'dkg-sparql',
     verificationMethod:
-      'ASK { ?c a rx:DataSharingConsent ; rx:patient ?patientId ; rx:consentCovers ?organizationId ; rx:validUntil ?t . FILTER(?t > NOW()) } AND physician.organizationId == organizationId',
+      'ASK { ?c a rx:DataSharingConsent ; rx:patient ?patientId ; rx:consentCovers ?organizationId ; rx:consentCoversCustodian ?custodianId ; rx:validUntil ?t . FILTER(?t > NOW()) } AND physician.organizationId == organizationId',
   },
   evaluation: {
     resultType: 'boolean',
     passCondition:
-      'consentExists AND consentCoversOrg AND notExpired AND physicianBelongsToOrg',
+      'consentExists AND consentCoversOrg AND consentCoversCustodian AND notExpired AND physicianBelongsToOrg',
   },
   failureEffect:
-    'Access denied — no valid patient consent for this organization.',
+    'Access denied — no valid patient consent for this organization and custodian.',
   reusability: 'reusable',
-  version: '1.0',
+  version: '1.1',
   status: 'Active',
 };
 
 export const CONSENT_ACCESS_SET = {
   '@context': MFSSIA_CONTEXT,
   '@type': 'mfssia:ChallengeSet',
-  '@id': 'urn:challenge-set:ConsentAccessSet',
+  '@id': 'urn:challenge-set:ConsentAccessSet-v1.1',
   code: 'ConsentAccessSet',
   name: 'Physician Data Access Set',
   description:
-    'Two-factor gate for physician access to patient data: authentication (who you are) + authorization (consent covers your org). Both mandatory.',
-  version: '1.0',
+    'Two-factor gate for physician access to patient data: authentication (who you are) + authorization (consent covers your organization and custodian). Both mandatory.',
+  version: '1.1',
   status: 'Active',
   publishedBy: { type: 'Organization', name: 'MFSSIA' },
   mandatoryChallenges: [
     'urn:challenge-definition:C-DOC-AUTH',
-    'urn:challenge-definition:C-DOC-AUTHZ',
+    'urn:challenge-definition:C-DOC-AUTHZ-v1.1',
   ],
   optionalChallenges: [],
   policy: {

@@ -18,7 +18,7 @@ export interface Physician {
   lastName: string;
   specialty: string;
   licenseNumber: string;
-  organizationId: string; // employing organization — checked against consentCovers in C-DOC-AUTHZ
+  organizationId: string; // employing organization — checked against consent scope in C-DOC-AUTHZ
   credentialHash: string;
 }
 

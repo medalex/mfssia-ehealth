@@ -3,6 +3,7 @@ import { createHash } from 'crypto';
 import { buildPoseidon } from 'circomlibjs';
 import { DkgService } from '@/providers/dkg/dkg.service';
 import { EvmPublisherService } from '@/modules/evm-publisher/evm-publisher.service';
+import { DkgUnavailableException } from '@/shared/exceptions/dkg-unavailable.exception';
 
 const MERKLE_DEPTH = 3; // 8 leaves, matches the circuit
 const N_MAX = 5;        // active reference slots, matches the circuit
@@ -30,6 +31,12 @@ export interface PatientRecordProof {
   allergyCount: number;
   paddingSiblings: string[];     // MERKLE_DEPTH — membership path of the zero leaf
   paddingPathBits: number[];     // MERKLE_DEPTH — little-endian bits of allergyCount
+}
+
+export interface PatientEvidenceStatus {
+  status: 'present' | 'confirmed_absent' | 'unknown';
+  reason: string;
+  allergyCount?: number;
 }
 
 // Builds a per-patient allergy Merkle tree from the DKG graph, on demand.
@@ -79,7 +86,8 @@ export class PatientRecordService implements OnModuleInit {
     `;
     try {
       const result = (await this.dkgService.findAssets(sparql)) as any;
-      const rows = result?.data ?? result ?? [];
+      const rows = result?.data ?? result;
+      if (!Array.isArray(rows)) throw new Error('Unexpected DKG SPARQL response');
       // ?substance comes back as an IRI (rx:Penicillin or full IRI) — take the local name.
       return (Array.isArray(rows) ? rows : [])
         .map((r: any) => String(r.substance ?? ''))
@@ -87,7 +95,10 @@ export class PatientRecordService implements OnModuleInit {
         .filter((s) => s.length > 0);
     } catch (e: any) {
       this.logger.warn(`Allergy SPARQL lookup failed for ${patientId}: ${e.message}`);
-      return [];
+      throw new DkgUnavailableException(
+        `DKG unavailable while reading allergies for patient ${patientId}`,
+        e,
+      );
     }
   }
 
@@ -102,13 +113,14 @@ export class PatientRecordService implements OnModuleInit {
     `;
     try {
       const result = (await this.dkgService.findAssets(sparql)) as any;
-      const rows = result?.data ?? result ?? [];
+      const rows = result?.data ?? result;
+      if (!Array.isArray(rows)) throw new Error('Unexpected DKG SPARQL response');
       return (Array.isArray(rows) ? rows : [])
         .map((r: any) => String(r.patient ?? '').replace(/^urn:patient:/, '').trim())
         .filter((id) => id.length > 0);
     } catch (e: any) {
       this.logger.warn(`Patient enumeration failed: ${e.message}`);
-      return [];
+      throw new DkgUnavailableException('DKG unavailable while enumerating patients with allergies', e);
     }
   }
 
@@ -135,6 +147,7 @@ export class PatientRecordService implements OnModuleInit {
         // publish=false: listRoots is itself the input to a bulk replace.
         roots.add((await this.getProof(id, false)).patientRecordRoot);
       } catch (e: any) {
+        if (e instanceof DkgUnavailableException) throw e;
         // One over-capacity patient must not stop the whole set from being published. That
         // patient has no committable root, so omitting it is correct AND fail-closed: any
         // proof they somehow produce is rejected as an unknown record root.
@@ -234,5 +247,27 @@ export class PatientRecordService implements OnModuleInit {
       paddingSiblings,
       paddingPathBits,
     };
+  }
+
+  async getEvidenceStatus(patientId: string): Promise<PatientEvidenceStatus> {
+    try {
+      const allergies = await this.fetchAllergies(patientId);
+      return allergies.length > 0
+        ? {
+            status: 'present',
+            reason: 'The DKG query returned allergy evidence',
+            allergyCount: allergies.length,
+          }
+        : {
+            status: 'confirmed_absent',
+            reason: 'The DKG query completed successfully with no allergy evidence',
+            allergyCount: 0,
+          };
+    } catch (e: any) {
+      return {
+        status: 'unknown',
+        reason: e?.message ?? 'Allergy evidence could not be evaluated',
+      };
+    }
   }
 }

@@ -17,6 +17,11 @@ export class PublishConsentDto {
   @IsNotEmpty()
   organizationId: string;
 
+  @ApiProperty({ example: 'lab-a' })
+  @IsString()
+  @IsNotEmpty()
+  custodianId: string;
+
   @ApiProperty({ example: '2026-06-25T19:35:00.000Z' })
   @IsString()
   @IsNotEmpty()
