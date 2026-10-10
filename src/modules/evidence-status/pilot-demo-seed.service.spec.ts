@@ -6,10 +6,13 @@ describe('PilotDemoSeedService', () => {
     const previous = process.env.PILOT_DEMO_SEED;
     process.env.PILOT_DEMO_SEED = 'true';
     const createAsset = jest.fn(async (_asset: Record<string, unknown>) => ({ UAL: 'ual:demo' }));
-    const service = new PilotDemoSeedService({
-      findAssets: async () => ({ data: [] }),
-      createAsset,
-    } as any);
+    const service = new PilotDemoSeedService(
+      {
+        findAssets: async () => ({ data: [] }),
+        createAsset,
+      } as any,
+      { get: jest.fn((key: string) => (key === 'app.evidenceReferenceTime' ? undefined : undefined)) } as any,
+    );
 
     try {
       await service.onModuleInit();

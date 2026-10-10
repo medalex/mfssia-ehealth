@@ -103,14 +103,17 @@ describe('EvidenceStatusService', () => {
     });
   });
 
-  it('does not query other custodians when the requested source has no matching metric', async () => {
-    const { service, labRecord } = createService();
+  it('reports a successful empty query to a valid custodian as confirmed absent', async () => {
+    const { service, labRecord } = createService({
+      access: { checkAccess: jest.fn(async () => ({ access: true, organizationId: 'hospital-1' })) },
+    });
 
     const result = await service.getStatus(
       context.patientId, context.doctorId, 'lab-a', context.attribute,
     );
 
-    expect(result).toMatchObject({ state: 'unknown', reason: 'not_custodian' });
+    expect(result).toMatchObject({ state: 'confirmed_absent', reason: null });
+    expect(labRecord.getCustodianMeasurements).toHaveBeenCalledWith(context.patientId, 'lab-a');
     expect(labRecord.getMeasurements).not.toHaveBeenCalled();
   });
 
