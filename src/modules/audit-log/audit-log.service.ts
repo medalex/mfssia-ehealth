@@ -16,41 +16,52 @@ export type AuditEventInput = Pick<
   | 'details'
 >;
 
+export interface ReadAuditContext {
+  patientId: string;
+  doctorId: string;
+  organizationId: string | null;
+  custodianId: string;
+  resource: string;
+  outcome?: string;
+  reason?: string | null;
+  details?: Record<string, unknown> | null;
+}
+
 @Injectable()
 export class AuditLogService {
   constructor(@InjectRepository(AuditEvent) private readonly events: Repository<AuditEvent>) {}
 
-  async record(event: AuditEventInput): Promise<void> {
-    await this.events.save(this.events.create(event));
+  async record(event: AuditEventInput): Promise<AuditEvent> {
+    return this.events.save(this.events.create(event));
   }
 
-  async trackRead<T>(resource: string, patientId: string | null, read: () => Promise<T>): Promise<T> {
+  async trackRead<T>(context: ReadAuditContext, read: () => Promise<T>): Promise<{ value: T; auditEventId: string }> {
     try {
       const result = await read();
-      const evidenceStatus = (result as any)?.status;
-      await this.record({
+      const evidenceState = (result as any)?.state;
+      const event = await this.record({
         eventType: 'data.read',
-        outcome: evidenceStatus === 'unknown' ? 'unknown' : 'success',
-        patientId,
-        doctorId: null,
-        organizationId: null,
-        custodianId: null,
-        resource,
-        reason: evidenceStatus === 'unknown' ? (result as any).reason : null,
-        details: evidenceStatus ? { evidenceStatus } : null,
+        outcome: context.outcome ?? (evidenceState === 'unknown' ? 'unknown' : 'success'),
+        patientId: context.patientId,
+        doctorId: context.doctorId,
+        organizationId: context.organizationId,
+        custodianId: context.custodianId,
+        resource: context.resource,
+        reason: context.reason ?? null,
+        details: context.details ?? (evidenceState ? { evidenceState } : null),
       });
-      return result;
+      return { value: result, auditEventId: event.id };
     } catch (e: any) {
       await this.record({
         eventType: 'data.read',
         outcome: 'unavailable',
-        patientId,
-        doctorId: null,
-        organizationId: null,
-        custodianId: null,
-        resource,
-        reason: e?.message ?? 'Data read failed',
-        details: null,
+        patientId: context.patientId,
+        doctorId: context.doctorId,
+        organizationId: context.organizationId,
+        custodianId: context.custodianId,
+        resource: context.resource,
+        reason: 'unavailable',
+        details: { error: e?.message ?? 'Data read failed' },
       });
       throw e;
     }

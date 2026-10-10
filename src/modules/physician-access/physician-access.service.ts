@@ -51,8 +51,14 @@ export class PhysicianAccessService {
         organizationId: decision.organizationId,
         custodianId,
         resource: 'ConsentAccessSet',
-        reason: decision.reason,
-        details: { access: decision.access, authn: decision.authn, authz: decision.authz, nonce: decision.nonce },
+        reason: decision.access ? 'granted' : 'access_denied',
+        details: {
+          access: decision.access,
+          authn: decision.authn,
+          authz: decision.authz,
+          nonce: decision.nonce,
+          explanation: decision.reason,
+        },
       });
       return decision;
     } catch (e: any) {
@@ -64,8 +70,8 @@ export class PhysicianAccessService {
         organizationId: null,
         custodianId,
         resource: 'ConsentAccessSet',
-        reason: e?.message ?? 'Access decision could not be evaluated',
-        details: { authz: null },
+        reason: 'unavailable',
+        details: { authz: null, error: e?.message ?? 'Access decision could not be evaluated' },
       });
       throw e;
     }

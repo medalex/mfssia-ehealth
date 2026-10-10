@@ -75,25 +75,6 @@ describe('PatientRecordService — root invariance', () => {
     await expect(service.listRoots()).rejects.toThrow(/DKG unavailable.*enumerating patients/);
   });
 
-  it('distinguishes confirmed absence from unknown evidence', async () => {
-    const emptyService = makeService([]);
-    await emptyService.onModuleInit();
-    await expect(emptyService.getEvidenceStatus(PATIENT)).resolves.toMatchObject({
-      status: 'confirmed_absent',
-      allergyCount: 0,
-    });
-
-    const unavailableDkg = { findAssets: async () => { throw new Error('connection refused'); } } as any;
-    const unavailableService = new PatientRecordService(
-      unavailableDkg,
-      { addRootBestEffort: async () => undefined } as any,
-    );
-    await unavailableService.onModuleInit();
-    await expect(unavailableService.getEvidenceStatus(PATIENT)).resolves.toMatchObject({
-      status: 'unknown',
-    });
-  });
-
   it('exactly N_MAX allergies is still accepted', async () => {
     const service = makeService(['Penicillin', 'Amoxicillin', 'Metformin', 'Sulfa', 'Aspirin']);
     await service.onModuleInit();

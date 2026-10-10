@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, Param } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, Post, Query, Param } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { PhysicianAccessService } from './physician-access.service';
 import { CheckAccessDto } from './dto/check-access.dto';
@@ -20,10 +20,26 @@ export class PhysicianAccessController {
 
   @Get('consents/:patientId')
   @ApiOperation({ summary: 'DataSharingConsent documents (reconstructed from DKG) for a patient' })
-  async getConsents(@Param('patientId') patientId: string) {
-    return this.auditLog.trackRead('consent.documents', patientId, () =>
-      this.service.getConsentDocuments(patientId),
-    );
+  async getConsents(
+    @Param('patientId') patientId: string,
+    @Query('doctorId') doctorId: string,
+    @Query('custodianId') custodianId: string,
+  ) {
+    if (!doctorId || !custodianId) throw new BadRequestException('doctorId and custodianId are required');
+    const decision = await this.service.checkAccess(doctorId, patientId, custodianId);
+    if (!decision.access) {
+      const event = await this.auditLog.record({
+        eventType: 'data.read', outcome: 'access_denied', patientId, doctorId,
+        organizationId: decision.organizationId, custodianId, resource: 'consent.documents',
+        reason: 'access_denied', details: { accessReason: decision.reason },
+      });
+      throw new ForbiddenException({ error: 'access_denied', reason: decision.reason, auditEventId: event.id });
+    }
+    const { value } = await this.auditLog.trackRead({
+      patientId, doctorId, organizationId: decision.organizationId, custodianId,
+      resource: 'consent.documents',
+    }, () => this.service.getConsentDocuments(patientId));
+    return value;
   }
 
   @Get('challenge-docs')

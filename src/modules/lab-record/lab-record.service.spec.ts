@@ -43,4 +43,28 @@ describe('LabRecordService — capacity', () => {
     expect(proof.measurements).toHaveLength(8);
     expect(proof.labRecordRoot).toMatch(/^\d+$/);
   });
+
+  it('filters returned measurements by source without changing the full-record root', async () => {
+    const rows = [
+      { metric: 'eGFR', value: '45', unit: 'mL/min', src: 'urn:org:lab-a', ts: '2025-10-10T08:00:00.000Z' },
+      { metric: 'eGFR', value: '20', unit: 'mL/min', src: 'urn:org:lab-b', ts: '2026-10-03T08:00:00.000Z' },
+    ];
+    const service = new LabRecordService(
+      { findAssets: async () => ({ data: rows }) } as any,
+      { addRootBestEffort: async () => undefined } as any,
+    );
+    await service.onModuleInit();
+
+    const completeProof = await service.getProof(PATIENT, false);
+    const labAProof = await service.getProof(PATIENT, false, 'lab-a');
+    const labBProof = await service.getProof(PATIENT, false, 'lab-b');
+
+    expect(labAProof.labRecordRoot).toBe(completeProof.labRecordRoot);
+    expect(labBProof.labRecordRoot).toBe(completeProof.labRecordRoot);
+    expect(labAProof.measurements.map((item) => item.value)).toEqual([45]);
+    expect(labBProof.measurements.map((item) => item.value)).toEqual([20]);
+    await expect(service.getCustodianMeasurements(PATIENT, 'lab-a')).resolves.toMatchObject([
+      { measuredBy: 'lab-a', value: 45 },
+    ]);
+  });
 });

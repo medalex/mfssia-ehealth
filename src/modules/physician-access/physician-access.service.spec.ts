@@ -22,6 +22,7 @@ describe('PhysicianAccessService', () => {
     expect(auditLog.record).toHaveBeenCalledWith(expect.objectContaining({
       outcome: 'denied',
       patientId: 'patient-1',
+      doctorId: 'doctor-1',
       custodianId: 'lab-a',
     }));
   });
@@ -36,6 +37,7 @@ describe('PhysicianAccessService', () => {
     expect(auditLog.record).toHaveBeenCalledWith(expect.objectContaining({
       outcome: 'unavailable',
       patientId: 'patient-1',
+      doctorId: 'doctor-1',
       custodianId: 'lab-a',
     }));
   });

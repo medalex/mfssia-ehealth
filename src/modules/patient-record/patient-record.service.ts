@@ -33,12 +33,6 @@ export interface PatientRecordProof {
   paddingPathBits: number[];     // MERKLE_DEPTH — little-endian bits of allergyCount
 }
 
-export interface PatientEvidenceStatus {
-  status: 'present' | 'confirmed_absent' | 'unknown';
-  reason: string;
-  allergyCount?: number;
-}
-
 // Builds a per-patient allergy Merkle tree from the DKG graph, on demand.
 // Leaf contract (shared with prover + circuit membership):
 //   leaf = Poseidon(stringToField(patientId), substanceCode)
@@ -100,6 +94,10 @@ export class PatientRecordService implements OnModuleInit {
         e,
       );
     }
+  }
+
+  getAllergies(patientId: string): Promise<string[]> {
+    return this.fetchAllergies(patientId);
   }
 
   // Every patient that currently has at least one allergy in the DKG graph.
@@ -249,25 +247,4 @@ export class PatientRecordService implements OnModuleInit {
     };
   }
 
-  async getEvidenceStatus(patientId: string): Promise<PatientEvidenceStatus> {
-    try {
-      const allergies = await this.fetchAllergies(patientId);
-      return allergies.length > 0
-        ? {
-            status: 'present',
-            reason: 'The DKG query returned allergy evidence',
-            allergyCount: allergies.length,
-          }
-        : {
-            status: 'confirmed_absent',
-            reason: 'The DKG query completed successfully with no allergy evidence',
-            allergyCount: 0,
-          };
-    } catch (e: any) {
-      return {
-        status: 'unknown',
-        reason: e?.message ?? 'Allergy evidence could not be evaluated',
-      };
-    }
-  }
 }

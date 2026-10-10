@@ -51,12 +51,18 @@ export class LabRecordService implements OnModuleInit {
   }
 
   // Strips RDF-typed literals: "\"45\"^^xsd:decimal" → "45", "\"eGFR\"" → "eGFR".
-  private clean(v: string): string {
-    return String(v ?? '').replace(/\^\^.*$/, '').replace(/^"|"$/g, '');
+  private clean(v: any): string {
+    const value = v && typeof v === 'object' ? (v.value ?? '') : (v ?? '');
+    return String(value).replace(/\^\^.*$/, '').replace(/^"|"$/g, '');
+  }
+
+  private sourceSlug(v: string): string {
+    return this.clean(v).replace(/^<|>$/g, '').split(/[#/:]/).pop() ?? '';
   }
 
   private async fetchRaw(
     patientId: string,
+    custodianId?: string,
   ): Promise<{ metric: string; value: number; unit: string; measuredBy: string; measuredAt: string | null }[]> {
     const sparql = `
       PREFIX rx: <https://mfssia.io/ontology/prescription#>
@@ -80,10 +86,13 @@ export class LabRecordService implements OnModuleInit {
           value: Number(this.clean(r.value)),
           unit: this.clean(r.unit),
           // hasSource is an IRI like urn:org:lab-a — take the slug after the last ':'.
-          measuredBy: this.clean(r.src).split(':').pop() ?? '',
+          measuredBy: this.sourceSlug(r.src),
           measuredAt: r.ts ? this.clean(r.ts) : null,
         }))
-        .filter((m) => m.metric.length > 0 && Number.isFinite(m.value));
+        .filter((m) =>
+          m.metric.length > 0 && Number.isFinite(m.value) &&
+          (custodianId === undefined || m.measuredBy === custodianId),
+        );
     } catch (e: any) {
       this.logger.warn(`Lab SPARQL lookup failed for ${patientId}: ${e.message}`);
       throw new DkgUnavailableException(`DKG unavailable while reading lab results for patient ${patientId}`, e);
@@ -140,7 +149,7 @@ export class LabRecordService implements OnModuleInit {
 
   // See PatientRecordService.getProof — lab results are written by lab-api into the DKG, so
   // serving the proof is where the new root gets published to the verifier.
-  async getProof(patientId: string, publish = true): Promise<LabRecordProof> {
+  async getProof(patientId: string, publish = true, custodianId?: string): Promise<LabRecordProof> {
     const patientField = this.stringToField(patientId.toLowerCase());
     const raw = await this.fetchRaw(patientId);
 
@@ -195,10 +204,18 @@ export class LabRecordService implements OnModuleInit {
         siblings,
         pathBits,
       };
-    });
+    }).filter((measurement) => custodianId === undefined || measurement.measuredBy === custodianId);
 
     this.logger.log(`Lab record root for ${patientId}: ${raw.length} measurements → ${root}`);
     if (publish) await this.evm.addRootBestEffort('lab', root.toString());
     return { labRecordRoot: root.toString(), measurements };
+  }
+
+  getCustodianMeasurements(patientId: string, custodianId: string) {
+    return this.fetchRaw(patientId, custodianId);
+  }
+
+  getMeasurements(patientId: string) {
+    return this.fetchRaw(patientId);
   }
 }
