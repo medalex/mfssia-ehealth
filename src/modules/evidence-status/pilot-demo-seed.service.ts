@@ -1,11 +1,11 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DkgService } from '@/providers/dkg/dkg.service';
+import { ClockService } from '@/shared/clock/clock.service';
+import { PILOT_ORGANIZATION_ID, PILOT_SCENARIOS } from './pilot-scenarios';
 
 const RX = 'https://mfssia.io/ontology/prescription#';
 const XSD = 'http://www.w3.org/2001/XMLSchema#';
-const PATIENT_ID = '00000000-0000-0000-0000-000000000001';
-const PATIENT_IRI = `urn:patient:${PATIENT_ID}`;
 
 @Injectable()
 export class PilotDemoSeedService implements OnModuleInit {
@@ -14,22 +14,32 @@ export class PilotDemoSeedService implements OnModuleInit {
   constructor(
     private readonly dkg: DkgService,
     private readonly config: ConfigService,
+    private readonly clock: ClockService,
   ) {}
 
   async onModuleInit(): Promise<void> {
     if (process.env.PILOT_DEMO_SEED !== 'true') return;
 
-    const referenceTime = this.config.get<string>('app.evidenceReferenceTime');
-    const rootTime = referenceTime ? new Date(referenceTime) : new Date();
-    if (!referenceTime) {
+    const rootTime = this.clock.now();
+    if (!this.config.get<string>('app.evidenceReferenceTime')) {
       this.logger.warn('PILOT_DEMO_SEED=true but EVIDENCE_REFERENCE_TIME is unset; seeded dates will depend on the current system clock.');
     }
 
     try {
-      await this.ensureConsent('hospital-1');
-      await this.ensureConsent('lab-a');
-      await this.ensureLabResult('lab-a', '45', new Date(rootTime.getTime() - 365 * 24 * 60 * 60 * 1000).toISOString());
-      await this.ensureLabResult('lab-b', '20', new Date(rootTime.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString());
+      for (const scenario of PILOT_SCENARIOS) {
+        for (const custodianId of scenario.consentCustodians) {
+          await this.ensureConsent(scenario.patientId, custodianId);
+        }
+
+        if (scenario.allergy) {
+          await this.ensureAllergy(scenario.patientId, scenario.allergy.substance);
+        }
+
+        for (const entry of scenario.labResults) {
+          const measuredAt = new Date(rootTime.getTime() + entry.offsetDays * 86400000).toISOString();
+          await this.ensureLabResult(scenario.patientId, entry.custodianId, entry.value, measuredAt);
+        }
+      }
       this.logger.log('Pilot demo evidence is present in DKG');
     } catch (error: any) {
       this.logger.error(`Pilot demo seed failed: ${error.message}`);
@@ -43,13 +53,13 @@ export class PilotDemoSeedService implements OnModuleInit {
     return rows;
   }
 
-  private async ensureConsent(custodianId: string): Promise<void> {
+  private async ensureConsent(patientId: string, custodianId: string): Promise<void> {
     const query = `
       PREFIX rx: <${RX}>
       SELECT ?c WHERE {
         ?c a rx:DataSharingConsent ;
-           rx:patient "${PATIENT_ID}" ;
-           rx:consentCovers "hospital-1" ;
+           rx:patient "${patientId}" ;
+           rx:consentCovers "${PILOT_ORGANIZATION_ID}" ;
            rx:consentCoversCustodian "${custodianId}" .
       }
     `;
@@ -57,25 +67,44 @@ export class PilotDemoSeedService implements OnModuleInit {
 
     await this.dkg.createAsset({
       '@context': { rx: RX, xsd: XSD },
-      '@id': `urn:consent:pilot-${PATIENT_ID}-${custodianId}`,
+      '@id': `urn:consent:pilot-${patientId}-${custodianId}`,
       '@type': 'rx:DataSharingConsent',
-      'rx:patient': PATIENT_ID,
-      'rx:consentCovers': 'hospital-1',
+      'rx:patient': patientId,
+      'rx:consentCovers': PILOT_ORGANIZATION_ID,
       'rx:consentCoversCustodian': custodianId,
       'rx:grantedAt': { '@value': new Date().toISOString(), '@type': 'xsd:dateTime' },
       'rx:validUntil': { '@value': '2126-10-10T00:00:00.000Z', '@type': 'xsd:dateTime' },
     } as any);
   }
 
-  private async ensureLabResult(custodianId: string, value: string, measuredAt: string): Promise<void> {
-    // Idempotent seed: if a record already exists for the current patient + custodian, we do not overwrite it.
-    // To reseed, change the suffix below (for example: urn:lab-result:pilot-...-egfr-v2) or remove the old asset from DKG first.
-    const assetId = `urn:lab-result:pilot-${PATIENT_ID}-${custodianId}-egfr`;
+  private async ensureAllergy(patientId: string, substance: string): Promise<void> {
+    const query = `
+      PREFIX rx: <${RX}>
+      SELECT ?a WHERE {
+        ?a a rx:Allergy ;
+           rx:hasPatient <urn:patient:${patientId}> ;
+           rx:hasSubstance rx:${substance} .
+      }
+    `;
+    if ((await this.rows(query)).length > 0) return;
+
+    await this.dkg.createAsset({
+      '@context': { rx: RX },
+      '@id': `urn:allergy:pilot-${patientId}-${substance}`,
+      '@type': 'rx:Allergy',
+      'rx:hasPatient': { '@id': `urn:patient:${patientId}` },
+      'rx:hasSubstance': { '@id': `${RX}${substance}` },
+    } as any);
+  }
+
+  private async ensureLabResult(patientId: string, custodianId: string, value: string, measuredAt: string): Promise<void> {
+    const assetId = `urn:lab-result:pilot-${patientId}-${custodianId}-egfr`;
+    const patientIri = `urn:patient:${patientId}`;
     const query = `
       PREFIX rx: <${RX}>
       SELECT ?result WHERE {
         ?result a rx:LabResult ;
-                rx:hasPatient <${PATIENT_IRI}> ;
+                rx:hasPatient <${patientIri}> ;
                 rx:hasSource <urn:org:${custodianId}> ;
                 rx:hasMetric "eGFR" .
       }
@@ -86,7 +115,7 @@ export class PilotDemoSeedService implements OnModuleInit {
       '@context': { rx: RX, xsd: XSD },
       '@id': assetId,
       '@type': 'rx:LabResult',
-      'rx:hasPatient': { '@id': PATIENT_IRI },
+      'rx:hasPatient': { '@id': patientIri },
       'rx:hasMetric': 'eGFR',
       'rx:hasValue': { '@value': value, '@type': 'xsd:decimal' },
       'rx:hasUnit': 'mL/min/1.73m2',

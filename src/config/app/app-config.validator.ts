@@ -1,6 +1,7 @@
 import {
   IsBoolean,
   IsInt,
+  IsISO8601,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -25,7 +26,7 @@ export class AppConfigValidator {
   @IsOptional()
   API_PREFIX?: string;
 
-  @IsString()
+  @IsISO8601()
   @IsOptional()
   EVIDENCE_REFERENCE_TIME?: string;
 

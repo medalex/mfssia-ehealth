@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuditLogService, validateRunId } from './audit-log.service';
 
@@ -12,7 +12,7 @@ export class AuditLogController {
   getByRunId(@Query('runId') runId: string) {
     const resolvedRunId = validateRunId(runId);
     if (!resolvedRunId) {
-      throw new Error('runId is required');
+      throw new BadRequestException({ error: 'invalid_request', reason: 'runId is required' });
     }
     return this.auditLog.listByRunId(resolvedRunId);
   }

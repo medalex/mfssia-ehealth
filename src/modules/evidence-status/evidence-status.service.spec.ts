@@ -1,5 +1,6 @@
 import { describe, it, expect, jest } from '@jest/globals';
 import { DkgUnavailableException } from '@/shared/exceptions/dkg-unavailable.exception';
+import { ClockService } from '@/shared/clock/clock.service';
 import { EvidenceStatusService } from './evidence-status.service';
 
 describe('EvidenceStatusService', () => {
@@ -26,6 +27,7 @@ describe('EvidenceStatusService', () => {
         { ...labRecord, ...overrides.labRecord } as any,
         { ...auditLog, ...overrides.auditLog } as any,
         { ...config, ...overrides.config } as any,
+        overrides.clock,
       ),
       access: { ...access, ...overrides.access },
       auditLog: { ...auditLog, ...overrides.auditLog },
@@ -141,5 +143,56 @@ describe('EvidenceStatusService', () => {
     expect(auditLog.record).toHaveBeenCalledWith(expect.objectContaining({
       doctorId: context.doctorId, custodianId: 'lab-a', outcome: 'not_custodian',
     }));
+  });
+
+  it('reports lab:eGFR requested from hospital-1 as not_custodian without checking access', async () => {
+    const { service, access, labRecord } = createService();
+
+    const result = await service.getStatus(
+      context.patientId, context.doctorId, 'hospital-1', 'lab:eGFR',
+    );
+
+    expect(result).toMatchObject({ state: 'unknown', reason: 'not_custodian' });
+    expect(access.checkAccess).not.toHaveBeenCalled();
+    expect(labRecord.getCustodianMeasurements).not.toHaveBeenCalled();
+  });
+
+  it('marks a -365 d measurement stale and a -7 d measurement fresh at a fixed reference time', async () => {
+    const clock = new ClockService({ get: () => '2026-10-10T00:00:00Z' } as any);
+    const measurements: Record<string, Array<Record<string, unknown>>> = {
+      'lab-a': [{ metric: 'eGFR', value: 45, measuredAt: '2025-10-10T00:00:00.000Z' }],
+      'lab-b': [{ metric: 'eGFR', value: 20, measuredAt: '2026-10-03T00:00:00.000Z' }],
+    };
+    const { service } = createService({
+      clock,
+      labRecord: { getCustodianMeasurements: jest.fn(async (_patientId: string, custodianId: string) => measurements[custodianId]) },
+    });
+
+    const labA = await service.getStatus(context.patientId, context.doctorId, 'lab-a', 'lab:eGFR');
+    const labB = await service.getStatus(context.patientId, context.doctorId, 'lab-b', 'lab:eGFR');
+
+    expect(labA).toMatchObject({ state: 'present', value: 45, stale: true });
+    expect(labB).toMatchObject({ state: 'present', value: 20, stale: false });
+  });
+
+  it('passes runId to the access check and to every evidence.status event', async () => {
+    const { service, access, auditLog } = createService({
+      access: {
+        checkAccess: jest.fn(async (_d: string, _p: string, custodianId: string) => (
+          { access: custodianId !== 'lab-b', organizationId: 'hospital-1' })),
+      },
+    });
+
+    await service.getStatus(context.patientId, context.doctorId, 'hospital-1', 'allergies', 'run-7');
+    await service.getStatus(context.patientId, context.doctorId, 'lab-a', 'lab:eGFR', 'run-7');
+    await service.getStatus(context.patientId, context.doctorId, 'lab-b', 'lab:eGFR', 'run-7');
+    await service.getStatus(context.patientId, context.doctorId, 'lab-a', 'allergies', 'run-7');
+
+    expect(access.checkAccess).toHaveBeenCalledTimes(3);
+    for (const call of access.checkAccess.mock.calls) expect(call[3]).toBe('run-7');
+    expect(auditLog.record).toHaveBeenCalledTimes(4);
+    for (const [event] of auditLog.record.mock.calls as any[]) {
+      expect(event).toMatchObject({ eventType: 'evidence.status', runId: 'run-7' });
+    }
   });
 });

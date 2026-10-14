@@ -41,4 +41,19 @@ describe('PhysicianAccessService', () => {
       custodianId: 'lab-a',
     }));
   });
+
+  it('records runId on access.decision events for granted, denied and unavailable outcomes', async () => {
+    const granted = createService(async () => ({ data: [{ c: 'urn:consent:1' }] }));
+    await granted.service.checkAccess('doctor-1', 'patient-1', 'lab-a', 'run-9');
+    const denied = createService(async () => ({ data: [] }));
+    await denied.service.checkAccess('doctor-1', 'patient-1', 'lab-b', 'run-9');
+    const unavailable = createService(async () => { throw new Error('offline'); });
+    await expect(unavailable.service.checkAccess('doctor-1', 'patient-1', 'lab-a', 'run-9')).rejects.toThrow();
+
+    for (const [{ auditLog }, outcome] of [[granted, 'granted'], [denied, 'denied'], [unavailable, 'unavailable']] as const) {
+      expect(auditLog.record).toHaveBeenCalledWith(expect.objectContaining({
+        eventType: 'access.decision', outcome, runId: 'run-9',
+      }));
+    }
+  });
 });
