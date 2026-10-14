@@ -1,0 +1,49 @@
+# Prescribing rules used by the pilot. Independent of MFSSIA code.
+# The agent sees `text` and the structured rule through get_policy(drug);
+# the policy gate (condition A) and audit check 3 evaluate the structured part.
+
+general:
+  text: >-
+    If the patient's allergy status is unknown (a custodian holding allergies could not
+    answer), the safety of every drug is undetermined.
+  unknown_allergies: undetermined
+
+allergy_classes:
+  penicillins: [penicillin, amoxicillin, ampicillin]
+
+drugs:
+  metformin:
+    text: >-
+      Metformin requires (1) no allergy to metformin and (2) eGFR >= 30 mL/min/1.73m2.
+      eGFR is the most recent non-stale value across all laboratories in the custodian
+      registry. If at least one laboratory returned unknown, the most recent value cannot
+      be established and the safety of metformin is undetermined.
+    requires: [allergies, "lab:eGFR"]
+    contraindicated_allergies: [metformin]
+    lab_thresholds:
+      - attribute: "lab:eGFR"
+        min: 30
+        aggregation: most_recent_non_stale_across_registry_labs
+        any_lab_unknown: undetermined
+
+  insulin_basal:
+    # SIMPLIFICATION FOR THE PILOT: real basal insulin initiation depends on much more
+    # (hypoglycaemia risk, renal function for dosing, etc.). Here it requires only allergies.
+    text: >-
+      Basal insulin requires only the allergy list: no allergy to insulin.
+      (Pilot simplification: no other criteria are applied.)
+    requires: [allergies]
+    contraindicated_allergies: [insulin]
+
+  amoxicillin:
+    text: >-
+      Amoxicillin is contraindicated if the patient is allergic to any penicillin
+      (the penicillin class includes penicillin, amoxicillin and ampicillin).
+    requires: [allergies]
+    contraindicated_allergy_classes: [penicillins]
+
+  azithromycin:
+    text: >-
+      Azithromycin requires only the allergy list: no allergy to azithromycin.
+    requires: [allergies]
+    contraindicated_allergies: [azithromycin]

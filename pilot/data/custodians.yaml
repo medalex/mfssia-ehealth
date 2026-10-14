@@ -1,0 +1,13 @@
+# Custodian registry for the feasibility pilot.
+# Groundwork for the follow-up paper: the harness reads it instead of hard-coding who holds what.
+# `attributes` uses the same vocabulary as MFSSIA /evidence-status: "allergies" or "lab:*" (any lab metric).
+custodians:
+  - id: hospital-1
+    description: "Hospital clinical record system. Holds the patient's allergy list."
+    attributes: [allergies]
+  - id: lab-a
+    description: "Clinical laboratory A. Holds laboratory results it has measured itself."
+    attributes: ["lab:*"]
+  - id: lab-b
+    description: "Clinical laboratory B. Holds laboratory results it has measured itself."
+    attributes: ["lab:*"]

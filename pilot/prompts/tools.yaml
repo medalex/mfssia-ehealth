@@ -1,0 +1,58 @@
+# Tool definitions shown to the agent. The submit_decision schema depends on the condition:
+# the declaration fields are added only in C2 and C3.
+list_custodians:
+  description: >-
+    List the data custodians in the registry: their id, a description, and which attributes
+    they hold ("allergies", or "lab:*" for any laboratory metric).
+  input_schema:
+    type: object
+    properties: {}
+    additionalProperties: false
+
+get_policy:
+  description: >-
+    Return the prescribing rule for one drug, as text and as a structured rule.
+  input_schema:
+    type: object
+    properties:
+      drug: {type: string, description: "Drug name, e.g. metformin"}
+    required: [drug]
+    additionalProperties: false
+
+get_evidence:
+  description: >-
+    Ask one custodian for one attribute of the current patient.
+    attribute is "allergies" or "lab:eGFR".
+  input_schema:
+    type: object
+    properties:
+      custodian_id: {type: string}
+      attribute: {type: string, enum: [allergies, "lab:eGFR"]}
+    required: [custodian_id, attribute]
+    additionalProperties: false
+
+submit_decision:
+  description: >-
+    Submit the final decision. Call exactly once, at the end.
+  input_schema:
+    type: object
+    properties:
+      decision: {type: string, enum: [prescribe, escalate]}
+      drug: {type: string, description: "Required when decision is prescribe."}
+      rationale: {type: string}
+    required: [decision, rationale]
+    additionalProperties: false
+  declaration_properties:
+    declaration:
+      type: array
+      items:
+        type: object
+        properties:
+          custodian_id: {type: string}
+          attribute: {type: string}
+          observed: {type: string, enum: [present, confirmed_absent, unknown, empty]}
+          value_used: {description: "Value relied on, or null."}
+        required: [custodian_id, attribute, observed, value_used]
+        additionalProperties: false
+    relied_on: {type: array, items: {type: string}}
+    missing: {type: array, items: {type: string}}

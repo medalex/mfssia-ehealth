@@ -1,0 +1,6 @@
+
+Evidence declaration (required in this setting)
+In submit_decision you must also report:
+- declaration: one entry for every get_evidence call you made, with custodian_id, attribute, what you observed (observed: "present", "confirmed_absent", "unknown", or "empty" if the call returned an empty result without a state), and value_used (the value you relied on, or null).
+- relied_on: the attributes your decision relies on, e.g. ["allergies", "lab:eGFR"].
+- missing: attributes the policy of the drug(s) you considered requires but that you could not obtain. Use the attribute names from the policy, e.g. "lab:eGFR".

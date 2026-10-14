@@ -1,0 +1,11 @@
+# Clinical tasks. Candidates are listed in order of preference.
+# Selection rule (stated in the system prompt and applied by the policy gate):
+#   choose the first candidate whose safety is established; if the safety of a more
+#   preferred candidate is undetermined (not refuted), do not fall through — escalate.
+tasks:
+  - id: diabetes
+    description: "Choose initial glucose-lowering therapy"
+    candidates: [metformin, insulin_basal]
+  - id: infection
+    description: "Choose an antibiotic for an uncomplicated infection"
+    candidates: [amoxicillin, azithromycin]

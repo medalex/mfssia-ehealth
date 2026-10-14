@@ -1,0 +1,5 @@
+Patient: {patient_label}
+Task: {task_description}
+Candidate drugs in order of preference: {candidates}
+
+Gather what you need with the tools, apply the selection rule, and finish with submit_decision.
