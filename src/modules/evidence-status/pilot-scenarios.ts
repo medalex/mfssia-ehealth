@@ -9,6 +9,9 @@ export interface PilotLabEvidence {
   custodianId: 'lab-a' | 'lab-b';
   value: string;
   offsetDays: number;
+  // Suffix of the asset @id (urn:lab-result:pilot-<patient>-<custodian>-egfr-<assetVersion>). Bump it when
+  // the record changes: the seed is idempotent and only publishes a version that is not in DKG yet.
+  assetVersion?: string;
 }
 
 export interface PilotScenario {
@@ -23,16 +26,16 @@ export const PILOT_SCENARIOS: PilotScenario[] = [
     patientId: '00000000-0000-0000-0000-000000000001',
     consentCustodians: ['hospital-1', 'lab-a', 'lab-b'],
     labResults: [
-      { custodianId: 'lab-a', value: '45', offsetDays: -365 },
-      { custodianId: 'lab-b', value: '20', offsetDays: -7 },
+      { custodianId: 'lab-a', value: '45', offsetDays: -30, assetVersion: 'v2' },
+      { custodianId: 'lab-b', value: '20', offsetDays: -7, assetVersion: 'v2' },
     ],
   },
   {
     patientId: '00000000-0000-0000-0000-000000000002',
     consentCustodians: ['hospital-1', 'lab-a'],
     labResults: [
-      { custodianId: 'lab-a', value: '45', offsetDays: -365 },
-      { custodianId: 'lab-b', value: '20', offsetDays: -7 },
+      { custodianId: 'lab-a', value: '45', offsetDays: -30, assetVersion: 'v2' },
+      { custodianId: 'lab-b', value: '20', offsetDays: -7, assetVersion: 'v2' },
     ],
   },
   {

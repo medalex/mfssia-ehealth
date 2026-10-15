@@ -55,13 +55,35 @@ describe('PilotDemoSeedService', () => {
       .filter((asset) => asset['@type'] === 'rx:LabResult')
       .map((asset) => [asset['rx:hasPatient']['@id'], asset['rx:hasSource']['@id'], asset['rx:hasValue']['@value'], asset['rx:hasTimestamp']['@value']]);
     expect(labs).toEqual([
-      [`urn:patient:${P1}`, 'urn:org:lab-a', '45', '2025-10-10T00:00:00.000Z'],
+      [`urn:patient:${P1}`, 'urn:org:lab-a', '45', '2026-09-10T00:00:00.000Z'],
       [`urn:patient:${P1}`, 'urn:org:lab-b', '20', '2026-10-03T00:00:00.000Z'],
-      [`urn:patient:${P2}`, 'urn:org:lab-a', '45', '2025-10-10T00:00:00.000Z'],
+      [`urn:patient:${P2}`, 'urn:org:lab-a', '45', '2026-09-10T00:00:00.000Z'],
       [`urn:patient:${P2}`, 'urn:org:lab-b', '20', '2026-10-03T00:00:00.000Z'],
       [`urn:patient:${P3}`, 'urn:org:lab-a', '60', '2026-10-03T00:00:00.000Z'],
       [`urn:patient:${P4}`, 'urn:org:lab-a', '60', '2026-10-03T00:00:00.000Z'],
     ]);
+  });
+
+  it('publishes P1 and P2 lab results as -egfr-v2 and checks existence by that @id only', async () => {
+    const createAsset = jest.fn(async (_asset: Record<string, unknown>) => ({ UAL: 'ual:demo' }));
+    const queries: string[] = [];
+    const findAssets = jest.fn(async (query: string) => {
+      queries.push(query);
+      return { data: [] };
+    });
+    const config = { get: jest.fn((key: string) => (key === 'app.evidenceReferenceTime' ? REFERENCE_TIME : undefined)) } as any;
+    await new PilotDemoSeedService({ findAssets, createAsset } as any, config, new ClockService(config)).onModuleInit();
+
+    const labIds = createAsset.mock.calls.map(([asset]) => asset as any)
+      .filter((asset) => asset['@type'] === 'rx:LabResult').map((asset) => asset['@id']);
+    expect(labIds).toEqual([
+      `urn:lab-result:pilot-${P1}-lab-a-egfr-v2`, `urn:lab-result:pilot-${P1}-lab-b-egfr-v2`,
+      `urn:lab-result:pilot-${P2}-lab-a-egfr-v2`, `urn:lab-result:pilot-${P2}-lab-b-egfr-v2`,
+      `urn:lab-result:pilot-${P3}-lab-a-egfr`, `urn:lab-result:pilot-${P4}-lab-a-egfr`,
+    ]);
+    const labQueries = queries.filter((query) => query.includes('rx:LabResult'));
+    expect(labQueries[0]).toContain(`VALUES ?result { <urn:lab-result:pilot-${P1}-lab-a-egfr-v2> }`);
+    expect(labQueries[4]).not.toContain('VALUES');
   });
 
   it('does not overwrite records that already exist in DKG', async () => {

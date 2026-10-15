@@ -37,7 +37,7 @@ export class PilotDemoSeedService implements OnModuleInit {
 
         for (const entry of scenario.labResults) {
           const measuredAt = new Date(rootTime.getTime() + entry.offsetDays * 86400000).toISOString();
-          await this.ensureLabResult(scenario.patientId, entry.custodianId, entry.value, measuredAt);
+          await this.ensureLabResult(scenario.patientId, entry.custodianId, entry.value, measuredAt, entry.assetVersion);
         }
       }
       this.logger.log('Pilot demo evidence is present in DKG');
@@ -97,12 +97,20 @@ export class PilotDemoSeedService implements OnModuleInit {
     } as any);
   }
 
-  private async ensureLabResult(patientId: string, custodianId: string, value: string, measuredAt: string): Promise<void> {
-    const assetId = `urn:lab-result:pilot-${patientId}-${custodianId}-egfr`;
+  private async ensureLabResult(
+    patientId: string,
+    custodianId: string,
+    value: string,
+    measuredAt: string,
+    assetVersion?: string,
+  ): Promise<void> {
+    const assetId = `urn:lab-result:pilot-${patientId}-${custodianId}-egfr${assetVersion ? `-${assetVersion}` : ''}`;
     const patientIri = `urn:patient:${patientId}`;
+    // A versioned record is looked up by its own @id, so older versions in DKG do not block it.
     const query = `
       PREFIX rx: <${RX}>
       SELECT ?result WHERE {
+        ${assetVersion ? `VALUES ?result { <${assetId}> }` : ''}
         ?result a rx:LabResult ;
                 rx:hasPatient <${patientIri}> ;
                 rx:hasSource <urn:org:${custodianId}> ;

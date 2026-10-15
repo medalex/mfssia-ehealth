@@ -50,7 +50,8 @@ def offline_gate_warnings(data: PilotData) -> list[dict[str, str]]:
         for key, expected in patient.expected_evidence.items():
             custodian, attribute = parse_key(key)
             observations.append(Observation(custodian, attribute, expected["state"], expected.get("value"),
-                                            expected.get("stale"), measured_at=None, reason=expected.get("reason")))
+                                            expected.get("stale"), measured_at=expected.get("measuredAt"),
+                                            reason=expected.get("reason")))
         for task in data.tasks:
             verdict = select(task.id, observations, data)
             got = verdict.drug if verdict.decision == "prescribe" else "escalate"
@@ -58,6 +59,14 @@ def offline_gate_warnings(data: PilotData) -> list[dict[str, str]]:
                 warnings.append({"source": "expected evidence (offline)", "task": task.id, "patient": patient.label,
                                  "truth": patient.truth[task.id], "policy_gate": got, "reasons": "; ".join(verdict.reasons)})
     return warnings
+
+
+def _same_instant(expected: Any, actual: Any) -> bool:
+    try:
+        parse = lambda v: datetime.fromisoformat(str(v).replace("Z", "+00:00"))  # noqa: E731
+        return parse(expected) == parse(actual)
+    except ValueError:
+        return False
 
 
 def _same_value(expected: Any, actual: Any) -> bool:
@@ -87,7 +96,8 @@ def preflight(client: MfssiaClient, data: PilotData) -> None:
                 continue
             for field, want in expected.items():
                 have = got.get(field)
-                if not (_same_value(want, have) if field == "value" else want == have):
+                same = {"value": _same_value, "measuredAt": _same_instant}.get(field, lambda a, b: a == b)
+                if not same(want, have):
                     problems.append(f"{patient.label} {key}: expected {field}={want!r}, got {have!r}")
     if problems:
         raise PreflightError(

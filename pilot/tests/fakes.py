@@ -10,14 +10,14 @@ _ids = itertools.count(1)
 
 
 def response(custodian: str, attribute: str, state: str, value: Any = None, stale: bool | None = None,
-             reason: str | None = None, event_id: str | None = None) -> dict[str, Any]:
+             reason: str | None = None, event_id: str | None = None, measured_at: str | None = None) -> dict[str, Any]:
     body: dict[str, Any] = {"attribute": attribute, "custodianId": custodian, "state": state, "reason": reason,
                             "source": {"custodianId": custodian, "auditEventId": event_id or f"evt-{next(_ids)}"}}
     if state == "present":
         body["value"] = value
     if stale is not None:
         body["stale"] = stale
-        body["measuredAt"] = "2025-10-10T00:00:00.000Z" if stale else "2026-10-03T00:00:00.000Z"
+        body["measuredAt"] = measured_at or ("2025-10-10T00:00:00.000Z" if stale else "2026-10-03T00:00:00.000Z")
     return body
 
 
@@ -39,7 +39,8 @@ class FakeMfssia:
         if expected is None:
             resp = response(custodian_id, attribute, "unknown", reason="not_custodian")
         else:
-            resp = response(custodian_id, attribute, expected["state"], expected.get("value"), expected.get("stale"), expected.get("reason"))
+            resp = response(custodian_id, attribute, expected["state"], expected.get("value"), expected.get("stale"),
+                            expected.get("reason"), measured_at=expected.get("measuredAt"))
         self.journal.setdefault(run_id, []).append({"eventType": "access.decision", "outcome": "granted", "runId": run_id})
         self.journal[run_id].append(event_for(resp, run_id))
         return resp

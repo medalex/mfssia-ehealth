@@ -58,3 +58,7 @@ Thumbs.db
 /coverage
 /coverage.json
 /ignition
+# Feasibility pilot
+pilot/out/
+__pycache__/
+.venv/
