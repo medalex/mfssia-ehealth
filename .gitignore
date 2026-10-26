@@ -60,5 +60,5 @@ Thumbs.db
 /ignition
 # Feasibility pilot
 pilot/out/
-__pycache__/
-.venv/
+pilot/**/bin/
+pilot/**/obj/
