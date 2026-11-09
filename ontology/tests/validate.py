@@ -1,7 +1,8 @@
-import sys, rdflib, pyshacl
-d = sys.argv[1]
-shapes = rdflib.Graph().parse(f"{d}/review-signal-shapes.ttl")
-base = open(f"{d}/examples/valid-signed-absence.ttl").read()
+import rdflib, pyshacl
+from pathlib import Path
+here = Path(__file__).resolve().parent
+shapes = rdflib.Graph().parse(here.parent / "review-signal-shapes.ttl")
+base = (here / "valid-signed-absence.ttl").read_text()
 P = """PREFIX rs: <https://mfssia.io/ontology/review-signal#>
 PREFIX prov: <http://www.w3.org/ns/prov#>
 PREFIX ex: <https://example.org/case#>
