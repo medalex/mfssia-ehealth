@@ -44,7 +44,7 @@ To run the image use command `docker run --rm -p 3000:3000 -it dkg-client`
 To run the tests:
 
 ```
-pip install rdflib pyshacl && python ontology/tests/validate.py
+pip install rdflib pyshacl && python3 ontology/tests/validate.py
 ```
 
 ## Links
