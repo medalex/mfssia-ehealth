@@ -1,0 +1,182 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# MFSSIA Review Signal Extension — SHACL shapes
+#
+# Constraints that every review signal produced by the agent must satisfy.
+# Each shape is derived from one of the requirements R1–R4 or from the scope
+# of a signed absence statement (Table III of the paper). SHACL validates the
+# form of a signal, not whether its content is true; the latter is checked
+# against the MFSSIA log and the record commitments (R5).
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rx:   <https://mfssia.io/ontology/prescription#> .
+@prefix rs:   <https://mfssia.io/ontology/review-signal#> .
+@prefix rss:  <https://mfssia.io/ontology/review-signal-shapes#> .
+
+<https://mfssia.io/ontology/review-signal-shapes>
+    a owl:Ontology ;
+    owl:imports <https://mfssia.io/ontology/review-signal> ;
+    rdfs:comment "SHACL shapes for review signals (R1–R4)." ;
+    sh:declare [ sh:prefix "rs" ;   sh:namespace "https://mfssia.io/ontology/review-signal#"^^xsd:anyURI ] ,
+               [ sh:prefix "prov" ; sh:namespace "http://www.w3.org/ns/prov#"^^xsd:anyURI ] .
+
+# ── R1: Findings with provenance ──────────────────────────────────────────────
+rss:DetectedIssueProvenanceShape
+    a sh:NodeShape ;
+    sh:targetClass rs:DetectedIssue ;
+    sh:property [
+        sh:path prov:wasDerivedFrom ;
+        sh:minCount 1 ;
+        sh:or ( [ sh:class rs:EHR ] [ sh:class rs:PHR ] ) ;
+        sh:message "A detected issue must be derived from at least one EHR or PHR record (R1)." ] .
+
+# ── R2 (sources): one status per source; a status without data states a reason ─
+rss:SourceCoverageShape
+    a sh:NodeShape ;
+    sh:targetClass rs:ReviewSignal ;
+    sh:sparql [ a sh:SPARQLConstraint ;
+        sh:message "A source of the review does not have exactly one source status in the signal (R2, per source)." ;
+        sh:prefixes <https://mfssia.io/ontology/review-signal-shapes> ;
+        sh:select """
+            SELECT $this ?value WHERE {
+              ?review rs:produces $this .
+              ?value rs:inReview ?review .
+              { SELECT $this ?value (COUNT(?st) AS ?n) WHERE {
+                  ?review2 rs:produces $this . ?value rs:inReview ?review2 .
+                  OPTIONAL { $this rs:hasSourceStatus ?st . ?st rs:aboutSource ?value . } }
+                GROUP BY $this ?value }
+              FILTER (?n != 1)
+            }""" ] .
+
+rss:SourceStatusShape
+    a sh:NodeShape ;
+    sh:targetClass rs:SourceStatus ;
+    sh:property [ sh:path rs:aboutSource ; sh:minCount 1 ; sh:maxCount 1 ;
+                  sh:message "A source status must refer to exactly one source (R2, per source)." ] ;
+    sh:property [ sh:path rs:retrievalState ; sh:minCount 1 ; sh:maxCount 1 ;
+                  sh:message "A source status must state whether data were retrieved (R2, per source)." ] ;
+    sh:or (
+        [ sh:property [ sh:path rs:retrievalState ; sh:hasValue rs:DataRetrieved ] ]
+        [ sh:property [ sh:path rs:dataRetrievalFailureReason ; sh:minCount 1 ] ]
+    ) ;
+    sh:message "A source status without retrieved data must state a reason (R2, per source)." .
+
+# ── R2 (sources): when data count as retrieved ────────────────────────────────
+rss:RetrievalShape
+    a sh:NodeShape ;
+    sh:targetClass rs:SourceStatus ;
+    sh:sparql [ a sh:SPARQLConstraint ;
+        sh:message "Data are reported as retrieved, but access was not granted or the response is neither a record response nor a signed absence statement (R2, per source)." ;
+        sh:prefixes <https://mfssia.io/ontology/review-signal-shapes> ;
+        sh:select """
+            SELECT $this WHERE {
+              $this rs:retrievalState rs:DataRetrieved .
+              FILTER (
+                NOT EXISTS { $this rs:hasResponse ?r .
+                             { ?r a rs:RecordResponse } UNION { ?r a rs:SignedAbsenceStatement } }
+                || EXISTS { $this rs:hasAuthenticationOutcome ?o .
+                            FILTER NOT EXISTS { ?o rs:outcomeType rs:Granted } }
+              )
+            }""" ] .
+
+# ── R2 (facts): one status per required fact; confirmed → record, else reason ─
+rss:FactCoverageShape
+    a sh:NodeShape ;
+    sh:targetClass rs:ReviewSignal ;
+    sh:sparql [ a sh:SPARQLConstraint ;
+        sh:message "A fact required by the policy does not have exactly one fact status in the signal (R2, per required fact)." ;
+        sh:prefixes <https://mfssia.io/ontology/review-signal-shapes> ;
+        sh:select """
+            SELECT $this ?value WHERE {
+              ?review rs:produces $this ; rs:underPolicy ?policy .
+              ?value rs:requiredBy ?policy .
+              { SELECT $this ?value (COUNT(?st) AS ?n) WHERE {
+                  ?review2 rs:produces $this ; rs:underPolicy ?policy2 .
+                  ?value rs:requiredBy ?policy2 .
+                  OPTIONAL { $this rs:hasFactStatus ?st . ?st rs:aboutFact ?value . } }
+                GROUP BY $this ?value }
+              FILTER (?n != 1)
+            }""" ] .
+
+rss:FactStatusShape
+    a sh:NodeShape ;
+    sh:targetClass rs:FactStatus ;
+    sh:property [ sh:path rs:aboutFact ; sh:minCount 1 ; sh:maxCount 1 ;
+                  sh:message "A fact status must refer to exactly one required fact (R2, per required fact)." ] ;
+    sh:property [ sh:path rs:confirmationState ; sh:minCount 1 ; sh:maxCount 1 ;
+                  sh:message "A fact status must state whether the fact was confirmed (R2, per required fact)." ] ;
+    sh:or (
+        [ sh:property [ sh:path rs:confirmationState ; sh:hasValue rs:Confirmed ] ;
+          sh:property [ sh:path prov:wasDerivedFrom ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path rs:confirmationState ; sh:hasValue rs:Unconfirmed ] ;
+          sh:property [ sh:path rs:factReason ; sh:minCount 1 ] ]
+    ) ;
+    sh:message "A confirmed fact must cite a record; an unconfirmed fact must state a reason (R2, per required fact)." .
+
+# ── R3: reported outcome consistent with issues and fact statuses ─────────────
+rss:ReportedOutcomeShape
+    a sh:NodeShape ;
+    sh:targetClass rs:ReviewSignal ;
+    sh:property [ sh:path rs:reportedOutcome ; sh:minCount 1 ;
+                  sh:message "A signal must report an outcome to the physician (R3)." ] ;
+    sh:sparql [ a sh:SPARQLConstraint ;
+        sh:message "'No issue found' is reported although an issue is detected or a fact is unconfirmed (R3)." ;
+        sh:prefixes <https://mfssia.io/ontology/review-signal-shapes> ;
+        sh:select """
+            SELECT $this WHERE {
+              $this rs:reportedOutcome rs:NoIssueFound .
+              { $this rs:hasDetectedIssue ?issue . }
+              UNION
+              { $this rs:hasFactStatus ?s . ?s rs:confirmationState rs:Unconfirmed . }
+            }""" ] ;
+    sh:sparql [ a sh:SPARQLConstraint ;
+        sh:message "An issue is detected, but re-examination is not reported (R3)." ;
+        sh:prefixes <https://mfssia.io/ontology/review-signal-shapes> ;
+        sh:select """
+            SELECT $this WHERE {
+              $this rs:hasDetectedIssue ?issue .
+              FILTER NOT EXISTS { $this rs:reportedOutcome rs:ReExamine }
+            }""" ] ;
+    sh:sparql [ a sh:SPARQLConstraint ;
+        sh:message "A required fact is unconfirmed, but an incomplete review is not reported (R3)." ;
+        sh:prefixes <https://mfssia.io/ontology/review-signal-shapes> ;
+        sh:select """
+            SELECT $this WHERE {
+              $this rs:hasFactStatus ?s . ?s rs:confirmationState rs:Unconfirmed .
+              FILTER NOT EXISTS { $this rs:reportedOutcome rs:Incomplete }
+            }""" ] .
+
+# ── R4: Selectivity ───────────────────────────────────────────────────────────
+rss:SelectivityShape
+    a sh:NodeShape ;
+    sh:targetClass rs:ReviewSignal ;
+    sh:sparql [ a sh:SPARQLConstraint ;
+        sh:message "A detected issue does not concern a fact required by the policy of the review (R4)." ;
+        sh:prefixes <https://mfssia.io/ontology/review-signal-shapes> ;
+        sh:select """
+            SELECT $this ?value WHERE {
+              ?review rs:produces $this ; rs:underPolicy ?policy .
+              $this rs:hasDetectedIssue ?value .
+              FILTER NOT EXISTS { ?value rs:concernsFact ?f . ?f rs:requiredBy ?policy . }
+            }""" ] .
+
+# ── Scope of a signed absence statement ───────────────────────────────────────
+rss:SignedAbsenceScopeShape
+    a sh:NodeShape ;
+    sh:targetClass rs:SignedAbsenceStatement ;
+    sh:property [ sh:path rs:signature ;   sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ;
+                  sh:message "A signed absence statement must carry exactly one signature." ] ;
+    sh:property [ sh:path rs:respondedBy ; sh:minCount 1 ; sh:maxCount 1 ;
+                  sh:message "A signed absence statement must name the signing source." ] ;
+    sh:property [ sh:path rs:forPatient ;  sh:minCount 1 ; sh:maxCount 1 ;
+                  sh:message "A signed absence statement must state the patient." ] ;
+    sh:property [ sh:path rs:recordType ;  sh:minCount 1 ; sh:maxCount 1 ;
+                  sh:message "A signed absence statement must state the record type." ] ;
+    sh:property [ sh:path rs:periodStart ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ;
+                  sh:message "A signed absence statement must state the start of the period." ] ;
+    sh:property [ sh:path rs:periodEnd ;   sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ;
+                  sh:message "A signed absence statement must state the end of the period." ] .

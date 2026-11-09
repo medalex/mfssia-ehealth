@@ -1,0 +1,347 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# MFSSIA Review Signal Extension — TBox
+#
+# Extends the MFSSIA Prescription Extension (rx:, ZKP running case), which
+# itself imports the UFO-grounded MFSSIA ontology. Represents the review that
+# an AI agent performs before prescription issuance and the signal it reports
+# to the physician: detected issues, source status, and fact status (RQ2, R1–R4).
+#
+# Import chain:  MFSSIA (UFO)  →  rx: prescription  →  rs: review signal
+#
+# UFO categories are annotated in the same way as in MFSSIA and rx:
+# (ufo:kind, ufo:role, ufo:event, ufo:mode, ufo:type).
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@prefix owl:    <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix dc:     <http://purl.org/dc/elements/1.1/> .
+@prefix terms:  <http://purl.org/dc/terms/> .
+@prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
+@prefix prov:   <http://www.w3.org/ns/prov#> .
+@prefix mfssia: <http://www.semanticweb.org/mubashar/ontologies/2024/4/MFSSIA-ontology#> .
+@prefix ufo:    <http://www.semanticweb.org/mubashar/ontologies/2024/4/MFSSIA-ontology#ufo:> .
+@prefix rx:     <https://mfssia.io/ontology/prescription#> .
+@prefix fhir:   <http://hl7.org/fhir/> .
+@prefix dar:    <http://terminology.hl7.org/CodeSystem/data-absent-reason#> .
+@prefix rs:     <https://mfssia.io/ontology/review-signal#> .
+
+<https://mfssia.io/ontology/review-signal>
+    a owl:Ontology ;
+    owl:imports <https://mfssia.io/ontology/prescription> ;
+    owl:versionInfo "0.2"^^xsd:decimal ;
+    dc:creator "Aleksandr Kormiltsyn (aleksandr.kormiltson@taltech.ee)" ;
+    dc:title "MFSSIA Review Signal Extension" ;
+    rdfs:comment "Represents an agent-assisted prescription review over institutional and patient-held data, and the signal reported to the physician: detected issues with provenance, the status of each initial or discovered source, and the status of each fact required by the clinical policy." ;
+    terms:license <https://creativecommons.org/licenses/by/4.0> .
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CLASSES — review and actors
+# ═══════════════════════════════════════════════════════════════════════════════
+
+rs:Review
+    a owl:Class ;
+    ufo:event "UFO Event — a review occurs once, before issuance of a specific prescription." ;
+    rdfs:label "Review" ;
+    rdfs:comment "Agent-assisted review of a prescription before issuance. Bound to the prescription, the governing clinical policy, and the time of the review." .
+
+rs:ReviewSignal
+    a owl:Class ;
+    rdfs:subClassOf mfssia:Data ;
+    ufo:kind "UFO Kind — the signal is an information artefact produced by a review and stored with the prescription." ;
+    rdfs:label "ReviewSignal" ;
+    rdfs:comment "Result of a review reported to the physician. Consists of detected issues, source statuses, and fact statuses (R1–R3)." .
+
+rs:ReviewingAgent
+    a owl:Class ;
+    rdfs:subClassOf mfssia:NonHuman ;
+    ufo:role "UFO Role — a non-human agent plays the reviewing role within the health information system of the physician's organization." ;
+    rdfs:label "ReviewingAgent" ;
+    rdfs:comment "AI agent that performs the review within the trust boundary of the HIS." .
+
+rs:PhysicianDecision
+    a owl:Class ;
+    ufo:event "UFO Event — the physician's decision taken after receiving the signal." ;
+    rdfs:label "PhysicianDecision" ;
+    rdfs:comment "Decision of the physician in response to a review signal. Recorded so that the advisory signal and the decision are associated with the prescription." .
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CLASSES — sources and records
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── Data sources: type hierarchy ──────────────────────────────────────────────
+
+rs:DataSource
+    a owl:Class ;
+    rdfs:subClassOf [ a owl:Class ; owl:unionOf ( mfssia:Organization mfssia:Agent ) ] ;
+    ufo:role "UFO Role — an organization, a person, or a device plays the role of a data source when it provides data about a patient." ;
+    rdfs:label "DataSource" ;
+    rdfs:comment "Provider of patient data. Specialized by type into EHR and PHR data sources; trust is represented separately by rs:ApprovedDataSource." .
+
+rs:EHRDataSource
+    a owl:Class ;
+    rdfs:subClassOf rs:DataSource , mfssia:Organization ;
+    ufo:role "UFO Role — played by a healthcare organization, e.g., a hospital or a laboratory." ;
+    rdfs:label "EHRDataSource" ;
+    rdfs:comment "Organization that provides EHRs, e.g., rx:HealthcareProvider or rx:Laboratory." .
+
+rs:PHRDataSource
+    a owl:Class ;
+    rdfs:subClassOf rs:DataSource ;
+    rdfs:subClassOf [ a owl:Class ; owl:unionOf ( rx:Patient mfssia:SmartDevice ) ] ;
+    ufo:role "UFO Role — played by the patient or by a device of the patient, e.g., a smartwatch, a sensor, or a phone." ;
+    rdfs:label "PHRDataSource" ;
+    rdfs:comment "Provider of PHRs: the patient (notes, uploaded reports) or the patient's devices (readings)." .
+
+rs:EHRDataSource owl:disjointWith rs:PHRDataSource .
+
+# ── Data sources: trust (orthogonal to type) ──────────────────────────────────
+
+rs:ApprovedDataSource
+    a owl:Class ;
+    rdfs:subClassOf rs:DataSource ;
+    ufo:role "UFO Role — a data source plays this role when governance has approved it as a provider of committed records." ;
+    rdfs:label "ApprovedDataSource" ;
+    rdfs:comment "Data source of any type approved by governance; only records from approved sources can be admitted to root_M and verified against Merkle commitments." .
+
+rx:TrustedDataSource rdfs:subClassOf rs:ApprovedDataSource .
+
+rs:EHR
+    a owl:Class ;
+    rdfs:subClassOf mfssia:Data ;
+    rdfs:subClassOf [ a owl:Restriction ; owl:onProperty rs:providedBy ; owl:allValuesFrom rs:EHRDataSource ] ;
+    ufo:mode "UFO Mode — an electronic health record exists only as information about its patient." ;
+    rdfs:label "EHR" ;
+    rdfs:comment "Electronic health record provided by a healthcare organization, including laboratory results shared between providers." .
+
+rs:PHR
+    a owl:Class ;
+    rdfs:subClassOf mfssia:Data ;
+    rdfs:subClassOf [ a owl:Restriction ; owl:onProperty rs:providedBy ; owl:allValuesFrom rs:PHRDataSource ] ;
+    owl:disjointWith rs:EHR ;
+    ufo:mode "UFO Mode — a personal health record exists only as information about its patient." ;
+    rdfs:label "PHR" ;
+    rdfs:comment "Personal health record provided by the patient or the patient's devices, e.g., a free-text note, an uploaded report, or a device reading." .
+
+rx:LabeledRecord
+    rdfs:subClassOf [ a owl:Class ; owl:unionOf ( rs:EHR rs:PHR ) ] ;
+    rdfs:comment "In this extension: a record of either type that is provided by an approved source and committed in root_M; only such records can be verified against Merkle commitments." .
+
+rs:ReferencedSource
+    a owl:Class ;
+    ufo:role "UFO Role — a data source plays the role of a referenced source only within a specific review." ;
+    rdfs:label "ReferencedSource" ;
+    rdfs:comment "Source of patient data considered in a review: either an initial source known from the care process (the physician's own organization, laboratories to which tests were ordered, the patient's PHR data sources) or a source discovered through a reference in the patient's records, e.g., a private laboratory visited on the patient's own initiative." .
+
+rs:DataSourceResponse
+    a owl:Class ;
+    ufo:event "UFO Event — a response occurs when a data source answers a request of the reviewing agent." ;
+    rdfs:label "DataSourceResponse" ;
+    rdfs:comment "Response of a data source to a request made during a review. Data are retrieved from the source only if the response is a rs:RecordResponse or a rs:SignedAbsenceStatement." .
+
+rs:RecordResponse
+    a owl:Class ;
+    rdfs:subClassOf rs:DataSourceResponse ;
+    ufo:event "UFO Event" ;
+    rdfs:label "RecordResponse" ;
+    rdfs:comment "Response that returns one or more records (rs:EHR or rs:PHR)." .
+
+rs:SignedAbsenceStatement
+    a owl:Class ;
+    rdfs:subClassOf rs:DataSourceResponse ;
+    rdfs:subClassOf [ a owl:Restriction ; owl:onProperty rs:signature ; owl:cardinality "1"^^xsd:nonNegativeInteger ] ;
+    ufo:event "UFO Event" ;
+    rdfs:label "SignedAbsenceStatement" ;
+    rdfs:comment "Response in which the source states that it holds no record of a given type for a given patient and period. Must carry exactly one signature of the source (rs:signature), which authenticates the statement; completeness depends on its scope (rs:forPatient, rs:recordType, rs:periodStart, rs:periodEnd)." .
+
+rs:EmptyDataResponse
+    a owl:Class ;
+    rdfs:subClassOf rs:DataSourceResponse ;
+    ufo:event "UFO Event" ;
+    rdfs:label "EmptyDataResponse" ;
+    rdfs:comment "Response that returns no records and no signed absence statement. No data are retrieved; the absence of records is not established." .
+
+rs:ErrorResponse
+    a owl:Class ;
+    rdfs:subClassOf rs:DataSourceResponse ;
+    ufo:event "UFO Event" ;
+    rdfs:label "ErrorResponse" ;
+    rdfs:comment "Response that reports a failure of the source. A source that does not respond at all produces no rs:DataSourceResponse and is reported with the reason rs:SourceUnavailable." .
+
+[ a owl:AllDisjointClasses ; owl:members ( rs:RecordResponse rs:SignedAbsenceStatement rs:EmptyDataResponse rs:ErrorResponse ) ] .
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CLASSES — content of the signal
+# ═══════════════════════════════════════════════════════════════════════════════
+
+rs:RequiredFact
+    a owl:Class ;
+    ufo:type "UFO Type — a required fact is determined by the clinical policy, not by the patient." ;
+    rdfs:label "RequiredFact" ;
+    rdfs:comment "Fact that the clinical policy requires a review to confirm, e.g., the most recent eGFR or the allergy records for Metformin." .
+
+rs:DetectedIssue
+    a owl:Class ;
+    ufo:mode "UFO Mode — a detected issue exists only as part of a review signal." ;
+    rdfs:label "DetectedIssue" ;
+    rdfs:comment "Actual or potential problem with the reviewed prescription identified by the review (a finding), e.g., an eGFR of 20 reported in a PHR note. Must cite the record it rests on (R1)." ;
+    skos:closeMatch fhir:DetectedIssue .
+
+rs:SourceStatus
+    a owl:Class ;
+    ufo:mode "UFO Mode — the status of a source exists only within a review." ;
+    rdfs:label "SourceStatus" ;
+    rdfs:comment "Whether data were retrieved from an initial or discovered source and, if not, why (R2, per source)." .
+
+rs:FactStatus
+    a owl:Class ;
+    ufo:mode "UFO Mode — the status of a required fact exists only within a review." ;
+    rdfs:label "FactStatus" ;
+    rdfs:comment "Whether a required fact was confirmed, from which record, and, if not, why (R2, per required fact)." .
+
+rs:AuthenticationOutcome
+    a owl:Class ;
+    ufo:mode "UFO Mode — the outcome of evaluating a challenge response." ;
+    rdfs:label "AuthenticationOutcome" ;
+    rdfs:comment "Outcome of the MFSSIA challenge processing for an access attempt: granted, refused because of an invalid response, or refused because the challenge expired." .
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONTROLLED VOCABULARIES (UFO Type)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+rs:DataRetrievalState     a owl:Class ; ufo:type "UFO Type" ; rdfs:label "DataRetrievalState" .
+rs:FactConfirmationState a owl:Class ; ufo:type "UFO Type" ; rdfs:label "FactConfirmationState" .
+rs:AuthenticationOutcomeType  a owl:Class ; ufo:type "UFO Type" ; rdfs:label "AuthenticationOutcomeType" .
+rs:DataRetrievalFailureReason       a owl:Class ; ufo:type "UFO Type" ; rdfs:label "DataRetrievalFailureReason" .
+rs:FactReason         a owl:Class ; ufo:type "UFO Type" ; rdfs:label "FactReason" .
+rs:SourceOrigin       a owl:Class ; ufo:type "UFO Type" ; rdfs:label "SourceOrigin" .
+rs:ReportedOutcome    a owl:Class ; ufo:type "UFO Type" ; rdfs:label "ReportedOutcome" .
+
+rs:DataRetrieved     a rs:DataRetrievalState ; rdfs:label "data retrieved" ;
+    rdfs:comment "Access to the source was granted and its response is a rs:RecordResponse or a rs:SignedAbsenceStatement." .
+rs:NoDataRetrieved  a rs:DataRetrievalState ; rdfs:label "no data retrieved" .
+rs:DataRetrievalState owl:equivalentClass [ a owl:Class ; owl:oneOf ( rs:DataRetrieved rs:NoDataRetrieved ) ] .
+
+rs:Initial    a rs:SourceOrigin ; rdfs:label "initial" ;
+    rdfs:comment "Known from the care process before the review starts." .
+rs:Discovered a rs:SourceOrigin ; rdfs:label "discovered" ;
+    rdfs:comment "Not known from the care process; found through a reference in the patient's records during the review." .
+rs:SourceOrigin owl:equivalentClass [ a owl:Class ; owl:oneOf ( rs:Initial rs:Discovered ) ] .
+
+rs:Confirmed    a rs:FactConfirmationState ; rdfs:label "confirmed" .
+rs:Unconfirmed a rs:FactConfirmationState ; rdfs:label "unconfirmed" .
+rs:FactConfirmationState owl:equivalentClass [ a owl:Class ; owl:oneOf ( rs:Confirmed rs:Unconfirmed ) ] .
+
+rs:ReExamine    a rs:ReportedOutcome ; rdfs:label "re-examine" ;
+    rdfs:comment "The signal contains at least one detected issue." .
+rs:Incomplete   a rs:ReportedOutcome ; rdfs:label "incomplete review" ;
+    rdfs:comment "At least one required fact is unconfirmed. May hold together with rs:ReExamine (R3)." .
+rs:NoIssueFound a rs:ReportedOutcome ; rdfs:label "no issue found" ;
+    rdfs:comment "Every required fact is confirmed and no issue is detected. Limited to the initial and discovered sources of the review; does not claim complete knowledge of the patient." .
+rs:ReportedOutcome owl:equivalentClass [ a owl:Class ; owl:oneOf ( rs:ReExamine rs:Incomplete rs:NoIssueFound ) ] .
+
+rs:Granted                 a rs:AuthenticationOutcomeType ; rdfs:label "granted" .
+rs:RefusedInvalidResponse  a rs:AuthenticationOutcomeType ; rdfs:label "refused: invalid challenge response" .
+rs:RefusedExpiredChallenge a rs:AuthenticationOutcomeType ; rdfs:label "refused: challenge expired" .
+
+rs:AccessRefused        a rs:DataRetrievalFailureReason ; rdfs:label "access refused" ;
+    skos:closeMatch dar:not-permitted .
+rs:SourceUnavailable    a rs:DataRetrievalFailureReason ; rdfs:label "source unavailable" ;
+    skos:closeMatch dar:temp-unknown .
+rs:EmptyResponse        a rs:DataRetrievalFailureReason ; rdfs:label "empty response" ;
+    rdfs:comment "The source returned a rs:EmptyDataResponse: no data were retrieved, and absence is not established." ;
+    skos:closeMatch dar:unknown .
+rs:MentionNotResolved   a rs:DataRetrievalFailureReason ; rdfs:label "mentioned source not resolved in the directory" ;
+    skos:closeMatch dar:unknown .
+
+rs:DataNotRetrieved   a rs:FactReason ; rdfs:label "no data relevant to the fact were retrieved" ;
+    skos:closeMatch dar:unknown .
+rs:Unreadable           a rs:FactReason ; rdfs:label "retrieved material is unreadable" ;
+    skos:closeMatch dar:error .
+rs:Stale                a rs:FactReason ; rdfs:label "retrieved value is outdated" .
+rs:NotComparable        a rs:FactReason ; rdfs:label "retrieved value is not comparable (units, method, specimen)" .
+rs:Conflicting          a rs:FactReason ; rdfs:label "retrieved values conflict" .
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# OBJECT PROPERTIES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── Review ────────────────────────────────────────────────────────────────────
+rs:reviews            a owl:ObjectProperty, owl:FunctionalProperty ; rdfs:domain rs:Review ; rdfs:range rx:Prescription ; rdfs:label "reviews" .
+rs:underPolicy        a owl:ObjectProperty ; rdfs:domain rs:Review ; rdfs:range rx:ClinicalPolicy ; rdfs:label "underPolicy" .
+rs:performedBy        a owl:ObjectProperty, owl:FunctionalProperty ; rdfs:domain rs:Review ; rdfs:range rs:ReviewingAgent ; rdfs:label "performedBy" .
+rs:produces           a owl:ObjectProperty, owl:FunctionalProperty ; rdfs:domain rs:Review ; rdfs:range rs:ReviewSignal ; rdfs:label "produces" .
+rs:precedesContext    a owl:ObjectProperty ; rdfs:domain rs:Review ; rdfs:range rx:EvaluationContext ;
+    rdfs:label "precedesContext" ;
+    rdfs:comment "Links the review to the evaluation context Γ of the subsequent ZKP proof. The review does not change what the proof establishes." .
+rs:consideredRecord     a owl:ObjectProperty ; rdfs:domain rs:Review ; rdfs:range [ a owl:Class ; owl:unionOf ( rs:EHR rs:PHR ) ] ;
+    rdfs:label "consideredRecord" ;
+    rdfs:comment "Evidence snapshot: records retrieved and read during the review." .
+
+# ── Signal content ────────────────────────────────────────────────────────────
+rs:hasDetectedIssue         a owl:ObjectProperty ; rdfs:domain rs:ReviewSignal ; rdfs:range rs:DetectedIssue ; rdfs:label "hasDetectedIssue" .
+rs:hasSourceStatus    a owl:ObjectProperty ; rdfs:domain rs:ReviewSignal ; rdfs:range rs:SourceStatus ; rdfs:label "hasSourceStatus" .
+rs:hasFactStatus      a owl:ObjectProperty ; rdfs:domain rs:ReviewSignal ; rdfs:range rs:FactStatus ; rdfs:label "hasFactStatus" .
+rs:reportedOutcome    a owl:ObjectProperty ; rdfs:domain rs:ReviewSignal ; rdfs:range rs:ReportedOutcome ; rdfs:label "reportedOutcome" ;
+    rdfs:comment "Summary reported to the physician. Not functional: rs:ReExamine and rs:Incomplete may hold at once (R3)." .
+
+# ── Required facts ────────────────────────────────────────────────────────────
+rs:requiredBy         a owl:ObjectProperty ; rdfs:domain rs:RequiredFact ; rdfs:range rx:ClinicalPolicy ; rdfs:label "requiredBy" .
+
+# ── Detected issues ───────────────────────────────────────────────────────────
+rs:concernsFact       a owl:ObjectProperty ; rdfs:domain rs:DetectedIssue ; rdfs:range rs:RequiredFact ; rdfs:label "concernsFact" .
+rs:affectsMedication  a owl:ObjectProperty ; rdfs:domain rs:DetectedIssue ; rdfs:range rx:Medication ; rdfs:label "affectsMedication" .
+rs:indicatesRisk      a owl:ObjectProperty ; rdfs:domain rs:DetectedIssue ; rdfs:range mfssia:Risk ; rdfs:label "indicatesRisk" .
+# Provenance of detected issues and of confirmed fact statuses: prov:wasDerivedFrom → rs:EHR or rs:PHR (R1, R2).
+
+# ── Sources ───────────────────────────────────────────────────────────────────
+rs:aboutSource        a owl:ObjectProperty, owl:FunctionalProperty ; rdfs:domain rs:SourceStatus ; rdfs:range rs:ReferencedSource ; rdfs:label "aboutSource" .
+rs:retrievalState     a owl:ObjectProperty, owl:FunctionalProperty ; rdfs:domain rs:SourceStatus ; rdfs:range rs:DataRetrievalState ; rdfs:label "retrievalState" .
+rs:dataRetrievalFailureReason       a owl:ObjectProperty ; rdfs:domain rs:SourceStatus ; rdfs:range rs:DataRetrievalFailureReason ; rdfs:label "dataRetrievalFailureReason" .
+rs:hasAuthenticationOutcome   a owl:ObjectProperty ; rdfs:domain rs:SourceStatus ; rdfs:range rs:AuthenticationOutcome ; rdfs:label "hasAuthenticationOutcome" .
+rs:hasResponse        a owl:ObjectProperty ; rdfs:domain rs:SourceStatus ; rdfs:range rs:DataSourceResponse ; rdfs:label "hasResponse" .
+rs:respondedBy        a owl:ObjectProperty, owl:FunctionalProperty ; rdfs:domain rs:DataSourceResponse ; rdfs:range rs:DataSource ; rdfs:label "respondedBy" .
+rs:returnedRecord     a owl:ObjectProperty ; rdfs:domain rs:RecordResponse ; rdfs:range [ a owl:Class ; owl:unionOf ( rs:EHR rs:PHR ) ] ; rdfs:label "returnedRecord" .
+rs:playedBy           a owl:ObjectProperty, owl:FunctionalProperty ; rdfs:domain rs:ReferencedSource ; rdfs:range rs:DataSource ; rdfs:label "playedBy" .
+rs:inReview           a owl:ObjectProperty, owl:FunctionalProperty ; rdfs:domain rs:ReferencedSource ; rdfs:range rs:Review ; rdfs:label "inReview" .
+rs:sourceOrigin       a owl:ObjectProperty, owl:FunctionalProperty ; rdfs:domain rs:ReferencedSource ; rdfs:range rs:SourceOrigin ; rdfs:label "sourceOrigin" .
+rs:referencedIn       a owl:ObjectProperty ; rdfs:domain rs:ReferencedSource ; rdfs:range [ a owl:Class ; owl:unionOf ( rs:EHR rs:PHR ) ] ;
+    rdfs:label "referencedIn" ; rdfs:comment "Record in which a discovered source is referenced, e.g., a PHR note." .
+rs:providedBy         a owl:ObjectProperty, owl:FunctionalProperty ; rdfs:domain [ a owl:Class ; owl:unionOf ( rs:EHR rs:PHR ) ] ; rdfs:range rs:DataSource ; rdfs:label "providedBy" .
+rs:heldBy             a owl:ObjectProperty ; rdfs:domain rs:PHR ; rdfs:range rx:Patient ; rdfs:label "heldBy" .
+
+# ── Authentication outcome (link to MFSSIA) ───────────────────────────────────
+rs:basedOnResponse    a owl:ObjectProperty, owl:FunctionalProperty ; rdfs:domain rs:AuthenticationOutcome ; rdfs:range mfssia:ChallengeResponse ; rdfs:label "basedOnResponse" .
+rs:outcomeType        a owl:ObjectProperty, owl:FunctionalProperty ; rdfs:domain rs:AuthenticationOutcome ; rdfs:range rs:AuthenticationOutcomeType ; rdfs:label "outcomeType" .
+rs:failedChallenge    a owl:ObjectProperty ; rdfs:domain rs:AuthenticationOutcome ; rdfs:range mfssia:Challenge ; rdfs:label "failedChallenge" .
+
+# ── Signed absence scope (signer = rs:respondedBy) ───────────────────────────
+rs:forPatient         a owl:ObjectProperty ; rdfs:domain rs:SignedAbsenceStatement ; rdfs:range rx:Patient ; rdfs:label "forPatient" .
+
+# ── Facts ─────────────────────────────────────────────────────────────────────
+rs:aboutFact          a owl:ObjectProperty, owl:FunctionalProperty ; rdfs:domain rs:FactStatus ; rdfs:range rs:RequiredFact ; rdfs:label "aboutFact" .
+rs:confirmationState a owl:ObjectProperty, owl:FunctionalProperty ; rdfs:domain rs:FactStatus ; rdfs:range rs:FactConfirmationState ; rdfs:label "confirmationState" .
+rs:factReason         a owl:ObjectProperty ; rdfs:domain rs:FactStatus ; rdfs:range rs:FactReason ; rdfs:label "factReason" .
+
+# ── Physician decision ────────────────────────────────────────────────────────
+rs:respondsTo         a owl:ObjectProperty, owl:FunctionalProperty ; rdfs:domain rs:PhysicianDecision ; rdfs:range rs:ReviewSignal ; rdfs:label "respondsTo" .
+rs:decidedBy          a owl:ObjectProperty, owl:FunctionalProperty ; rdfs:domain rs:PhysicianDecision ; rdfs:range rx:Physician ; rdfs:label "decidedBy" .
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DATATYPE PROPERTIES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+rs:reviewedAt         a owl:DatatypeProperty, owl:FunctionalProperty ; rdfs:domain rs:Review ; rdfs:range xsd:dateTime ; rdfs:label "reviewedAt" .
+rs:factMetric         a owl:DatatypeProperty ; rdfs:domain rs:RequiredFact ; rdfs:range xsd:string ;
+    rdfs:label "factMetric" ; rdfs:comment "Metric or record type of the fact, aligned with rx:hasMetric, e.g., \"eGFR\" or \"allergy\"." .
+rs:issueText        a owl:DatatypeProperty ; rdfs:domain rs:DetectedIssue ; rdfs:range xsd:string ; rdfs:label "issueText" .
+rs:recordType         a owl:DatatypeProperty ; rdfs:domain rs:SignedAbsenceStatement ; rdfs:range xsd:string ; rdfs:label "recordType" .
+rs:periodStart        a owl:DatatypeProperty ; rdfs:domain rs:SignedAbsenceStatement ; rdfs:range xsd:dateTime ; rdfs:label "periodStart" .
+rs:periodEnd          a owl:DatatypeProperty ; rdfs:domain rs:SignedAbsenceStatement ; rdfs:range xsd:dateTime ; rdfs:label "periodEnd" .
+rs:signature          a owl:DatatypeProperty ; rdfs:domain rs:SignedAbsenceStatement ; rdfs:range xsd:string ; rdfs:label "signature" .
+rs:respondedAt        a owl:DatatypeProperty, owl:FunctionalProperty ; rdfs:domain rs:DataSourceResponse ; rdfs:range xsd:dateTime ; rdfs:label "respondedAt" .
+rs:recordTimestamp      a owl:DatatypeProperty ; rdfs:domain [ a owl:Class ; owl:unionOf ( rs:EHR rs:PHR ) ] ; rdfs:range xsd:dateTime ; rdfs:label "recordTimestamp" ;
+    rdfs:comment "Time of the record; used to judge whether a value is the most recent or stale relative to rs:reviewedAt." .
+rs:decisionOutcome    a owl:DatatypeProperty ; rdfs:domain rs:PhysicianDecision ; rdfs:range xsd:string ;
+    rdfs:label "decisionOutcome" ; rdfs:comment "E.g., proceed, change medication, order a test." .

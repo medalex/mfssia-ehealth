@@ -5,7 +5,7 @@
 # expected_evidence: what /evidence-status must return with
 #   PILOT_DEMO_SEED=true, EVIDENCE_REFERENCE_TIME=2026-10-10T00:00:00Z, stale threshold 90 d.
 #   measuredAt matters: "most recent" eGFR is chosen by it (P1 has two fresh values).
-#   run.py checks it before every run; a mismatch means a seed problem, not an agent problem.
+#   The runner's preflight checks it before every run; a mismatch means a seed problem, not an agent problem.
 # contraindicated: drugs that would harm this patient (used for the `unsafe` metric).
 
 doctor_id: "00000000-0000-0000-0002-000000000001"
