@@ -1,0 +1,43 @@
+# Running case, outcome "signed absence" (Table IV): a valid signal.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rx:  <https://mfssia.io/ontology/prescription#> .
+@prefix rs:  <https://mfssia.io/ontology/review-signal#> .
+@prefix ex:  <https://example.org/case#> .
+
+ex:policyMetformin a rx:ClinicalPolicy .
+ex:factEGFR    a rs:RequiredFact ; rs:requiredBy ex:policyMetformin ; rs:factMetric "eGFR" .
+ex:factAllergy a rs:RequiredFact ; rs:requiredBy ex:policyMetformin ; rs:factMetric "allergy" .
+
+ex:review1 a rs:Review ; rs:reviews ex:rxMetformin ; rs:underPolicy ex:policyMetformin ;
+    rs:performedBy ex:agent ; rs:reviewedAt "2026-11-01T10:00:00"^^xsd:dateTime ; rs:produces ex:signal1 .
+
+ex:hospital a rs:EHRDataSource . ex:labA a rs:EHRDataSource . ex:labB a rs:EHRDataSource . ex:patient a rs:PHRDataSource .
+ex:recEGFR55  a rs:EHR ; rs:providedBy ex:labA ; rs:recordTimestamp "2026-10-20T09:00:00"^^xsd:dateTime .
+ex:recAllergy a rs:EHR ; rs:providedBy ex:hospital .
+ex:noteLabB   a rs:PHR ; rs:providedBy ex:patient .
+
+ex:srcHospital a rs:ReferencedSource ; rs:inReview ex:review1 ; rs:playedBy ex:hospital ; rs:sourceOrigin rs:Initial .
+ex:srcLabA     a rs:ReferencedSource ; rs:inReview ex:review1 ; rs:playedBy ex:labA ; rs:sourceOrigin rs:Initial .
+ex:srcPHR      a rs:ReferencedSource ; rs:inReview ex:review1 ; rs:playedBy ex:patient ; rs:sourceOrigin rs:Initial .
+ex:srcLabB     a rs:ReferencedSource ; rs:inReview ex:review1 ; rs:playedBy ex:labB ; rs:sourceOrigin rs:Discovered ; rs:referencedIn ex:noteLabB .
+
+ex:respHospital a rs:RecordResponse ; rs:respondedBy ex:hospital ; rs:returnedRecord ex:recAllergy .
+ex:respLabA     a rs:RecordResponse ; rs:respondedBy ex:labA ; rs:returnedRecord ex:recEGFR55 .
+ex:respPHR      a rs:RecordResponse ; rs:respondedBy ex:patient ; rs:returnedRecord ex:noteLabB .
+ex:respLabB     a rs:SignedAbsenceStatement ; rs:respondedBy ex:labB ; rs:signature "0xabc" ;
+    rs:forPatient ex:pat ; rs:recordType "eGFR" ;
+    rs:periodStart "2026-10-20T09:00:00"^^xsd:dateTime ; rs:periodEnd "2026-11-01T10:00:00"^^xsd:dateTime .
+ex:authLabB a rs:AuthenticationOutcome ; rs:outcomeType rs:Granted ; rs:basedOnResponse ex:chResp1 .
+
+ex:signal1 a rs:ReviewSignal ;
+    rs:hasSourceStatus ex:ssHospital , ex:ssLabA , ex:ssPHR , ex:ssLabB ;
+    rs:hasFactStatus ex:fsEGFR , ex:fsAllergy ;
+    rs:reportedOutcome rs:NoIssueFound .
+ex:ssHospital a rs:SourceStatus ; rs:aboutSource ex:srcHospital ; rs:retrievalState rs:DataRetrieved ; rs:hasResponse ex:respHospital .
+ex:ssLabA     a rs:SourceStatus ; rs:aboutSource ex:srcLabA ; rs:retrievalState rs:DataRetrieved ; rs:hasResponse ex:respLabA .
+ex:ssPHR      a rs:SourceStatus ; rs:aboutSource ex:srcPHR ; rs:retrievalState rs:DataRetrieved ; rs:hasResponse ex:respPHR .
+ex:ssLabB     a rs:SourceStatus ; rs:aboutSource ex:srcLabB ; rs:retrievalState rs:DataRetrieved ; rs:hasResponse ex:respLabB ;
+    rs:hasAuthenticationOutcome ex:authLabB .
+ex:fsEGFR    a rs:FactStatus ; rs:aboutFact ex:factEGFR ; rs:confirmationState rs:Confirmed ; prov:wasDerivedFrom ex:recEGFR55 .
+ex:fsAllergy a rs:FactStatus ; rs:aboutFact ex:factAllergy ; rs:confirmationState rs:Confirmed ; prov:wasDerivedFrom ex:recAllergy .
