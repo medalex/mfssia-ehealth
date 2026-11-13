@@ -59,7 +59,6 @@
     "class-validator": "^0.14.3",
     "compression": "^1.8.1",
     "circomlibjs": "^0.1.7",
-    "dkg.js": "8.2.4",
     "es6-shim": "^0.35.8",
     "ethers": "^6.16.0",
     "fastify": "^5.4.0",

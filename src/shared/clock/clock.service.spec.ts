@@ -3,7 +3,7 @@ import { AppConfigValidator } from '@/config/app/app-config.validator';
 import validateConfig from '@/common/utils/validate-config';
 import { ClockService } from './clock.service';
 
-const baseEnv = { NODE_ENV: 'test', DKG_HOSTNAME: 'localhost', PUBLIC_KEY: 'pub', PRIVATE_KEY: 'priv' };
+const baseEnv = { NODE_ENV: 'test', DKG_V10_TOKEN: 'token' };
 const configWith = (value: string | undefined) => ({ get: () => value }) as any;
 
 describe('ClockService', () => {

@@ -5,6 +5,11 @@ API_PREFIX=api
 EVIDENCE_LAB_STALE_AFTER_DAYS=90
 EVIDENCE_REFERENCE_TIME=2026-10-10T00:00:00Z
 PILOT_DEMO_SEED=false
+# OriginTrail DKG V10 node (see dkg-node/dkg-v10-local); the token is the last line of its auth.token
+DKG_V10_URL=http://localhost:9200
+DKG_V10_TOKEN=
+DKG_CONTEXT_GRAPH=mfssia-ehealth
+DKG_WRITE_MODE=draft
 APP_FALLBACK_LANGUAGE=en
 APP_HEADER_LANGUAGE=x-custom-lang
 

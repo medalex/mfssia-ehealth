@@ -94,6 +94,19 @@ export class DkgV10Client {
     });
   }
 
+  /** The quads of a knowledge asset's Working Memory draft. */
+  async getKnowledgeAssetQuads(
+    contextGraphId: string,
+    name: string,
+  ): Promise<DkgV10Quad[]> {
+    const body = await this.request<{ quads?: DkgV10Quad[] }>({
+      method: 'GET',
+      url: `/api/knowledge-assets/${encodeURIComponent(name)}/wm/quads`,
+      params: { contextGraphId },
+    });
+    return body?.quads ?? [];
+  }
+
   /** SPARQL SELECT over the context graph's Working Memory; returns the binding rows. */
   async query(
     contextGraphId: string,

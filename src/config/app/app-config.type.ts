@@ -7,21 +7,11 @@ export type AppConfig = {
   evidenceReferenceTime?: string;
 
   dkg: {
-    endpoint: string;
-    port: number;
-    useSSL: boolean;
-    logLevel: string;
-    blockchain: {
-      name: string;
-      transactionPollingTimeout: number;
-      publicKey: string;
-      privateKey: string;
-      withGasPriceBufferPercent: number;
-    };
-    maxNumberOfRetries: number;
-    frequency: number;
-    contentType: string;
-    environment: string;
+    url: string;
+    token: string;
+    contextGraph: string;
+    // draft: Working Memory only (no blockchain); publish: on-chain Verifiable Memory (not implemented yet)
+    writeMode: 'draft' | 'publish';
   };
 
   isDkgMocked: boolean;

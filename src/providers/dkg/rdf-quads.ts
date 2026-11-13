@@ -47,11 +47,13 @@ export type RdfFormat =
   | 'application/n-quads'
   | 'application/trig';
 
-/** JSON-LD document -> quads. */
-export async function jsonLdToQuads(document: object): Promise<DkgV10Quad[]> {
-  let nquads: string;
+/**
+ * JSON-LD document -> canonical N-Quads (URDNA2015). Equal documents give equal text, blank
+ * nodes included (_:c14n0, ...), so it is what a content hash is taken over.
+ */
+export async function canonizeJsonLd(document: object): Promise<string> {
   try {
-    nquads = await jsonld.canonize(
+    return await jsonld.canonize(
       document as jsonld.JsonLdDocument,
       {
         algorithm: 'URDNA2015',
@@ -65,7 +67,11 @@ export async function jsonLdToQuads(document: object): Promise<DkgV10Quad[]> {
     const cause = (error as { details?: { cause?: unknown } })?.details?.cause;
     throw cause instanceof MissingLocalContextError ? cause : error;
   }
-  const quads = parseRdf(nquads, 'application/n-quads');
+}
+
+/** JSON-LD document -> quads. */
+export async function jsonLdToQuads(document: object): Promise<DkgV10Quad[]> {
+  const quads = parseRdf(await canonizeJsonLd(document), 'application/n-quads');
   if (quads.length === 0) throw new Error('JSON-LD document produced no quads');
   return quads;
 }

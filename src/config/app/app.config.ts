@@ -18,22 +18,10 @@ export default registerAs<AppConfig>('app', () => {
     evidenceReferenceTime: process.env.EVIDENCE_REFERENCE_TIME || undefined,
 
     dkg: {
-      endpoint: process.env.DKG_HOSTNAME || 'localhost',
-      port: parseInt(process.env.DKG_PORT || '8900', 10),
-      useSSL: false, // Can be made configurable if needed
-      logLevel: 'trace',
-      blockchain: {
-        name: process.env.DKG_BLOCKCHAIN_NAME || 'hardhat1:31337',
-        rpc: process.env.DKG_BLOCKCHAIN_RPC || undefined,
-        transactionPollingTimeout: 6000,
-        publicKey: process.env.PUBLIC_KEY || '',
-        privateKey: process.env.PRIVATE_KEY || '',
-        withGasPriceBufferPercent: 150,
-      },
-      maxNumberOfRetries: 1,
-      frequency: 2,
-      contentType: 'all',
-      environment: process.env.DKG_ENVIRONMENT || 'development',
+      url: process.env.DKG_V10_URL || 'http://localhost:9200',
+      token: process.env.DKG_V10_TOKEN || '',
+      contextGraph: process.env.DKG_CONTEXT_GRAPH || 'mfssia-ehealth',
+      writeMode: (process.env.DKG_WRITE_MODE || 'draft') as AppConfig['dkg']['writeMode'],
     },
 
     isDkgMocked: process.env.IS_DKG_MOCKED === 'true',
