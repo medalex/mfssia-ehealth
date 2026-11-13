@@ -18,7 +18,8 @@ git clone https://medalex@bitbucket.org/alexnorta/dkg6_client_js.git
 # Install NPM dependencies
 
 ```
-npm install
+npm i -g rollup@4   # dkg.js postinstall scripts run `npx rollup` in parallel and can race on a clean npm cache
+npm ci --legacy-peer-deps
 ```
 
 ```
